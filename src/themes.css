@@ -164,3 +164,45 @@
   --editor-font: "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --editor-font-size: 15px;
 }
+
+/* ── Slate 主题（浅色，石墨灰简约风格） ── */
+[data-theme="slate"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-surface: #f8fafc;
+  --bg-code: #f1f5f9;
+  --bg-code-inline: rgba(100, 116, 139, 0.08);
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent: #475569;
+  --accent-rgb: 71, 85, 105;
+  --accent-hover: #334155;
+  --border: #e2e8f0;
+  --danger: #dc2626;
+  --text-strong: #bd387d;
+  --font-mono: "Cascadia Code", "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --editor-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --editor-font-size: 15px;
+}
+
+/* ── Ocean 主题（浅色，海洋冷色调） ── */
+[data-theme="ocean"] {
+  --bg-primary: #f0f9ff;
+  --bg-secondary: #e0f2fe;
+  --bg-surface: #f0f9ff;
+  --bg-code: #f0f9ff;
+  --bg-code-inline: rgba(8, 145, 178, 0.08);
+  --text-primary: #0c4a6e;
+  --text-secondary: #64748b;
+  --accent: #0891b2;
+  --accent-rgb: 8, 145, 178;
+  --accent-hover: #0e7490;
+  --border: #a5f3fc;
+  --danger: #dc2626;
+  --text-strong: #bd387d;
+  --font-mono: "Cascadia Code", "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --editor-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --editor-font-size: 15px;
+}

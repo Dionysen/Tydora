@@ -6,6 +6,8 @@ export const BUILTIN_THEMES = [
   "purple",
   "hermes",
   "next",
+  "slate",
+  "ocean",
 ] as const;
 
 export type BuiltinThemeName = (typeof BUILTIN_THEMES)[number];

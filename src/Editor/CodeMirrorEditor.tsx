@@ -4,11 +4,15 @@ import { EditorState, Compartment } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { javascript } from "@codemirror/lang-javascript";
+import { python } from "@codemirror/lang-python";
 import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { json } from "@codemirror/lang-json";
 import { xml } from "@codemirror/lang-xml";
 import { yaml } from "@codemirror/lang-yaml";
+import { rust } from "@codemirror/lang-rust";
+import { java } from "@codemirror/lang-java";
+import { cpp } from "@codemirror/lang-cpp";
 import { syntaxHighlighting, bracketMatching, foldGutter, indentOnInput, HighlightStyle } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
@@ -40,6 +44,20 @@ function getLanguageExtension(filePath: string | null | undefined) {
       return javascript({ typescript: true });
     case "tsx":
       return javascript({ jsx: true, typescript: true });
+    case "py":
+    case "pyw":
+      return python();
+    case "rs":
+      return rust();
+    case "java":
+      return java();
+    case "c":
+    case "cpp":
+    case "cc":
+    case "cxx":
+    case "h":
+    case "hpp":
+      return cpp();
     case "html":
     case "htm":
     case "vue":

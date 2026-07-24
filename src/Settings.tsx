@@ -602,14 +602,16 @@ function ThemeSettingsContent({
   const [codeThemeName, setCodeThemeName] = useState("");
   const [codeThemeDialog, setCodeThemeDialog] = useState<{ open: boolean; filePath: string }>({ open: false, filePath: "" });
 
-  const builtinThemes: { value: ThemeName; label: string }[] = [
-    { value: "white", label: "白色" },
-    { value: "mint", label: "Mint" },
-    { value: "mint-dark", label: "Mint Dark" },
-    { value: "claude-code", label: "Claude Code" },
-    { value: "purple", label: "Purple" },
-    { value: "hermes", label: "Hermes" },
-    { value: "next", label: "NexT" },
+  const builtinThemes: { value: ThemeName; label: string; colors: string[] }[] = [
+    { value: "white", label: "白色", colors: ["#ffffff", "#2563eb", "#1e293b", "#d1d9e6"] },
+    { value: "mint", label: "Mint", colors: ["#ffffff", "#4eb289", "#1e293b", "#a5cfc0"] },
+    { value: "mint-dark", label: "Mint Dark", colors: ["#272729", "#4eb289", "#cccccc", "#39393a"] },
+    { value: "claude-code", label: "Claude Code", colors: ["#faf8f5", "#c47a2a", "#1a1a1a", "#ddd6cc"] },
+    { value: "purple", label: "Purple", colors: ["#faf5ff", "#7c3aed", "#1e1b2e", "#ddd6ee"] },
+    { value: "hermes", label: "Hermes", colors: ["#f0f1ff", "#0000f2", "#1a1a4e", "rgba(0,0,242,0.12)"] },
+    { value: "next", label: "NexT", colors: ["#fffef8", "#00796b", "#4a4a4a", "#e0ddd6"] },
+    { value: "slate", label: "Slate", colors: ["#f8fafc", "#475569", "#0f172a", "#e2e8f0"] },
+    { value: "ocean", label: "Ocean", colors: ["#f0f9ff", "#0891b2", "#0c4a6e", "#a5f3fc"] },
   ];
 
   const handleImport = useCallback(async () => {
@@ -805,6 +807,27 @@ function ThemeSettingsContent({
             onClick={() => setTheme(t.value)}
           >
             <div className="settings-theme-preview" data-theme={t.value}>
+              <div className="theme-preview-mock">
+                <div className="mock-titlebar" style={{ background: t.colors[0] }}>
+                  <div className="mock-dots">
+                    <span style={{ background: t.colors[1] }} />
+                    <span style={{ background: t.colors[3] }} />
+                    <span style={{ background: t.colors[3] }} />
+                  </div>
+                </div>
+                <div className="mock-body">
+                  <div className="mock-sidebar" style={{ background: t.colors[3] }}>
+                    <div className="mock-line" style={{ background: t.colors[1], width: '60%' }} />
+                    <div className="mock-line" style={{ background: t.colors[2], opacity: 0.3, width: '80%' }} />
+                    <div className="mock-line" style={{ background: t.colors[2], opacity: 0.3, width: '45%' }} />
+                  </div>
+                  <div className="mock-editor" style={{ background: t.colors[0] }}>
+                    <div className="mock-line" style={{ background: t.colors[2], opacity: 0.2, width: '70%' }} />
+                    <div className="mock-line" style={{ background: t.colors[2], opacity: 0.15, width: '55%' }} />
+                    <div className="mock-accent-line" style={{ background: t.colors[1], width: '40%' }} />
+                  </div>
+                </div>
+              </div>
               {theme === t.value && (
                 <div className="settings-theme-check">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">

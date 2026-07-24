@@ -481,6 +481,10 @@
   margin: 0.5em 0;
 }
 
+.canvas-text-editor > :first-child {
+  margin-top: 0;
+}
+
 .canvas-text-editor ul,
 .canvas-text-editor ol {
   padding-left: 2em;
@@ -719,6 +723,10 @@
 
 .canvas-note-editor p {
   margin: 0.5em 0;
+}
+
+.canvas-note-editor > :first-child {
+  margin-top: 0;
 }
 
 .canvas-note-editor ul,
