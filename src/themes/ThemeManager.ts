@@ -2,7 +2,6 @@ export const BUILTIN_THEMES = [
   "white",
   "mint",
   "mint-dark",
-  "liquid-glass",
   "claude-code",
   "purple",
   "hermes",

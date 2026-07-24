@@ -606,7 +606,6 @@ function ThemeSettingsContent({
     { value: "white", label: "白色" },
     { value: "mint", label: "Mint" },
     { value: "mint-dark", label: "Mint Dark" },
-    { value: "liquid-glass", label: "Liquid Glass" },
     { value: "claude-code", label: "Claude Code" },
     { value: "purple", label: "Purple" },
     { value: "hermes", label: "Hermes" },
