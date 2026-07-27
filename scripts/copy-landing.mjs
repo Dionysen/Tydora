@@ -13,6 +13,15 @@ const dest = resolve(__dirname, "../website/site/index.html");
 // Ensure the site directory exists
 mkdirSync(resolve(__dirname, "../website/site"), { recursive: true });
 
+// Copy icon file to site directory
+const iconSrc = resolve(__dirname, "../src-tauri/icons/icon.png");
+const iconDest = resolve(__dirname, "../website/site/icon.png");
+try {
+  writeFileSync(iconDest, readFileSync(iconSrc));
+} catch (e) {
+  console.log("⚠️ Icon file not found, skipping");
+}
+
 const html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -100,8 +109,9 @@ const html = `<!DOCTYPE html>
       align-items: center;
       gap: 10px;
     }
-    .navbar-logo svg {
+    .navbar-logo img {
       width: 32px; height: 32px;
+      border-radius: 8px;
       filter: drop-shadow(0 4px 16px rgba(138, 92, 245, 0.3));
     }
     .navbar-links {
@@ -483,24 +493,14 @@ const html = `<!DOCTYPE html>
 <nav class="navbar" id="navbar">
   <div class="navbar-container">
     <a href="#" class="navbar-logo">
-      <svg viewBox="0 0 32 32" fill="none">
-        <rect width="32" height="32" rx="7" fill="#8a5cf5"/>
-        <g stroke="#fff" stroke-width="2" stroke-linecap="round">
-          <path d="M10 11 L16 21 M22 11 L16 21 M10 11 L22 11"/>
-        </g>
-        <g fill="#fff">
-          <circle cx="10" cy="11" r="3"/>
-          <circle cx="22" cy="11" r="3"/>
-          <circle cx="16" cy="21" r="3"/>
-        </g>
-      </svg>
+      <img src="icon.png" alt="Tydora" width="32" height="32"/>
       Tydora
     </a>
     <div class="navbar-links">
       <a href="#features">功能</a>
       <a href="#tech">技术栈</a>
-      <a href="#guide">使用指南</a>
-      <a href="关于/">关于</a>
+      <a href="index/" target="_blank">使用指南</a>
+      <a href="关于/" target="_blank">关于</a>
     </div>
     <div class="navbar-right">
       <a href="https://github.com/zuorn/Tydora" class="navbar-github" target="_blank" aria-label="GitHub">
@@ -576,7 +576,7 @@ Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="f
   </div>
 </section>
 
-<section class="section">
+<section class="section" id="features">
   <div class="section-header">
     <div class="label">核心特性</div>
     <h2>你所需要的一切，开箱即用</h2>
@@ -667,7 +667,7 @@ Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="f
   </div>
 </section>
 
-<section class="tech-section">
+<section class="tech-section" id="tech">
   <div class="section-header">
     <div class="label">技术栈</div>
     <h2>现代技术，极致体验</h2>
@@ -732,7 +732,7 @@ Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="f
     <p>从入门到精通，文档涵盖了所有你需要了解的内容。</p>
   </div>
   <div class="links-grid">
-    <a href="快速开始/" class="link-card">
+    <a href="快速开始/" class="link-card" target="_blank">
       <div class="link-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       </div>
@@ -741,7 +741,7 @@ Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="f
         <div class="link-desc">安装、创建仓库、开始写作</div>
       </div>
     </a>
-    <a href="编辑器/编辑模式/" class="link-card">
+    <a href="编辑器/编辑模式/" class="link-card" target="_blank">
       <div class="link-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </div>
@@ -750,7 +750,7 @@ Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="f
         <div class="link-desc">WYSIWYG &amp; 源码模式详解</div>
       </div>
     </a>
-    <a href="知识管理/wiki链接/" class="link-card">
+    <a href="知识管理/wiki链接/" class="link-card" target="_blank">
       <div class="link-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
       </div>
@@ -759,7 +759,7 @@ Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="f
         <div class="link-desc">双向链接与知识网络</div>
       </div>
     </a>
-    <a href="知识管理/知识图谱/" class="link-card">
+    <a href="知识管理/知识图谱/" class="link-card" target="_blank">
       <div class="link-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/></svg>
       </div>
@@ -768,7 +768,7 @@ Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="f
         <div class="link-desc">可视化笔记关系网络</div>
       </div>
     </a>
-    <a href="白板画布/" class="link-card">
+    <a href="白板画布/" class="link-card" target="_blank">
       <div class="link-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
       </div>
@@ -777,7 +777,7 @@ Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="f
         <div class="link-desc">无限画布自由创作</div>
       </div>
     </a>
-    <a href="发布网站/" class="link-card">
+    <a href="发布网站/" class="link-card" target="_blank">
       <div class="link-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       </div>
@@ -786,7 +786,7 @@ Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="f
         <div class="link-desc">一键发布 Vault 为静态网站</div>
       </div>
     </a>
-    <a href="快捷键速查/" class="link-card">
+    <a href="快捷键速查/" class="link-card" target="_blank">
       <div class="link-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M6 16h.01M10 16h.01M14 16h.01"/></svg>
       </div>
@@ -795,7 +795,7 @@ Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="f
         <div class="link-desc">所有键盘快捷键一览</div>
       </div>
     </a>
-    <a href="主题/内置主题/" class="link-card">
+    <a href="主题/内置主题/" class="link-card" target="_blank">
       <div class="link-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20"/><path d="M12 2a10 10 0 0 0 0 20"/></svg>
       </div>
