@@ -32,7 +32,7 @@ try {
 }
 
 // Copy zjm.png preview image to site directory
-const previewImgSrc = resolve(__dirname, "../website/zjm.png");
+const previewImgSrc = resolve(__dirname, "../website/landing/zjm.png");
 const previewImgDest = resolve(__dirname, "../website/site/zjm.png");
 try {
   writeFileSync(previewImgDest, readFileSync(previewImgSrc));
