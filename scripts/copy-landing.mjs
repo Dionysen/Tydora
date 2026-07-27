@@ -28,6 +28,8 @@ const html = `<!DOCTYPE html>
       --color-primary-dark: #6d3fd4;
       --color-primary-bg: rgba(138, 92, 245, 0.08);
       --color-primary-border: rgba(138, 92, 245, 0.18);
+      --color-secondary: #06b6d4;
+      --color-accent: #f472b6;
       --color-bg: #ffffff;
       --color-bg-alt: #fafafa;
       --color-bg-card: #ffffff;
@@ -42,12 +44,14 @@ const html = `<!DOCTYPE html>
       --radius-md: 12px;
       --radius-lg: 16px;
       --radius-xl: 20px;
+      --radius-2xl: 28px;
       --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
       --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
       --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
       --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.15);
       --font-sans: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
       --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Consolas", monospace;
+      --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -59,6 +63,132 @@ const html = `<!DOCTYPE html>
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    /* ====== Navbar ====== */
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 9999;
+      height: 72px;
+      background: #ffffff;
+      border-bottom: 1px solid rgba(138, 92, 245, 0.1);
+      transition: all 0.4s var(--ease-smooth);
+      display: flex;
+      align-items: center;
+    }
+    .navbar.scrolled {
+      background: #ffffff;
+      box-shadow: 0 4px 30px rgba(138, 92, 245, 0.1);
+    }
+    .navbar-container {
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .navbar-logo {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--color-text);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .navbar-logo svg {
+      width: 32px; height: 32px;
+      filter: drop-shadow(0 4px 16px rgba(138, 92, 245, 0.3));
+    }
+    .navbar-links {
+      display: flex;
+      gap: 36px;
+      align-items: center;
+    }
+    .navbar-links a {
+      text-decoration: none;
+      color: var(--color-text-muted);
+      font-size: 15px;
+      font-weight: 500;
+      transition: all 0.3s var(--ease-smooth);
+      position: relative;
+    }
+    .navbar-links a:hover {
+      color: var(--color-primary);
+    }
+    .navbar-links a::after {
+      content: "";
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-gradient-end));
+      transition: width 0.3s var(--ease-smooth);
+      border-radius: 1px;
+    }
+    .navbar-links a:hover::after {
+      width: 100%;
+    }
+    .navbar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .navbar-github {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: rgba(15, 15, 26, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: all 0.3s var(--ease-smooth);
+    }
+    .navbar-github:hover {
+      background: rgba(138, 92, 245, 0.1);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(138, 92, 245, 0.15);
+    }
+    .navbar-github svg {
+      width: 20px; height: 20px;
+      color: var(--color-text);
+    }
+    .navbar-download {
+      padding: 10px 24px;
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+      color: white;
+      border-radius: var(--radius-lg);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      box-shadow: 0 6px 24px rgba(138, 92, 245, 0.35);
+      transition: all 0.3s var(--ease-smooth);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .navbar-download:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(138, 92, 245, 0.5);
+    }
+    .navbar-download svg {
+      width: 16px; height: 16px;
+    }
+    .navbar-toggle {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+    }
+    .navbar-toggle svg {
+      width: 24px; height: 24px;
+      color: var(--color-text);
     }
 
     .hero {
@@ -302,8 +432,33 @@ const html = `<!DOCTYPE html>
     .footer a:hover { text-decoration: underline; }
     .footer .links { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
 
+    @media (max-width: 960px) {
+      .navbar-links { display: none; }
+      .navbar-toggle { display: block; }
+      .navbar-links.active {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 72px;
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.98);
+        padding: 24px;
+        gap: 20px;
+        box-shadow: 0 20px 60px rgba(138, 92, 245, 0.1);
+        border-bottom: 1px solid rgba(138, 92, 245, 0.06);
+      }
+      .navbar-links.active a {
+        padding: 12px 20px;
+        border-radius: var(--radius-lg);
+      }
+      .navbar-links.active a:hover {
+        background: rgba(138, 92, 245, 0.06);
+      }
+    }
+
     @media (max-width: 768px) {
-      .hero { padding: 80px 20px 64px; }
+      .hero { padding: 140px 20px 64px; }
       .section { padding: 64px 20px; }
       .tech-section { padding: 64px 20px; }
       .feature-grid { grid-template-columns: 1fr; }
@@ -323,6 +478,44 @@ const html = `<!DOCTYPE html>
   </style>
 </head>
 <body>
+
+<!-- ====== Navbar ====== -->
+<nav class="navbar" id="navbar">
+  <div class="navbar-container">
+    <a href="#" class="navbar-logo">
+      <svg viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="7" fill="#8a5cf5"/>
+        <g stroke="#fff" stroke-width="2" stroke-linecap="round">
+          <path d="M10 11 L16 21 M22 11 L16 21 M10 11 L22 11"/>
+        </g>
+        <g fill="#fff">
+          <circle cx="10" cy="11" r="3"/>
+          <circle cx="22" cy="11" r="3"/>
+          <circle cx="16" cy="21" r="3"/>
+        </g>
+      </svg>
+      Tydora
+    </a>
+    <div class="navbar-links">
+      <a href="#features">功能</a>
+      <a href="#tech">技术栈</a>
+      <a href="#guide">使用指南</a>
+      <a href="关于/">关于</a>
+    </div>
+    <div class="navbar-right">
+      <a href="https://github.com/zuorn/Tydora" class="navbar-github" target="_blank" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+      </a>
+      <a href="https://github.com/zuorn/Tydora/releases" class="navbar-download" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        下载
+      </a>
+    </div>
+    <button class="navbar-toggle" id="navbarToggle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+</nav>
 
 <section class="hero">
   <div class="floating-shapes">
@@ -623,6 +816,26 @@ Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="f
   </div>
   <p>Built with ❤️ using Tauri v2 &amp; React 19. &copy; 2024–2026 Tydora.</p>
 </footer>
+
+<script>
+  // Navbar Scroll Effect
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 20) {
+      navbar.classList.add('scrolled');
+    } else {
+      navbar.classList.remove('scrolled');
+    }
+  });
+  
+  // Navbar Toggle (Mobile)
+  const navbarToggle = document.getElementById('navbarToggle');
+  const navbarLinks = document.querySelector('.navbar-links');
+  navbarToggle.addEventListener('click', () => {
+    navbarLinks.classList.toggle('active');
+    navbarToggle.classList.toggle('active');
+  });
+</script>
 
 </body>
 </html>
