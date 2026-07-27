@@ -410,34 +410,96 @@ const html = `<!DOCTYPE html>
     .link-card .link-desc { font-size: 13px; color: var(--color-text-faint); margin-top: 2px; }
 
     .code-preview {
-      max-width: 800px; margin: 0 auto;
-      background: #1e1e2e; border-radius: var(--radius-xl);
-      overflow: hidden; box-shadow: var(--shadow-xl);
+      max-width: 960px; margin: 0 auto;
+      background: #1e1e2e; border-radius: var(--radius-3xl);
+      overflow: hidden;
+      box-shadow: 0 40px 120px rgba(0, 0, 0, 0.4);
+      transition: all 0.5s var(--ease-smooth);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .code-preview::before {
+      content: "";
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(137, 180, 250, 0.03) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .code-preview:hover {
+      box-shadow: 0 50px 150px rgba(0, 0, 0, 0.5);
+      transform: translateY(-4px);
     }
     .code-preview .titlebar {
-      display: flex; align-items: center; gap: 8px;
+      display: flex; align-items: center; gap: 10px;
       padding: 14px 20px; background: #181825;
-      border-bottom: 1px solid #313244;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      flex-shrink: 0;
     }
     .code-preview .titlebar .dot {
       width: 12px; height: 12px; border-radius: 50%;
+      transition: all 0.3s var(--ease-smooth);
     }
-    .dot-red { background: #f38ba8; }
-    .dot-yellow { background: #fab387; }
-    .dot-green { background: #a6e3a1; }
+    .code-preview:hover .titlebar .dot { transform: scale(1.2); }
+    .dot-red { background: #f38ba8; box-shadow: 0 0 8px rgba(243, 139, 168, 0.4); }
+    .dot-yellow { background: #fab387; box-shadow: 0 0 8px rgba(250, 179, 135, 0.4); }
+    .dot-green { background: #a6e3a1; box-shadow: 0 0 8px rgba(166, 227, 161, 0.4); }
     .code-preview .titlebar .title {
-      margin-left: 10px; font-size: 13px; color: #6c7086;
+      margin-left: 16px; font-size: 13px; color: #6c7086;
       font-family: var(--font-mono);
+      display: flex; align-items: center; gap: 8px;
     }
-    .code-preview pre {
-      padding: 24px; margin: 0; overflow-x: auto;
-      font-family: var(--font-mono); font-size: 14px;
-      line-height: 1.7; color: #cdd6f4;
+    .code-preview .titlebar .title::before {
+      content: "";
+      width: 16px; height: 16px;
+      background: #8a5cf5;
+      border-radius: 4px;
+      box-shadow: 0 0 8px rgba(138, 92, 245, 0.3);
     }
-    .code-preview .keyword { color: #cba6f7; }
+    .code-preview .editor-body {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+    .code-preview .line-numbers {
+      width: 50px;
+      padding: 20px 0;
+      background: #181825;
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      overflow: hidden;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .code-preview .line-number {
+      padding: 0 10px 0 0;
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 1.7;
+      color: #6c7086;
+      opacity: 0.35;
+    }
+    .code-preview .code-content {
+      flex: 1;
+      padding: 20px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 1.7;
+      color: #cdd6f4;
+      position: relative;
+    }
+    .code-preview .code-content::before {
+      content: "";
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(137, 180, 250, 0.3), rgba(138, 92, 245, 0.3), transparent);
+      opacity: 0.4;
+    }
+    .code-preview .keyword { color: #cba6f7; font-weight: 600; }
     .code-preview .string { color: #a6e3a1; }
-    .code-preview .comment { color: #6c7086; }
-    .code-preview .fn { color: #89b4fa; }
+    .code-preview .comment { color: #6c7086; font-style: italic; }
+    .code-preview .fn { color: #89b4fa; font-weight: 600; }
+    .code-preview .bold { font-weight: 700; color: #e06c75; }
+    .code-preview .inline-code { background: rgba(137, 180, 250, 0.15); padding: 0.15em 0.4em; border-radius: 3px; color: #e83e8c; font-size: 0.9em; }
 
     .footer {
       text-align: center;
@@ -543,7 +605,7 @@ const html = `<!DOCTYPE html>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         立即下载
       </a>
-      <a href="index/" class="btn btn-outline">
+      <a href="index/" class="btn btn-outline" target="_blank">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
         浏览文档
       </a>
@@ -560,18 +622,37 @@ const html = `<!DOCTYPE html>
   </div>
 </section>
 
-<section style="padding: 0 24px; margin-top: -40px; position: relative; z-index: 2;">
+<section style="padding: 0 24px; margin-top: -80px; position: relative; z-index: 2;">
   <div class="code-preview">
     <div class="titlebar">
       <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
       <span class="title">my-notes.md — Tydora</span>
     </div>
-    <pre><span class="comment"># 欢迎使用 Tydora 🎁</span>
+    <div class="editor-body">
+      <div class="line-numbers">
+        <div class="line-number">1</div>
+        <div class="line-number">2</div>
+        <div class="line-number">3</div>
+        <div class="line-number">4</div>
+        <div class="line-number">5</div>
+        <div class="line-number">6</div>
+        <div class="line-number">7</div>
+        <div class="line-number">8</div>
+        <div class="line-number">9</div>
+        <div class="line-number">10</div>
+        <div class="line-number">11</div>
+        <div class="line-number">12</div>
+        <div class="line-number">13</div>
+        <div class="line-number">14</div>
+        <div class="line-number">15</div>
+        <div class="line-number">16</div>
+      </div>
+      <div class="code-content"><span class="comment"># 欢迎使用 Tydora 🎁</span>
 
 <span class="keyword">##</span> 指尖上的礼物
 
-Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="fn">**源码模式**</span> 无缝切换。
-按 <span class="string">\`Ctrl+/\`</span> 试试看 👆
+Tydora 支持 <span class="bold">**WYSIWYG**</span> 即时渲染与 <span class="bold">**源码模式**</span> 无缝切换。
+按 <span class="inline-code">Ctrl+/</span> 试试看 👆
 
 <span class="keyword">##</span> 知识互联
 
@@ -580,8 +661,9 @@ Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="f
 
 <span class="keyword">##</span> 一键发布
 
-写完笔记，<span class="fn">一键发布</span>为静态网站 —
-就像你现在看到的这个文档站点一样 ✨</pre>
+写完笔记，<span class="bold">一键发布</span>为静态网站 —
+就像你现在看到的这个文档站点一样 ✨</div>
+    </div>
   </div>
 </section>
 
@@ -821,7 +903,7 @@ Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="f
     <a href="https://github.com/zuorn/Tydora" target="_blank">GitHub</a>
     <a href="https://github.com/zuorn/Tydora/releases" target="_blank">Releases</a>
     <a href="https://github.com/zuorn/Tydora/blob/main/LICENSE" target="_blank">Apache 2.0</a>
-    <a href="关于/">关于</a>
+    <a href="关于/" target="_blank">关于</a>
   </div>
   <p>Built with ❤️ using Tauri v2 &amp; React 19. &copy; 2024–2026 Tydora.</p>
 </footer>
