@@ -3,7 +3,7 @@
  * HTML 内容内联在脚本中，无需依赖外部文件
  * 在 markdown-publish 构建后运行此脚本
  */
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -341,7 +341,7 @@ const html = `<!DOCTYPE html>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         立即下载
       </a>
-      <a href="/index" class="btn btn-outline">
+      <a href="/index/" class="btn btn-outline">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
         浏览文档
       </a>
@@ -630,3 +630,14 @@ Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="f
 
 writeFileSync(dest, html, "utf-8");
 console.log("✅ Landing page written to website/site/index.html");
+
+// Fix 404.html redirect: /index -> /index/ (trailing slash for GitHub Pages)
+const notFoundPath = resolve(__dirname, "../website/site/404.html");
+try {
+  let notFound = readFileSync(notFoundPath, "utf-8");
+  notFound = notFound.replace(/\/index\b(?!\/)/g, "/index/");
+  writeFileSync(notFoundPath, notFound, "utf-8");
+  console.log("✅ 404.html redirect fixed to /index/");
+} catch {
+  console.log("⚠️ 404.html not found, skipping redirect fix");
+}
