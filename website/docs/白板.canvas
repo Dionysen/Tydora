@@ -1,0 +1,87 @@
+{
+  "nodes": [
+    {
+      "id": "node-1785147796399-xipr8c",
+      "type": "file",
+      "x": 300,
+      "y": 330,
+      "width": 400,
+      "height": 230,
+      "file": "快速开始.md"
+    },
+    {
+      "id": "node-1785147884963-5bctvg",
+      "type": "file",
+      "x": 990,
+      "y": -60,
+      "width": 565,
+      "height": 290,
+      "file": "编辑器/编辑模式.md"
+    },
+    {
+      "id": "node-1785147899027-x9jzz1",
+      "type": "file",
+      "x": 990,
+      "y": 285,
+      "width": 565,
+      "height": 365,
+      "file": "思维导图.md"
+    },
+    {
+      "id": "node-1785147925653-jnncai",
+      "type": "file",
+      "x": 150,
+      "y": 705,
+      "width": 520,
+      "height": 500,
+      "file": "白板画布.md"
+    },
+    {
+      "id": "node-1785147958716-hegrth",
+      "type": "file",
+      "x": 720,
+      "y": 705,
+      "width": 565,
+      "height": 500,
+      "file": "知识管理/知识图谱.md"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1785147909445-1cvex6",
+      "fromNode": "node-1785147796399-xipr8c",
+      "fromSide": "right",
+      "fromEnd": "none",
+      "toNode": "node-1785147884963-5bctvg",
+      "toSide": "left",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "edge-1785147911824-zxhxa6",
+      "fromNode": "node-1785147796399-xipr8c",
+      "fromSide": "right",
+      "fromEnd": "none",
+      "toNode": "node-1785147899027-x9jzz1",
+      "toSide": "left",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "edge-1785147937610-5vltei",
+      "fromNode": "node-1785147796399-xipr8c",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "node-1785147925653-jnncai",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "edge-1785147970498-fwj2j0",
+      "fromNode": "node-1785147796399-xipr8c",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "node-1785147958716-hegrth",
+      "toSide": "top",
+      "toEnd": "arrow"
+    }
+  ]
+}
