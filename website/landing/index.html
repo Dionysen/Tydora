@@ -957,6 +957,26 @@
       color: #222222;
     }
 
+    /* Image Preview Styles */
+    .code-preview.docs-image-preview {
+      background: #ffffff;
+    }
+    .code-preview.docs-image-preview .docs-image-container {
+      width: 100%;
+      height: auto;
+      overflow: hidden;
+      background: #fafafa;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .code-preview.docs-image-preview .docs-image-container img {
+      width: 100%;
+      height: auto;
+      display: block;
+      object-fit: contain;
+    }
+
     /* ====== Footer ====== */
     .footer {
       text-align: center;
@@ -1145,165 +1165,9 @@
 
 <!-- ====== Documentation Preview ====== -->
 <section class="code-preview-section">
-  <div class="code-preview docs-preview">
-    <div class="titlebar">
-      <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
-      <span class="title">快速开始.md — Tydora</span>
-    </div>
-    <div class="docs-body">
-      <!-- Left Sidebar -->
-      <aside class="docs-sidebar">
-        <div class="docs-search">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="m21 21-4.3-4.3"/>
-          </svg>
-          <input type="text" placeholder="Search page or heading..." />
-        </div>
-        <nav class="docs-nav">
-          <div class="nav-group">
-            <button class="nav-group-title">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"/>
-              </svg>
-              编辑器
-            </button>
-            <div class="nav-group-items">
-              <a href="#" class="nav-item">Markdown语法</a>
-              <a href="#" class="nav-item">编辑模式</a>
-              <a href="#" class="nav-item">代码块</a>
-              <a href="#" class="nav-item">表格操作</a>
-              <a href="#" class="nav-item">Mermaid图表</a>
-            </div>
-          </div>
-          <div class="nav-group">
-            <button class="nav-group-title">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"/>
-              </svg>
-              导航与搜索
-            </button>
-            <div class="nav-group-items">
-              <a href="#" class="nav-item">快速打开</a>
-              <a href="#" class="nav-item">命令面板</a>
-              <a href="#" class="nav-item">大纲面板</a>
-            </div>
-          </div>
-          <div class="nav-group">
-            <button class="nav-group-title">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"/>
-              </svg>
-              设置
-            </button>
-            <div class="nav-group-items">
-              <a href="#" class="nav-item">通用设置</a>
-              <a href="#" class="nav-item">编辑器设置</a>
-              <a href="#" class="nav-item">快捷键设置</a>
-            </div>
-          </div>
-          <div class="nav-group">
-            <button class="nav-group-title">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"/>
-              </svg>
-              文件管理
-            </button>
-            <div class="nav-group-items">
-              <a href="#" class="nav-item">仓库</a>
-              <a href="#" class="nav-item">文件树</a>
-              <a href="#" class="nav-item">文件操作</a>
-            </div>
-          </div>
-          <div class="nav-group">
-            <button class="nav-group-title">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"/>
-              </svg>
-              知识管理
-            </button>
-            <div class="nav-group-items">
-              <a href="#" class="nav-item">Wiki链接</a>
-              <a href="#" class="nav-item">知识图谱</a>
-              <a href="#" class="nav-item">反向链接</a>
-            </div>
-          </div>
-          <div class="nav-group">
-            <button class="nav-group-title">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="m9 18 6-6-6-6"/>
-              </svg>
-              主题
-            </button>
-            <div class="nav-group-items">
-              <a href="#" class="nav-item">内置主题</a>
-              <a href="#" class="nav-item">代码高亮主题</a>
-            </div>
-          </div>
-          <div class="nav-items">
-            <a href="#" class="nav-item">白板画布</a>
-            <a href="#" class="nav-item">思维导图</a>
-            <a href="#" class="nav-item">发布网站</a>
-            <a href="#" class="nav-item active">快速开始</a>
-            <a href="#" class="nav-item">快捷键速查</a>
-            <a href="#" class="nav-item">关于</a>
-          </div>
-        </nav>
-      </aside>
-
-      <!-- Main Content -->
-      <main class="docs-content">
-        <article class="docs-note">
-          <h1 class="docs-title">快速开始</h1>
-          <div class="docs-body">
-            <p>Tydora 是一款基于 Tauri v2 + React 19 构建的现代化桌面 Markdown 编辑器，支持 WYSIWYG 编辑、知识管理、思维导图、白板画布等功能。</p>
-
-            <h2 id="安装">安装</h2>
-            <ol>
-              <li>从 <a href="https://github.com/zuorn/Tydora/releases" target="_blank">GitHub Releases</a> 下载最新版本</li>
-              <li>运行安装程序，按照提示完成安装</li>
-              <li>启动 Tydora</li>
-            </ol>
-
-            <h2 id="打开仓库">打开仓库</h2>
-            <p>Tydora 使用"仓库（Vault）"概念管理笔记文件。首次使用时：</p>
-            <ol>
-              <li>点击侧栏底部的仓库切换器</li>
-              <li>选择"添加仓库"</li>
-              <li>选择一个文件夹作为你的笔记仓库</li>
-              <li>侧栏将显示该文件夹的文件树</li>
-            </ol>
-            <blockquote>参见 <a href="#" class="wikilink">仓库</a> 了解更多仓库管理功能。</blockquote>
-
-            <h2 id="创建笔记">创建笔记</h2>
-            <ol>
-              <li>在侧栏文件树中右键点击</li>
-              <li>选择"新建文件"</li>
-              <li>输入文件名（如 <code>我的第一篇笔记.md</code>）</li>
-              <li>开始编写 Markdown 内容</li>
-            </ol>
-
-            <h2 id="基本编辑">基本编辑</h2>
-            <p>Tydora 支持两种 <a href="#" class="wikilink">编辑模式</a>：</p>
-            <ul>
-              <li><strong>即时渲染（IR/WYSIWYG）</strong>：直接在编辑器中看到最终效果，所见即所得</li>
-              <li><strong>源码模式（SV）</strong>：纯文本编辑，使用 CodeMirror 6 提供语法高亮</li>
-            </ul>
-            <p>按 <code>Ctrl+/</code> 切换编辑模式。</p>
-          </div>
-        </article>
-
-        <!-- TOC Sidebar -->
-        <aside class="docs-toc">
-          <h3>On this page</h3>
-          <nav>
-            <a href="#安装">安装</a>
-            <a href="#打开仓库">打开仓库</a>
-            <a href="#创建笔记">创建笔记</a>
-            <a href="#基本编辑">基本编辑</a>
-          </nav>
-        </aside>
-      </main>
+  <div class="code-preview docs-image-preview">
+    <div class="docs-image-container">
+      <img src="zjm.png" alt="Tydora 文档预览" />
     </div>
   </div>
 </section>
