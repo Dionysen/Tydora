@@ -13,13 +13,22 @@ const dest = resolve(__dirname, "../website/site/index.html");
 // Ensure the site directory exists
 mkdirSync(resolve(__dirname, "../website/site"), { recursive: true });
 
-// Copy icon file to site directory
+// Copy icon files to site directory
 const iconSrc = resolve(__dirname, "../src-tauri/icons/icon.png");
 const iconDest = resolve(__dirname, "../website/site/icon.png");
 try {
   writeFileSync(iconDest, readFileSync(iconSrc));
 } catch (e) {
   console.log("⚠️ Icon file not found, skipping");
+}
+
+// Copy favicon to site directory
+const faviconSrc = resolve(__dirname, "../dist/favicon.svg");
+const faviconDest = resolve(__dirname, "../website/site/favicon.svg");
+try {
+  writeFileSync(faviconDest, readFileSync(faviconSrc));
+} catch (e) {
+  console.log("⚠️ Favicon file not found, skipping");
 }
 
 const html = `<!DOCTYPE html>
