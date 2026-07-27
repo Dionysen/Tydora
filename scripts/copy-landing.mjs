@@ -47,6 +47,7 @@ const html = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tydora — 现代的桌面 Markdown 编辑器</title>
   <meta name="description" content="Tydora 是一个基于 Tauri v2 + React 19 构建的现代桌面 Markdown 编辑器，支持双模式编辑、双向链接、知识图谱、思维导图、白板画布与一键发布。">
+  <base href="./">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <style>
     :root {
