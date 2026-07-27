@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'website/**'
+      - 'scripts/copy-landing.mjs'
       - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
 
