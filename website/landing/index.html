@@ -707,29 +707,23 @@
       animation: fadeInUp 0.8s var(--ease-smooth) 0.2s forwards;
     }
     .code-preview {
-      max-width: 960px; margin: 0 auto;
-      background: #1e1e2e; border-radius: var(--radius-3xl);
+      max-width: 1200px; margin: 0 auto;
+      background: #ffffff; border-radius: var(--radius-3xl);
       overflow: hidden;
-      box-shadow: 0 40px 120px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 40px 120px rgba(0, 0, 0, 0.15);
       transition: all 0.5s var(--ease-smooth);
       position: relative;
       display: flex;
       flex-direction: column;
     }
-    .code-preview::before {
-      content: "";
-      position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(137, 180, 250, 0.03) 0%, transparent 50%);
-      pointer-events: none;
-    }
     .code-preview:hover {
-      box-shadow: 0 50px 150px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 50px 150px rgba(0, 0, 0, 0.2);
       transform: translateY(-4px);
     }
     .code-preview .titlebar {
       display: flex; align-items: center; gap: 10px;
-      padding: 14px 20px; background: #181825;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 14px 20px; background: #fafafa;
+      border-bottom: 1px solid #e0e0e0;
       flex-shrink: 0;
     }
     .code-preview .titlebar .dot {
@@ -737,9 +731,9 @@
       transition: all 0.3s var(--ease-smooth);
     }
     .code-preview:hover .titlebar .dot { transform: scale(1.2); }
-    .dot-red { background: #f38ba8; box-shadow: 0 0 8px rgba(243, 139, 168, 0.4); }
-    .dot-yellow { background: #fab387; box-shadow: 0 0 8px rgba(250, 179, 135, 0.4); }
-    .dot-green { background: #a6e3a1; box-shadow: 0 0 8px rgba(166, 227, 161, 0.4); }
+    .dot-red { background: #ff5f56; box-shadow: 0 0 8px rgba(255, 95, 86, 0.4); }
+    .dot-yellow { background: #ffbd2e; box-shadow: 0 0 8px rgba(255, 189, 46, 0.4); }
+    .dot-green { background: #27c93f; box-shadow: 0 0 8px rgba(39, 201, 63, 0.4); }
     .code-preview .titlebar .title {
       margin-left: 16px; font-size: 13px; color: #6c7086;
       font-family: var(--font-mono);
@@ -752,51 +746,216 @@
       border-radius: 4px;
       box-shadow: 0 0 8px rgba(138, 92, 245, 0.3);
     }
-    .code-preview .editor-body {
+
+    /* Docs Preview Styles */
+    .code-preview.docs-preview {
+      background: #ffffff;
+    }
+    .code-preview.docs-preview .docs-body {
       display: flex;
       flex: 1;
       min-height: 0;
+      height: 500px;
     }
-    .code-preview .line-numbers {
-      width: 50px;
-      padding: 20px 0;
-      background: #181825;
-      border-right: 1px solid rgba(255, 255, 255, 0.05);
+    .code-preview.docs-preview .docs-sidebar {
+      width: 280px;
+      background: #ffffff;
+      border-right: 1px solid #e0e0e0;
+      display: flex;
+      flex-direction: column;
       overflow: hidden;
-      user-select: none;
       flex-shrink: 0;
     }
-    .code-preview .line-number {
-      padding: 0 10px 0 0;
-      text-align: right;
-      font-family: var(--font-mono);
-      font-size: 14px;
-      line-height: 1.7;
+    .code-preview.docs-preview .docs-search {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid #e0e0e0;
+      background: #fafafa;
+    }
+    .code-preview.docs-preview .docs-search svg {
       color: #6c7086;
-      opacity: 0.35;
+      flex-shrink: 0;
     }
-    .code-preview .code-content {
+    .code-preview.docs-preview .docs-search input {
       flex: 1;
-      padding: 20px;
-      overflow-x: auto;
-      font-family: var(--font-mono);
+      border: none;
+      outline: none;
+      background: transparent;
       font-size: 14px;
+      color: #222222;
+      font-family: inherit;
+    }
+    .code-preview.docs-preview .docs-search input::placeholder {
+      color: #a6adc8;
+    }
+    .code-preview.docs-preview .docs-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+    .code-preview.docs-preview .nav-group {
+      margin-bottom: 4px;
+    }
+    .code-preview.docs-preview .nav-group-title {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      width: 100%;
+      padding: 6px 16px;
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6c7086;
+      cursor: pointer;
+      text-align: left;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .code-preview.docs-preview .nav-group-title svg {
+      color: #a6adc8;
+    }
+    .code-preview.docs-preview .nav-group-items {
+      padding-left: 0;
+    }
+    .code-preview.docs-preview .nav-item {
+      display: block;
+      padding: 5px 16px 5px 36px;
+      font-size: 13px;
+      color: #5c5c5c;
+      text-decoration: none;
+      transition: all 0.14s ease;
+    }
+    .code-preview.docs-preview .nav-item:hover {
+      background: rgba(138, 92, 245, 0.08);
+      color: #222222;
+    }
+    .code-preview.docs-preview .nav-item.active {
+      background: rgba(138, 92, 245, 0.15);
+      color: #8a5cf5;
+      font-weight: 500;
+    }
+    .code-preview.docs-preview .nav-items {
+      margin-top: 8px;
+    }
+
+    /* Docs Content */
+    .code-preview.docs-preview .docs-content {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .code-preview.docs-preview .docs-note {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 48px;
+      min-width: 0;
+    }
+    .code-preview.docs-preview .docs-title {
+      margin: 0 0 0.6em;
+      font-size: 2em;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.015em;
+      color: #222222;
+    }
+    .code-preview.docs-preview .docs-body {
+      font-size: 16px;
       line-height: 1.7;
-      color: #cdd6f4;
-      position: relative;
+      color: #222222;
     }
-    .code-preview .code-content::before {
-      content: "";
-      position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg, transparent, rgba(137, 180, 250, 0.3), rgba(138, 92, 245, 0.3), transparent);
-      opacity: 0.4;
+    .code-preview.docs-preview .docs-body p,
+    .code-preview.docs-preview .docs-body ul,
+    .code-preview.docs-preview .docs-body ol {
+      margin: 1rem 0;
     }
-    .code-preview .keyword { color: #cba6f7; font-weight: 600; }
-    .code-preview .string { color: #a6e3a1; }
-    .code-preview .comment { color: #6c7086; font-style: italic; }
-    .code-preview .fn { color: #89b4fa; font-weight: 600; }
-    .code-preview .bold { font-weight: 700; color: #e06c75; }
-    .code-preview .inline-code { background: rgba(137, 180, 250, 0.15); padding: 0.15em 0.4em; border-radius: 3px; color: #e83e8c; font-size: 0.9em; }
+    .code-preview.docs-preview .docs-body h2 {
+      margin-top: 2.5rem;
+      margin-bottom: 0;
+      font-size: 1.462em;
+      font-weight: 680;
+      line-height: 1.2;
+      letter-spacing: -0.011em;
+      color: #222222;
+    }
+    .code-preview.docs-preview .docs-body ul,
+    .code-preview.docs-preview .docs-body ol {
+      padding-left: 1.75em;
+    }
+    .code-preview.docs-preview .docs-body li {
+      margin: 0.15rem 0;
+    }
+    .code-preview.docs-preview .docs-body strong {
+      font-weight: 600;
+    }
+    .code-preview.docs-preview .docs-body a {
+      color: #8a5cf5;
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 1px;
+      font-weight: inherit;
+    }
+    .code-preview.docs-preview .docs-body a:hover {
+      color: #9b78f7;
+    }
+    .code-preview.docs-preview .docs-body a.wikilink {
+      color: #8a5cf5;
+    }
+    .code-preview.docs-preview .docs-body blockquote {
+      border-left: 2px solid #9873f7;
+      padding: 0 0 0 24px;
+      margin: 16px 0;
+      background: transparent;
+      color: inherit;
+      font-style: italic;
+      color: #5c5c5c;
+    }
+    .code-preview.docs-preview .docs-body code {
+      font-family: var(--font-mono);
+      font-size: 0.875em;
+      background: #fafafa;
+      border-radius: 4px;
+      padding: 0.1em 0.35em;
+      color: #5c5c5c;
+    }
+
+    /* TOC Sidebar */
+    .code-preview.docs-preview .docs-toc {
+      width: 260px;
+      padding: 32px 24px;
+      background: #fafafa;
+      border-left: 1px solid #e0e0e0;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .code-preview.docs-preview .docs-toc h3 {
+      margin: 0 0 0.5rem;
+      font-weight: 600;
+      font-size: 0.6875rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #767676;
+    }
+    .code-preview.docs-preview .docs-toc nav {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .code-preview.docs-preview .docs-toc a {
+      display: block;
+      padding: 0.25rem 0;
+      color: #5c5c5c;
+      text-decoration: none;
+      font-size: 0.8125rem;
+      line-height: 1.4;
+      transition: color 80ms ease;
+    }
+    .code-preview.docs-preview .docs-toc a:hover {
+      color: #222222;
+    }
 
     /* ====== Footer ====== */
     .footer {
@@ -984,48 +1143,167 @@
   </div>
 </section>
 
-<!-- ====== Code Preview ====== -->
+<!-- ====== Documentation Preview ====== -->
 <section class="code-preview-section">
-  <div class="code-preview">
+  <div class="code-preview docs-preview">
     <div class="titlebar">
       <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
-      <span class="title">my-notes.md — Tydora</span>
+      <span class="title">快速开始.md — Tydora</span>
     </div>
-    <div class="editor-body">
-      <div class="line-numbers">
-        <div class="line-number">1</div>
-        <div class="line-number">2</div>
-        <div class="line-number">3</div>
-        <div class="line-number">4</div>
-        <div class="line-number">5</div>
-        <div class="line-number">6</div>
-        <div class="line-number">7</div>
-        <div class="line-number">8</div>
-        <div class="line-number">9</div>
-        <div class="line-number">10</div>
-        <div class="line-number">11</div>
-        <div class="line-number">12</div>
-        <div class="line-number">13</div>
-        <div class="line-number">14</div>
-        <div class="line-number">15</div>
-        <div class="line-number">16</div>
-      </div>
-      <div class="code-content"><span class="comment"># 欢迎使用 Tydora 🎁</span>
+    <div class="docs-body">
+      <!-- Left Sidebar -->
+      <aside class="docs-sidebar">
+        <div class="docs-search">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.3-4.3"/>
+          </svg>
+          <input type="text" placeholder="Search page or heading..." />
+        </div>
+        <nav class="docs-nav">
+          <div class="nav-group">
+            <button class="nav-group-title">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+              编辑器
+            </button>
+            <div class="nav-group-items">
+              <a href="#" class="nav-item">Markdown语法</a>
+              <a href="#" class="nav-item">编辑模式</a>
+              <a href="#" class="nav-item">代码块</a>
+              <a href="#" class="nav-item">表格操作</a>
+              <a href="#" class="nav-item">Mermaid图表</a>
+            </div>
+          </div>
+          <div class="nav-group">
+            <button class="nav-group-title">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+              导航与搜索
+            </button>
+            <div class="nav-group-items">
+              <a href="#" class="nav-item">快速打开</a>
+              <a href="#" class="nav-item">命令面板</a>
+              <a href="#" class="nav-item">大纲面板</a>
+            </div>
+          </div>
+          <div class="nav-group">
+            <button class="nav-group-title">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+              设置
+            </button>
+            <div class="nav-group-items">
+              <a href="#" class="nav-item">通用设置</a>
+              <a href="#" class="nav-item">编辑器设置</a>
+              <a href="#" class="nav-item">快捷键设置</a>
+            </div>
+          </div>
+          <div class="nav-group">
+            <button class="nav-group-title">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+              文件管理
+            </button>
+            <div class="nav-group-items">
+              <a href="#" class="nav-item">仓库</a>
+              <a href="#" class="nav-item">文件树</a>
+              <a href="#" class="nav-item">文件操作</a>
+            </div>
+          </div>
+          <div class="nav-group">
+            <button class="nav-group-title">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+              知识管理
+            </button>
+            <div class="nav-group-items">
+              <a href="#" class="nav-item">Wiki链接</a>
+              <a href="#" class="nav-item">知识图谱</a>
+              <a href="#" class="nav-item">反向链接</a>
+            </div>
+          </div>
+          <div class="nav-group">
+            <button class="nav-group-title">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+              主题
+            </button>
+            <div class="nav-group-items">
+              <a href="#" class="nav-item">内置主题</a>
+              <a href="#" class="nav-item">代码高亮主题</a>
+            </div>
+          </div>
+          <div class="nav-items">
+            <a href="#" class="nav-item">白板画布</a>
+            <a href="#" class="nav-item">思维导图</a>
+            <a href="#" class="nav-item">发布网站</a>
+            <a href="#" class="nav-item active">快速开始</a>
+            <a href="#" class="nav-item">快捷键速查</a>
+            <a href="#" class="nav-item">关于</a>
+          </div>
+        </nav>
+      </aside>
 
-<span class="keyword">##</span> 指尖上的礼物
+      <!-- Main Content -->
+      <main class="docs-content">
+        <article class="docs-note">
+          <h1 class="docs-title">快速开始</h1>
+          <div class="docs-body">
+            <p>Tydora 是一款基于 Tauri v2 + React 19 构建的现代化桌面 Markdown 编辑器，支持 WYSIWYG 编辑、知识管理、思维导图、白板画布等功能。</p>
 
-Tydora 支持 <span class="bold">**WYSIWYG**</span> 即时渲染与 <span class="bold">**源码模式**</span> 无缝切换。
-按 <span class="inline-code">Ctrl+/</span> 试试看 👆
+            <h2 id="安装">安装</h2>
+            <ol>
+              <li>从 <a href="https://github.com/zuorn/Tydora/releases" target="_blank">GitHub Releases</a> 下载最新版本</li>
+              <li>运行安装程序，按照提示完成安装</li>
+              <li>启动 Tydora</li>
+            </ol>
 
-<span class="keyword">##</span> 知识互联
+            <h2 id="打开仓库">打开仓库</h2>
+            <p>Tydora 使用"仓库（Vault）"概念管理笔记文件。首次使用时：</p>
+            <ol>
+              <li>点击侧栏底部的仓库切换器</li>
+              <li>选择"添加仓库"</li>
+              <li>选择一个文件夹作为你的笔记仓库</li>
+              <li>侧栏将显示该文件夹的文件树</li>
+            </ol>
+            <blockquote>参见 <a href="#" class="wikilink">仓库</a> 了解更多仓库管理功能。</blockquote>
 
-使用 <span class="fn">[[双向链接]]</span> 将你的思想串联成网络。
-点击右侧图谱按钮，发现笔记之间隐藏的联系 🔗
+            <h2 id="创建笔记">创建笔记</h2>
+            <ol>
+              <li>在侧栏文件树中右键点击</li>
+              <li>选择"新建文件"</li>
+              <li>输入文件名（如 <code>我的第一篇笔记.md</code>）</li>
+              <li>开始编写 Markdown 内容</li>
+            </ol>
 
-<span class="keyword">##</span> 一键发布
+            <h2 id="基本编辑">基本编辑</h2>
+            <p>Tydora 支持两种 <a href="#" class="wikilink">编辑模式</a>：</p>
+            <ul>
+              <li><strong>即时渲染（IR/WYSIWYG）</strong>：直接在编辑器中看到最终效果，所见即所得</li>
+              <li><strong>源码模式（SV）</strong>：纯文本编辑，使用 CodeMirror 6 提供语法高亮</li>
+            </ul>
+            <p>按 <code>Ctrl+/</code> 切换编辑模式。</p>
+          </div>
+        </article>
 
-写完笔记，<span class="bold">一键发布</span>为静态网站 —
-就像你现在看到的这个文档站点一样 ✨</div>
+        <!-- TOC Sidebar -->
+        <aside class="docs-toc">
+          <h3>On this page</h3>
+          <nav>
+            <a href="#安装">安装</a>
+            <a href="#打开仓库">打开仓库</a>
+            <a href="#创建笔记">创建笔记</a>
+            <a href="#基本编辑">基本编辑</a>
+          </nav>
+        </aside>
+      </main>
     </div>
   </div>
 </section>
