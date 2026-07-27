@@ -5,7 +5,7 @@
   "siteUrl": "",
   "vaultDir": ".",
   "buildMode": "full",
-  "baseHref": "/",
+  "baseHref": "/Tydora/",
   "out": "../site",
   "home": "首页"
 }
