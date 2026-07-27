@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "tauri": "node scripts/run-tauri.mjs",
     "sync-version": "node scripts/sync-version.mjs",
-    "docs:build": "npx markdown-publish build -c website/docs/markdown-publish.config.json",
+    "docs:build": "npx markdown-publish build --config website/docs/markdown-publish.config.json",
     "docs:serve": "node website/site/__preview_server.cjs",
     "docs:clean": "rimraf website/site",
     "copy-landing": "node scripts/copy-landing.mjs",
