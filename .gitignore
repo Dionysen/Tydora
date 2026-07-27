@@ -11,7 +11,10 @@ website-new/node_modules/
 
 website-new/
 
-website/
+website/*
+!website/landing/
+!website/docs/
+!website/markdown-publish.config.json
 
 
 # Dependencies
@@ -63,5 +66,3 @@ vditor/
 wix314-binaries/
 check_nodes.mjs
 
-# MkDocs build output
-website/site/

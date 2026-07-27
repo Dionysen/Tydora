@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tydora — 现代的桌面 Markdown 编辑器</title>
+  <meta name="description" content="Tydora 是一个基于 Tauri v2 + React 19 构建的现代桌面 Markdown 编辑器，支持双模式编辑、双向链接、知识图谱、思维导图、白板画布与一键发布。">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --color-primary: #8a5cf5;
+      --color-primary-light: #a68af9;
+      --color-primary-dark: #6d3fd4;
+      --color-primary-bg: rgba(138, 92, 245, 0.08);
+      --color-primary-border: rgba(138, 92, 245, 0.18);
+      --color-bg: #ffffff;
+      --color-bg-alt: #fafafa;
+      --color-bg-card: #ffffff;
+      --color-text: #1a1a2e;
+      --color-text-muted: #5c5c5c;
+      --color-text-faint: #909090;
+      --color-border: #e8e8e8;
+      --color-gradient-start: #8a5cf5;
+      --color-gradient-end: #4f46e5;
+      --color-code-bg: #f5f3ff;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
+      --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.15);
+      --font-sans: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+      --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Consolas", monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-sans);
+      color: var(--color-text);
+      background: var(--color-bg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ====== Hero ====== */
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 120px 24px 100px;
+      text-align: center;
+      background: linear-gradient(135deg, #faf5ff 0%, #ede9fe 30%, #f5f3ff 60%, #faf5ff 100%);
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 20% 50%, rgba(138, 92, 245, 0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 60% at 80% 40%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 40% at 50% 80%, rgba(138, 92, 245, 0.06) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 16px; border-radius: 100px;
+      background: white; border: 1px solid var(--color-primary-border);
+      font-size: 14px; color: var(--color-primary); font-weight: 500;
+      margin-bottom: 28px; letter-spacing: 0.01em;
+    }
+    .hero-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-primary); }
+
+    .hero h1 {
+      font-size: clamp(44px, 7vw, 72px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.08;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 40%, var(--color-gradient-end) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero .subtitle {
+      font-size: clamp(18px, 2.5vw, 22px);
+      color: var(--color-text-muted);
+      font-weight: 400;
+      line-height: 1.5;
+      margin-bottom: 40px;
+      max-width: 560px;
+      margin-left: auto; margin-right: auto;
+    }
+    .hero-actions {
+      display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 28px; border-radius: var(--radius-md);
+      font-size: 16px; font-weight: 600; text-decoration: none;
+      cursor: pointer; transition: all 0.25s ease;
+      border: none; font-family: inherit;
+    }
+    .btn-primary {
+      background: var(--color-primary); color: white;
+      box-shadow: 0 4px 16px rgba(138, 92, 245, 0.35);
+    }
+    .btn-primary:hover {
+      background: var(--color-primary-dark);
+      box-shadow: 0 6px 24px rgba(138, 92, 245, 0.45);
+      transform: translateY(-1px);
+    }
+    .btn-outline {
+      background: white; color: var(--color-primary);
+      border: 1.5px solid var(--color-primary-border);
+    }
+    .btn-outline:hover {
+      background: var(--color-primary-bg);
+      border-color: var(--color-primary);
+    }
+    .btn svg { width: 18px; height: 18px; }
+
+    .hero-meta {
+      margin-top: 36px;
+      display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;
+      font-size: 14px; color: var(--color-text-faint);
+    }
+    .hero-meta span { display: flex; align-items: center; gap: 5px; }
+
+    /* ====== Features ====== */
+    .section {
+      padding: 100px 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .section-header {
+      text-align: center; margin-bottom: 64px;
+    }
+    .section-header .label {
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--color-primary);
+      margin-bottom: 12px;
+    }
+    .section-header h2 {
+      font-size: clamp(28px, 4vw, 40px); font-weight: 800;
+      letter-spacing: -0.02em; margin-bottom: 14px;
+    }
+    .section-header p {
+      font-size: 17px; color: var(--color-text-muted);
+      max-width: 560px; margin: 0 auto;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      transition: all 0.3s ease;
+    }
+    .feature-card:hover {
+      border-color: var(--color-primary-border);
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
+    }
+    .feature-icon {
+      width: 48px; height: 48px;
+      border-radius: var(--radius-sm);
+      background: var(--color-primary-bg);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+    }
+    .feature-icon svg { width: 24px; height: 24px; }
+    .feature-card h3 {
+      font-size: 18px; font-weight: 700; margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+    .feature-card p {
+      font-size: 15px; color: var(--color-text-muted);
+      line-height: 1.65;
+    }
+
+    /* ====== Tech Stack ====== */
+    .tech-section {
+      background: var(--color-bg-alt);
+      padding: 100px 24px;
+    }
+    .tech-grid {
+      max-width: 1000px; margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .tech-item {
+      background: white;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      text-align: center;
+      transition: all 0.25s ease;
+    }
+    .tech-item:hover {
+      border-color: var(--color-primary-border);
+      box-shadow: var(--shadow-sm);
+    }
+    .tech-item .tech-name {
+      font-weight: 700; font-size: 15px; margin-bottom: 4px;
+      color: var(--color-text);
+    }
+    .tech-item .tech-role {
+      font-size: 13px; color: var(--color-text-faint);
+    }
+
+    /* ====== Docs Quick Links ====== */
+    .links-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    .link-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 20px 24px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      text-decoration: none; color: inherit;
+      transition: all 0.25s ease;
+    }
+    .link-card:hover {
+      border-color: var(--color-primary-light);
+      background: var(--color-primary-bg);
+      transform: translateX(4px);
+    }
+    .link-card .link-icon {
+      width: 40px; height: 40px; border-radius: var(--radius-sm);
+      background: var(--color-primary-bg);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .link-card .link-icon svg { width: 20px; height: 20px; color: var(--color-primary); }
+    .link-card .link-text { font-weight: 600; font-size: 15px; }
+    .link-card .link-desc { font-size: 13px; color: var(--color-text-faint); margin-top: 2px; }
+
+    /* ====== Code Preview ====== */
+    .code-preview {
+      max-width: 800px; margin: 0 auto;
+      background: #1e1e2e; border-radius: var(--radius-xl);
+      overflow: hidden; box-shadow: var(--shadow-xl);
+    }
+    .code-preview .titlebar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 20px; background: #181825;
+      border-bottom: 1px solid #313244;
+    }
+    .code-preview .titlebar .dot {
+      width: 12px; height: 12px; border-radius: 50%;
+    }
+    .dot-red { background: #f38ba8; }
+    .dot-yellow { background: #fab387; }
+    .dot-green { background: #a6e3a1; }
+    .code-preview .titlebar .title {
+      margin-left: 10px; font-size: 13px; color: #6c7086;
+      font-family: var(--font-mono);
+    }
+    .code-preview pre {
+      padding: 24px; margin: 0; overflow-x: auto;
+      font-family: var(--font-mono); font-size: 14px;
+      line-height: 1.7; color: #cdd6f4;
+    }
+    .code-preview .keyword { color: #cba6f7; }
+    .code-preview .string { color: #a6e3a1; }
+    .code-preview .comment { color: #6c7086; }
+    .code-preview .fn { color: #89b4fa; }
+
+    /* ====== Footer ====== */
+    .footer {
+      text-align: center;
+      padding: 48px 24px;
+      border-top: 1px solid var(--color-border);
+      color: var(--color-text-faint);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+    .footer a { color: var(--color-primary); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+    .footer .links { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+
+    /* ====== Responsive ====== */
+    @media (max-width: 768px) {
+      .hero { padding: 80px 20px 64px; }
+      .section { padding: 64px 20px; }
+      .tech-section { padding: 64px 20px; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .links-grid { grid-template-columns: 1fr; }
+      .tech-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ====== Floating decoration ====== */
+    .floating-shapes { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+    .shape {
+      position: absolute; border-radius: 50%;
+      background: var(--color-primary);
+      opacity: 0.04;
+    }
+    .shape-1 { width: 300px; height: 300px; top: -80px; left: -80px; }
+    .shape-2 { width: 200px; height: 200px; bottom: -40px; right: 10%; }
+    .shape-3 { width: 150px; height: 150px; top: 40%; right: -40px; opacity: 0.03; }
+  </style>
+</head>
+<body>
+
+<!-- ====== Hero ====== -->
+<section class="hero">
+  <div class="floating-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+  </div>
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="dot"></span> v0.0.10 — 现已支持 Windows / macOS / Linux
+    </div>
+    <h1>Tydora</h1>
+    <p class="subtitle">一个现代的桌面 Markdown 编辑器，指尖上的礼物。基于 Tauri v2 + React 19 构建，为你带来沉浸式的写作与知识管理体验。</p>
+    <div class="hero-actions">
+      <a href="https://github.com/zuorn/Tydora/releases" class="btn btn-primary" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        立即下载
+      </a>
+      <a href="/index" class="btn btn-outline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        浏览文档
+      </a>
+      <a href="https://github.com/zuorn/Tydora" class="btn btn-outline" target="_blank">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+    <div class="hero-meta">
+      <span>⭐ Apache 2.0 开源</span>
+      <span>🖥️ 跨平台支持</span>
+      <span>⚡ Tauri v2 原生性能</span>
+    </div>
+  </div>
+</section>
+
+<!-- ====== Code Preview ====== -->
+<section style="padding: 0 24px; margin-top: -40px; position: relative; z-index: 2;">
+  <div class="code-preview">
+    <div class="titlebar">
+      <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+      <span class="title">my-notes.md — Tydora</span>
+    </div>
+    <pre><span class="comment"># 欢迎使用 Tydora 🎁</span>
+
+<span class="keyword">##</span> 指尖上的礼物
+
+Tydora 支持 <span class="fn">**WYSIWYG**</span> 即时渲染与 <span class="fn">**源码模式**</span> 无缝切换。
+按 <span class="string">`Ctrl+/`</span> 试试看 👆
+
+<span class="keyword">##</span> 知识互联
+
+使用 <span class="fn">[[双向链接]]</span> 将你的思想串联成网络。
+点击右侧图谱按钮，发现笔记之间隐藏的联系 🔗
+
+<span class="keyword">##</span> 一键发布
+
+写完笔记，<span class="fn">一键发布</span>为静态网站 —
+就像你现在看到的这个文档站点一样 ✨</pre>
+  </div>
+</section>
+
+<!-- ====== Features ====== -->
+<section class="section">
+  <div class="section-header">
+    <div class="label">核心特性</div>
+    <h2>你所需要的一切，开箱即用</h2>
+    <p>从写作到知识管理，从可视化到发布，Tydora 覆盖了笔记工作的完整流程。</p>
+  </div>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round">
+          <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>
+        </svg>
+      </div>
+      <h3>双模式编辑</h3>
+      <p>WYSIWYG 所见即所得 (TipTap 3.x) 与源码模式 (CodeMirror 6)，Ctrl+/ 随心切换，无滞于形。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+      </div>
+      <h3>WikiLink 双向链接</h3>
+      <p>Obsidian 风格的 [[双向链接]]，支持反向链接面板、自动补全，让知识互联互通。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="3"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><line x1="14.41" y1="10.59" x2="17.12" y2="7.88"/><line x1="6.88" y1="17.12" x2="9.59" y2="14.41"/>
+        </svg>
+      </div>
+      <h3>知识图谱</h3>
+      <p>基于 D3.js 的力导向图，可视化文档间的链接关系。点若列宿，线若虹霓，万象森然。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
+      </div>
+      <h3>思维导图</h3>
+      <p>从 Markdown 标题层级自动生成交互式思维导图，Markmap 驱动，一图统览脉络分明。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/>
+        </svg>
+      </div>
+      <h3>白板画布</h3>
+      <p>React Flow 无限画布，支持文本、笔记、图片、URL 等多种节点类型，对齐参考线，自由创作。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <h3>8 款精选主题</h3>
+      <p>Mint、Liquid Glass、Claude Code 等精选配色 + 自定义 CSS 主题导入 + 11 种代码高亮配色。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round">
+          <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+        </svg>
+      </div>
+      <h3>丰富内容支持</h3>
+      <p>Mermaid 图表、Callout 提示块、Frontmatter 元数据、数学公式、任务列表、代码高亮等。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round">
+          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+      </div>
+      <h3>一键发布</h3>
+      <p>将 Vault 发布为静态网站，支持完整发布和仅公开笔记两种模式，内置预览服务器。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+      </div>
+      <h3>多窗口架构</h3>
+      <p>设置、图谱、思维导图、画布等独立窗口运行，支持多显示器，工作空间自由扩展。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====== Tech Stack ====== -->
+<section class="tech-section">
+  <div class="section-header">
+    <div class="label">技术栈</div>
+    <h2>现代技术，极致体验</h2>
+    <p>前沿技术选型，保证高性能和出色的开发体验。</p>
+  </div>
+  <div class="tech-grid">
+    <div class="tech-item">
+      <div class="tech-name">Tauri v2</div>
+      <div class="tech-role">桌面框架</div>
+    </div>
+    <div class="tech-item">
+      <div class="tech-name">React 19</div>
+      <div class="tech-role">前端框架</div>
+    </div>
+    <div class="tech-item">
+      <div class="tech-name">TypeScript</div>
+      <div class="tech-role">类型安全</div>
+    </div>
+    <div class="tech-item">
+      <div class="tech-name">Rust</div>
+      <div class="tech-role">后端核心</div>
+    </div>
+    <div class="tech-item">
+      <div class="tech-name">TipTap 3.x</div>
+      <div class="tech-role">WYSIWYG 编辑器</div>
+    </div>
+    <div class="tech-item">
+      <div class="tech-name">CodeMirror 6</div>
+      <div class="tech-role">源码编辑器</div>
+    </div>
+    <div class="tech-item">
+      <div class="tech-name">Vite 6</div>
+      <div class="tech-role">构建工具</div>
+    </div>
+    <div class="tech-item">
+      <div class="tech-name">D3.js</div>
+      <div class="tech-role">知识图谱</div>
+    </div>
+    <div class="tech-item">
+      <div class="tech-name">Markmap</div>
+      <div class="tech-role">思维导图</div>
+    </div>
+    <div class="tech-item">
+      <div class="tech-name">React Flow</div>
+      <div class="tech-role">白板画布</div>
+    </div>
+    <div class="tech-item">
+      <div class="tech-name">Zustand</div>
+      <div class="tech-role">状态管理</div>
+    </div>
+    <div class="tech-item">
+      <div class="tech-name">Highlight.js</div>
+      <div class="tech-role">代码高亮</div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== Quick Links ====== -->
+<section class="section">
+  <div class="section-header">
+    <div class="label">文档导航</div>
+    <h2>快速上手 Tydora</h2>
+    <p>从入门到精通，文档涵盖了所有你需要了解的内容。</p>
+  </div>
+  <div class="links-grid">
+    <a href="/快速开始/" class="link-card">
+      <div class="link-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div>
+        <div class="link-text">快速开始</div>
+        <div class="link-desc">安装、创建仓库、开始写作</div>
+      </div>
+    </a>
+    <a href="/编辑器/编辑模式/" class="link-card">
+      <div class="link-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </div>
+      <div>
+        <div class="link-text">编辑模式</div>
+        <div class="link-desc">WYSIWYG &amp; 源码模式详解</div>
+      </div>
+    </a>
+    <a href="/知识管理/wiki链接/" class="link-card">
+      <div class="link-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </div>
+      <div>
+        <div class="link-text">Wiki 链接</div>
+        <div class="link-desc">双向链接与知识网络</div>
+      </div>
+    </a>
+    <a href="/知识管理/知识图谱/" class="link-card">
+      <div class="link-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/></svg>
+      </div>
+      <div>
+        <div class="link-text">知识图谱</div>
+        <div class="link-desc">可视化笔记关系网络</div>
+      </div>
+    </a>
+    <a href="/白板画布/" class="link-card">
+      <div class="link-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+      </div>
+      <div>
+        <div class="link-text">白板画布</div>
+        <div class="link-desc">无限画布自由创作</div>
+      </div>
+    </a>
+    <a href="/发布网站/" class="link-card">
+      <div class="link-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      </div>
+      <div>
+        <div class="link-text">发布网站</div>
+        <div class="link-desc">一键发布 Vault 为静态网站</div>
+      </div>
+    </a>
+    <a href="/快捷键速查/" class="link-card">
+      <div class="link-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M6 16h.01M10 16h.01M14 16h.01"/></svg>
+      </div>
+      <div>
+        <div class="link-text">快捷键速查</div>
+        <div class="link-desc">所有键盘快捷键一览</div>
+      </div>
+    </a>
+    <a href="/主题/内置主题/" class="link-card">
+      <div class="link-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20"/><path d="M12 2a10 10 0 0 0 0 20"/></svg>
+      </div>
+      <div>
+        <div class="link-text">主题系统</div>
+        <div class="link-desc">8 款内置主题 &amp; 自定义 CSS</div>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- ====== Footer ====== -->
+<footer class="footer">
+  <div class="links">
+    <a href="https://github.com/zuorn/Tydora" target="_blank">GitHub</a>
+    <a href="https://github.com/zuorn/Tydora/releases" target="_blank">Releases</a>
+    <a href="https://github.com/zuorn/Tydora/blob/main/LICENSE" target="_blank">Apache 2.0</a>
+    <a href="/关于/">关于</a>
+  </div>
+  <p>Built with ❤️ using Tauri v2 &amp; React 19. &copy; 2024–2026 Tydora.</p>
+</footer>
+
+</body>
+</html>

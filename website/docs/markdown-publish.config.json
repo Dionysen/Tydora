@@ -1,0 +1,11 @@
+{
+  "siteName": "Tydora",
+  "siteDescription": "一个现代的 Markdown 编辑器",
+  "siteLang": "zh",
+  "siteUrl": "",
+  "vaultDir": ".",
+  "buildMode": "full",
+  "baseHref": "/",
+  "out": "../site",
+  "home": "首页"
+}
