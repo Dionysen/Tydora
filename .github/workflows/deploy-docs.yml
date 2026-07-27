@@ -4,11 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'website/docs/**'
-      - 'hooks/**'
-      - 'overrides/**'
-      - 'mkdocs.yml'
-      - 'requirements.txt'
+      - 'website/**'
       - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
 
@@ -28,16 +24,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: '3.12'
+          node-version: '22'
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Build MkDocs site
-        run: mkdocs build
+      - name: Copy landing page
+        run: node scripts/copy-landing.mjs
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
