@@ -188,6 +188,11 @@ body {
   position: relative;
 }
 
+/* 侧栏折叠时：为顶部滑出栏预留空间，避免遮挡 Frontmatter 等首元素 */
+.editor-container.sidebar-collapsed .editor-panel {
+  padding-top: 12px;
+}
+
 /* 底部浮动控件 */
 .editor-bottom-controls {
   position: absolute;
