@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
 import { WikiLink } from '../../Editor/extensions/wiki-link';
+import { Frontmatter } from '../../Editor/extensions/frontmatter';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { emit } from '@tauri-apps/api/event';
 import { getCanvasColor, resolveFilePath } from '../canvas-utils';
@@ -82,6 +83,7 @@ function NoteNode({ data, selected }: NodeProps) {
         heading: { levels: [1, 2, 3, 4, 5, 6] },
       }),
       WikiLink,
+      Frontmatter,
       Markdown.configure({
         html: true,
         breaks: true,

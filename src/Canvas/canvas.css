@@ -834,6 +834,61 @@
   color: var(--text-secondary);
 }
 
+/* Frontmatter 块 */
+.canvas-note-editor [data-type="frontmatter"] {
+  background: var(--bg-secondary, #f5f5f5);
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: 8px;
+  margin: 0 0 1em 0;
+  font-size: 0.85em;
+  position: relative;
+  overflow: hidden;
+}
+
+.canvas-note-editor [data-type="frontmatter"] pre {
+  margin: 0;
+  padding: 12px 16px;
+  overflow-x: auto;
+  background: transparent;
+  font-family: var(--editor-font, "JetBrains Mono", "Fira Code", "Consolas", monospace);
+  font-size: inherit;
+  line-height: 1.6;
+  border: none;
+  border-radius: 0;
+  tab-size: 2;
+}
+
+.canvas-note-editor [data-type="frontmatter"] pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+  border-radius: 0;
+}
+
+/* YAML 语法高亮（lowlight） */
+.canvas-note-editor [data-type="frontmatter"] .hljs-keyword,
+.canvas-note-editor [data-type="frontmatter"] .hljs-selector-tag {
+  color: #d73a49;
+}
+
+.canvas-note-editor [data-type="frontmatter"] .hljs-string,
+.canvas-note-editor [data-type="frontmatter"] .hljs-attr {
+  color: #22863a;
+}
+
+.canvas-note-editor [data-type="frontmatter"] .hljs-number,
+.canvas-note-editor [data-type="frontmatter"] .hljs-literal {
+  color: #005cc5;
+}
+
+.canvas-note-editor [data-type="frontmatter"] .hljs-comment {
+  color: #6a737d;
+}
+
+.canvas-note-editor [data-type="frontmatter"] .hljs-built_in {
+  color: #6f42c1;
+}
+
 /* Embed Node (Canvas) */
 .canvas-embed-node {
   background: var(--bg-primary);

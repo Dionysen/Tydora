@@ -1,85 +1,355 @@
 {
   "nodes": [
     {
-      "id": "node-1785147796399-xipr8c",
+      "id": "overview",
       "type": "file",
-      "x": 300,
-      "y": 330,
-      "width": 400,
-      "height": 230,
+      "x": 1170,
+      "y": -1680,
+      "width": 880,
+      "height": 775,
       "file": "快速开始.md"
     },
     {
-      "id": "node-1785147884963-5bctvg",
+      "id": "hub-editor",
       "type": "file",
-      "x": 990,
-      "y": -60,
-      "width": 565,
-      "height": 290,
+      "x": -735,
+      "y": 1170,
+      "width": 815,
+      "height": 555,
       "file": "编辑器/编辑模式.md"
     },
     {
-      "id": "node-1785147899027-x9jzz1",
+      "id": "hub-knowledge",
       "type": "file",
-      "x": 990,
-      "y": 285,
-      "width": 565,
-      "height": 365,
-      "file": "思维导图.md"
+      "x": 540,
+      "y": -390,
+      "width": 755,
+      "height": 540,
+      "file": "知识管理/知识图谱.md"
     },
     {
-      "id": "node-1785147925653-jnncai",
+      "id": "hub-files",
       "type": "file",
-      "x": 150,
-      "y": 705,
-      "width": 520,
-      "height": 500,
+      "x": 2280,
+      "y": 45,
+      "width": 665,
+      "height": 480,
+      "file": "文件管理/文件树.md"
+    },
+    {
+      "id": "hub-canvas",
+      "type": "file",
+      "x": 3780,
+      "y": 270,
+      "width": 740,
+      "height": 660,
       "file": "白板画布.md"
     },
     {
-      "id": "node-1785147958716-hegrth",
+      "id": "doc-syntax",
       "type": "file",
-      "x": 720,
-      "y": 705,
-      "width": 565,
-      "height": 500,
-      "file": "知识管理/知识图谱.md"
+      "x": -1410,
+      "y": 2100,
+      "width": 595,
+      "height": 555,
+      "file": "编辑器/Markdown语法.md"
+    },
+    {
+      "id": "doc-callout",
+      "type": "file",
+      "x": -720,
+      "y": 2100,
+      "width": 655,
+      "height": 555,
+      "file": "编辑器/Callout块.md"
+    },
+    {
+      "id": "doc-mermaid",
+      "type": "file",
+      "x": 30,
+      "y": 2100,
+      "width": 625,
+      "height": 540,
+      "file": "编辑器/Mermaid图表.md"
+    },
+    {
+      "id": "doc-wiki",
+      "type": "file",
+      "x": 120,
+      "y": 375,
+      "width": 640,
+      "height": 570,
+      "file": "知识管理/Wiki链接.md"
+    },
+    {
+      "id": "doc-backlinks",
+      "type": "file",
+      "x": 870,
+      "y": 375,
+      "width": 685,
+      "height": 570,
+      "file": "知识管理/反向链接.md"
+    },
+    {
+      "id": "doc-vault",
+      "type": "file",
+      "x": 1830,
+      "y": 750,
+      "width": 580,
+      "height": 510,
+      "file": "文件管理/仓库.md"
+    },
+    {
+      "id": "doc-file-ops",
+      "type": "file",
+      "x": 2730,
+      "y": 750,
+      "width": 550,
+      "height": 510,
+      "file": "文件管理/文件操作.md"
+    },
+    {
+      "id": "hub-mindmap",
+      "type": "file",
+      "x": -1275,
+      "y": -15,
+      "width": 935,
+      "height": 900,
+      "file": "思维导图.md"
+    },
+    {
+      "id": "hub-publish",
+      "type": "file",
+      "x": 4755,
+      "y": 1665,
+      "width": 920,
+      "height": 900,
+      "file": "发布网站.md"
+    },
+    {
+      "id": "hub-nav",
+      "type": "file",
+      "x": 1425,
+      "y": 1425,
+      "width": 500,
+      "height": 450,
+      "file": "导航与搜索/命令面板.md"
+    },
+    {
+      "id": "hub-settings",
+      "type": "file",
+      "x": 3495,
+      "y": 1440,
+      "width": 620,
+      "height": 465,
+      "file": "设置/通用设置.md"
+    },
+    {
+      "id": "doc-outline",
+      "type": "file",
+      "x": 1095,
+      "y": 2100,
+      "width": 520,
+      "height": 555,
+      "file": "导航与搜索/大纲面板.md"
+    },
+    {
+      "id": "doc-quick-open",
+      "type": "file",
+      "x": 1845,
+      "y": 2100,
+      "width": 550,
+      "height": 570,
+      "file": "导航与搜索/快速打开.md"
+    },
+    {
+      "id": "doc-theme",
+      "type": "file",
+      "x": 3195,
+      "y": 2100,
+      "width": 520,
+      "height": 465,
+      "file": "主题/内置主题.md"
+    },
+    {
+      "id": "doc-shortcuts",
+      "type": "file",
+      "x": 3885,
+      "y": 2100,
+      "width": 535,
+      "height": 465,
+      "file": "快捷键速查.md"
     }
   ],
   "edges": [
     {
-      "id": "edge-1785147909445-1cvex6",
-      "fromNode": "node-1785147796399-xipr8c",
-      "fromSide": "right",
-      "fromEnd": "none",
-      "toNode": "node-1785147884963-5bctvg",
-      "toSide": "left",
-      "toEnd": "arrow"
-    },
-    {
-      "id": "edge-1785147911824-zxhxa6",
-      "fromNode": "node-1785147796399-xipr8c",
-      "fromSide": "right",
-      "fromEnd": "none",
-      "toNode": "node-1785147899027-x9jzz1",
-      "toSide": "left",
-      "toEnd": "arrow"
-    },
-    {
-      "id": "edge-1785147937610-5vltei",
-      "fromNode": "node-1785147796399-xipr8c",
+      "id": "e1",
+      "fromNode": "overview",
       "fromSide": "bottom",
       "fromEnd": "none",
-      "toNode": "node-1785147925653-jnncai",
+      "toNode": "hub-editor",
       "toSide": "top",
       "toEnd": "arrow"
     },
     {
-      "id": "edge-1785147970498-fwj2j0",
-      "fromNode": "node-1785147796399-xipr8c",
+      "id": "e2",
+      "fromNode": "overview",
       "fromSide": "bottom",
       "fromEnd": "none",
-      "toNode": "node-1785147958716-hegrth",
+      "toNode": "hub-knowledge",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e3",
+      "fromNode": "overview",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "hub-files",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e4",
+      "fromNode": "overview",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "hub-canvas",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e5",
+      "fromNode": "overview",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "hub-mindmap",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e6",
+      "fromNode": "overview",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "hub-publish",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e7",
+      "fromNode": "overview",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "hub-nav",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e8",
+      "fromNode": "overview",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "hub-settings",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e10",
+      "fromNode": "hub-editor",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "doc-syntax",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e11",
+      "fromNode": "hub-editor",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "doc-callout",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e12",
+      "fromNode": "hub-editor",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "doc-mermaid",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e13",
+      "fromNode": "hub-knowledge",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "doc-wiki",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e14",
+      "fromNode": "hub-knowledge",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "doc-backlinks",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e15",
+      "fromNode": "hub-files",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "doc-vault",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e16",
+      "fromNode": "hub-files",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "doc-file-ops",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e17",
+      "fromNode": "hub-nav",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "doc-outline",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e18",
+      "fromNode": "hub-nav",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "doc-quick-open",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e19",
+      "fromNode": "hub-settings",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "doc-theme",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e20",
+      "fromNode": "hub-settings",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "doc-shortcuts",
       "toSide": "top",
       "toEnd": "arrow"
     }
