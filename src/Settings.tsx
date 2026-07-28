@@ -237,25 +237,6 @@ function GeneralSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">主题模式</span>
-          </div>
-          <select
-            className="settings-select"
-            value={settings.appearance}
-            onChange={(e) =>
-              onChange({ ...settings, appearance: e.target.value as GeneralSettings["appearance"] })
-            }
-          >
-            <option value="system">跟随系统</option>
-            <option value="light">浅色模式</option>
-            <option value="dark">深色模式</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="canvas-settings-card">
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
             <span className="canvas-settings-row-title">编辑器字体</span>
           </div>
           <select
@@ -265,6 +246,7 @@ function GeneralSettingsContent({
           >
             <option value="system-ui, -apple-system, sans-serif">系统默认</option>
             <option value="'LXGW WenKai', system-ui, sans-serif">霞鹜文楷</option>
+            <option value="'LXGW XinXiHei', system-ui, sans-serif">霞鹜新晰黑</option>
             <option value="'Inter', system-ui, sans-serif">Inter</option>
             <option value="'Noto Sans SC', system-ui, sans-serif">Noto Sans SC</option>
             <option value="ui-sans-serif, 'Segoe UI', system-ui, sans-serif">Segoe UI</option>

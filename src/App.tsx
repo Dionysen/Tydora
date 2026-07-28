@@ -125,12 +125,19 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           const settings = JSON.parse(raw);
           if (settings.editorFont) {
             document.documentElement.style.setProperty("--editor-font", settings.editorFont);
-            // 按需加载 LXGW WenKai 字体
+            // 按需加载 LXGW 系列字体
             if (settings.editorFont.includes("LXGW WenKai") && !document.getElementById("lxgw-wenkai-font")) {
               const link = document.createElement("link");
               link.id = "lxgw-wenkai-font";
               link.rel = "stylesheet";
               link.href = "https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css";
+              document.head.appendChild(link);
+            }
+            if (settings.editorFont.includes("LXGW XinXiHei") && !document.getElementById("lxgw-xinxihei-font")) {
+              const link = document.createElement("link");
+              link.id = "lxgw-xinxihei-font";
+              link.rel = "stylesheet";
+              link.href = "https://cdn.jsdelivr.net/npm/lxgw-xinxihei-webfont@1.7.0/style.css";
               document.head.appendChild(link);
             }
           }
