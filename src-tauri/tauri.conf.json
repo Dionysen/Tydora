@@ -37,6 +37,8 @@
     "targets": [
       "nsis",
       "dmg",
+      "deb",
+      "rpm",
       "appimage"
     ],
     "icon": [
@@ -57,6 +59,12 @@
     "linux": {
       "appimage": {
         "bundleMediaFramework": true
+      },
+      "deb": {
+        "depends": []
+      },
+      "rpm": {
+        "depends": []
       }
     }
   },

@@ -27,3 +27,9 @@ base64 = "0.22"
 axum = "0.7"
 tokio = { version = "1", features = ["full"] }
 url = "2"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+opt-level = "z"
