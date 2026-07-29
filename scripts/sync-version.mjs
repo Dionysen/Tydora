@@ -30,4 +30,24 @@ packageJson.version = version;
 writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + "\n");
 console.log(`Updated package.json`);
 
+// 更新落地页版本号
+const landingPath = join(root, "website", "landing", "index.html");
+let landingHtml = readFileSync(landingPath, "utf-8");
+landingHtml = landingHtml.replace(
+  /v\d+\.\d+\.\d+\s*—\s*跨平台支持/,
+  `v${version} — 跨平台支持`
+);
+writeFileSync(landingPath, landingHtml);
+console.log(`Updated landing page`);
+
+// 更新文档关于页版本号
+const aboutPath = join(root, "website", "docs", "关于.md");
+let aboutMd = readFileSync(aboutPath, "utf-8");
+aboutMd = aboutMd.replace(
+  /当前版本：\d+\.\d+\.\d+/,
+  `当前版本：${version}`
+);
+writeFileSync(aboutPath, aboutMd);
+console.log(`Updated docs/关于.md`);
+
 console.log(`All versions synced to ${version}`);
