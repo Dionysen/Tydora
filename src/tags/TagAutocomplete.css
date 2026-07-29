@@ -1,0 +1,136 @@
+/* 标签自动补全下拉菜单 */
+.tag-autocomplete {
+  position: fixed;
+  z-index: 99999;
+  min-width: 240px;
+  max-width: 320px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--bg-elevated, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    0 12px 40px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(12px);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+  color: var(--text-primary, #111827);
+  animation: tag-autocomplete-fade 0.12s ease-out;
+}
+
+@keyframes tag-autocomplete-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 分组标题 */
+.tag-autocomplete-header {
+  padding: 6px 12px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary, #9ca3af);
+  border-bottom: 1px solid var(--border-subtle, #f3f4f6);
+  background: var(--bg-subtle, #fafafa);
+  border-radius: 8px 8px 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* 空状态 */
+.tag-autocomplete-empty {
+  padding: 14px 16px;
+  color: var(--text-secondary, #6b7280);
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* 单个选项 */
+.tag-autocomplete-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  border-left: 2px solid transparent;
+}
+
+.tag-autocomplete-item:first-of-type {
+  margin-top: 4px;
+}
+
+.tag-autocomplete-item:last-of-type {
+  margin-bottom: 4px;
+}
+
+.tag-autocomplete-item:hover {
+  background: var(--bg-hover, #f3f4f6);
+}
+
+.tag-autocomplete-item.selected {
+  background: color-mix(in srgb, var(--accent, #8fa9f2) 14%, transparent);
+  border-left-color: var(--accent, #8fa9f2);
+}
+
+/* 标签名前的 # 前缀 */
+.tag-autocomplete-item-prefix {
+  color: var(--accent, #8fa9f2);
+  font-weight: 600;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+/* 标签名 */
+.tag-autocomplete-item-name {
+  flex: 1;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 使用次数 */
+.tag-autocomplete-item-count {
+  font-size: 11px;
+  color: var(--text-tertiary, #9ca3af);
+  background: var(--bg-subtle, #f3f4f6);
+  padding: 2px 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.tag-autocomplete-item.selected .tag-autocomplete-item-count {
+  background: color-mix(in srgb, var(--accent, #8fa9f2) 20%, transparent);
+  color: var(--accent, #8fa9f2);
+}
+
+/* 滚动条样式 */
+.tag-autocomplete::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tag-autocomplete::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tag-autocomplete::-webkit-scrollbar-thumb {
+  background: var(--border, #e5e7eb);
+  border-radius: 3px;
+}
+
+.tag-autocomplete::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary, #9ca3af);
+}

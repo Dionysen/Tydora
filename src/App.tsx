@@ -19,6 +19,7 @@ import { checkForUpdate, downloadAndInstall, relaunchApp, type UpdateInfo } from
 import { LinkIndexService } from "./wikilink";
 import { WikiLinkAutocomplete } from "./wikilink";
 import { WikiLinkPreview } from "./wikilink";
+import { TagAutocomplete, TagIndexService } from "./tags";
 import { GraphView } from "./graph";
 import CanvasView from "./Canvas/CanvasView";
 import { ReactFlowProvider } from "@xyflow/react";
@@ -30,6 +31,8 @@ import "./App.css";
 import "./components/FilePreview.css";
 import "./wikilink/WikiLink.css";
 import "./wikilink/WikiLinkPreview.css";
+import "./tags/Tag.css";
+import "./tags/TagAutocomplete.css";
 
 // 错误边界：防止编辑器错误导致整个页面空白
 class EditorErrorBoundary extends Component<
@@ -272,6 +275,12 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const [wikiAutocompletePosition, setWikiAutocompletePosition] = useState<{ x: number; y: number } | null>(null);
   const wikiTriggerEditorPosRef = useRef<number | null>(null);
 
+  // Tag 自动补全状态
+  const [tagAutocompleteVisible, setTagAutocompleteVisible] = useState(false);
+  const [tagAutocompleteQuery, setTagAutocompleteQuery] = useState('');
+  const [tagAutocompletePosition, setTagAutocompletePosition] = useState<{ x: number; y: number } | null>(null);
+  const tagTriggerEditorPosRef = useRef<number | null>(null);
+
   // WikiLink 悬停预览状态（栈，支持嵌套预览）
   const [wikiPreviewStack, setWikiPreviewStack] = useState<Array<{
     noteName: string;
@@ -362,7 +371,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 构建链接索引
+  // 构建链接索引和标签索引
   useEffect(() => {
     if (activeVaultIndex >= 0) {
       const vaultPath = vaults[activeVaultIndex]?.path;
@@ -372,6 +381,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
             localStorage.setItem("zmd-link-index", LinkIndexService.serialize());
           } catch { /* 忽略存储错误 */ }
         });
+        TagIndexService.buildIndex(vaultPath);
       }
     }
   }, [activeVaultIndex, vaults]);
@@ -615,11 +625,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     // Sync content to mindmap window if open
     syncMindmapContent(value);
 
-    // 如果自动补全已打开，检查 [[ 或 【【 是否还在光标附近
+    // 如果 WikiLink 自动补全已打开，检查 [[ 或 【【 是否还在光标附近
     if (wikiAutocompleteVisible) {
       const cursorPos = editorHandleRef.current?.getCursorOffset();
       if (cursorPos !== undefined && cursorPos !== null) {
-        // 检查光标前是否有未闭合的 [[ 或 【【
         const textBefore = value.slice(Math.max(0, cursorPos - 200), cursorPos);
         const hasOpenWikiLink = /\[\[[^\]]*$/.test(textBefore) || /【【[^】]*$/.test(textBefore);
         if (!hasOpenWikiLink) {
@@ -627,7 +636,19 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         }
       }
     }
-  }, [syncMindmapContent, wikiAutocompleteVisible]);
+
+    // 如果 Tag 自动补全已打开，检查 # 是否还在光标附近
+    if (tagAutocompleteVisible) {
+      const cursorPos = editorHandleRef.current?.getCursorOffset();
+      if (cursorPos !== undefined && cursorPos !== null) {
+        const textBefore = value.slice(Math.max(0, cursorPos - 200), cursorPos);
+        const hasOpenTag = /(^|\s)#[^\s#\]\)\}，,。！？；;：:"'`、/\\]*$/.test(textBefore);
+        if (!hasOpenTag) {
+          setTagAutocompleteVisible(false);
+        }
+      }
+    }
+  }, [syncMindmapContent, wikiAutocompleteVisible, tagAutocompleteVisible]);
 
   // 用 ref 保存最新值，避免 Ctrl+S 回调频繁重建
   const contentRef = useRef(content);
@@ -653,10 +674,11 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       savedContentRef.current = contentRef.current;
       setModified(false);
       setSaveStatus("saved");
-      // 更新链接索引
+      // 更新链接索引和标签索引
       const activeVault = activeVaultIndex >= 0 ? vaults[activeVaultIndex] : null;
       if (activeVault) {
         LinkIndexService.updateFileLinks(path, activeVault.path);
+        TagIndexService.updateFileTags(path, contentRef.current);
         try { localStorage.setItem("zmd-link-index", LinkIndexService.serialize()); } catch {}
       }
     } catch (e) {
@@ -702,10 +724,11 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         savedContentRef.current = contentRef.current;
         setModified(false);
         setSaveStatus("saved");
-        // 更新链接索引
+        // 更新链接索引和标签索引
         const activeVault = activeVaultIndex >= 0 ? vaults[activeVaultIndex] : null;
         if (activeVault) {
           LinkIndexService.updateFileLinks(path, activeVault.path);
+          TagIndexService.updateFileTags(path, contentRef.current);
           try { localStorage.setItem("zmd-link-index", LinkIndexService.serialize()); } catch {}
         }
       } catch (e) {
@@ -1353,6 +1376,25 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     return () => window.removeEventListener('wiki-link-trigger', handleWikiLinkTrigger);
   }, []);
 
+  // 监听标签自动补全触发
+  useEffect(() => {
+    const handleTagTrigger = (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        query: string;
+        editorPosition: number;
+        screenPosition: { x: number; y: number } | null;
+      }>;
+      const { query, editorPosition, screenPosition } = customEvent.detail;
+      setTagAutocompleteQuery(query);
+      setTagAutocompletePosition(screenPosition);
+      tagTriggerEditorPosRef.current = editorPosition;
+      setTagAutocompleteVisible(true);
+    };
+
+    window.addEventListener('tag-trigger', handleTagTrigger);
+    return () => window.removeEventListener('tag-trigger', handleTagTrigger);
+  }, []);
+
   // WikiLink 自动补全选中回调
   const handleWikiAutocompleteSelect = useCallback((noteName: string) => {
     setWikiAutocompleteVisible(false);
@@ -1372,6 +1414,27 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   const handleWikiAutocompleteClose = useCallback(() => {
     setWikiAutocompleteVisible(false);
+  }, []);
+
+  // Tag 自动补全选中回调
+  const handleTagAutocompleteSelect = useCallback((tag: string) => {
+    setTagAutocompleteVisible(false);
+    const triggerPos = tagTriggerEditorPosRef.current;
+    if (triggerPos === null) return;
+
+    // 使用编辑器命令替换 #query → Tag 节点
+    editorHandleRef.current?.replaceRangeWithTag(triggerPos, tag);
+    tagTriggerEditorPosRef.current = null;
+
+    // 同步 React 状态
+    const val = editorHandleRef.current?.getValue();
+    if (val !== undefined) {
+      handleChange(val);
+    }
+  }, [handleChange]);
+
+  const handleTagAutocompleteClose = useCallback(() => {
+    setTagAutocompleteVisible(false);
   }, []);
 
   // ── 大纲点击跳转 ──
@@ -1767,6 +1830,16 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           position={wikiAutocompletePosition}
           onSelect={handleWikiAutocompleteSelect}
           onClose={handleWikiAutocompleteClose}
+        />
+      )}
+
+      {/* Tag 自动补全 */}
+      {tagAutocompleteVisible && (
+        <TagAutocomplete
+          query={tagAutocompleteQuery}
+          position={tagAutocompletePosition}
+          onSelect={handleTagAutocompleteSelect}
+          onClose={handleTagAutocompleteClose}
         />
       )}
 

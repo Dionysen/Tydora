@@ -44,6 +44,7 @@ import { Callout } from "./extensions/callout";
 import { Mermaid } from "./extensions/mermaid";
 import { mermaidHljsLang } from "./extensions/mermaid-language";
 import { WikiLink } from "./extensions/wiki-link";
+import { Tag } from "./extensions/tag";
 import { SearchHighlight } from "./extensions/search-highlight";
 import { HeadingHighlight } from "./extensions/heading-highlight";
 import { CodeBlockToolbar } from "./extensions/code-block-toolbar";
@@ -62,6 +63,7 @@ import type { ImageSettings } from "../services";
 import type { EditorSettings } from "../Settings";
 import type { EditorHandle, EditorMode } from "./types";
 import "./theme.css";
+import "../tags/Tag.css";
 
 const lowlight = createLowlight(common);
 lowlight.register("vim", vimLang);
@@ -193,48 +195,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         BulletList.extend({ addKeyboardShortcuts() { return {}; } }),
         OrderedList.extend({ addKeyboardShortcuts() { return {}; } }),
         ListItem,
-        HardBreak.extend({
-          addKeyboardShortcuts() {
-            return {
-              // Enter → 插入硬换行（普通段落中），光标在段落末尾且为空行时创建新段落
-              Enter: () => {
-                const { state } = this.editor;
-                const { $from } = state.selection;
-
-                // 列表/任务列表/代码块/表格中不拦截，交给默认行为
-                for (let d = $from.depth; d >= 0; d--) {
-                  const nodeType = $from.node(d).type.name;
-                  if (
-                    nodeType === "listItem" ||
-                    nodeType === "taskItem" ||
-                    nodeType === "codeBlock" ||
-                    nodeType === "tableCell" ||
-                    nodeType === "tableHeader"
-                  ) {
-                    return false;
-                  }
-                }
-
-                // 段落末尾且为空行（或光标在末尾）时创建新段落
-                const pos = $from.pos;
-                const parentEnd = $from.parent.content.size + $from.start();
-                if (pos >= parentEnd - 1) {
-                  return this.editor.commands.splitBlock();
-                }
-
-                // 光标在标题前面时，创建新段落
-                if ($from.parent.type.name === "heading" && pos <= $from.start()) {
-                  return this.editor.commands.splitBlock();
-                }
-
-                return this.editor.commands.setHardBreak();
-              },
-
-              // Shift+Enter → 创建新段落
-              "Shift-Enter": () => this.editor.commands.splitBlock(),
-            };
-          },
-        }),
+        HardBreak,
         Heading.extend({ addKeyboardShortcuts() { return {}; } }),
         Placeholder.configure({
           placeholder: "开始输入 Markdown...",
@@ -320,7 +281,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         Typography,
         Markdown.configure({
           html: true,
-          breaks: true,
+          breaks: false,
           transformPastedText: true,
           transformCopiedText: true,
         }),
@@ -328,6 +289,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         ...(editorSettings?.callout !== false ? [Callout] : []),
         ...(editorSettings?.mermaid !== false ? [Mermaid] : []),
         ...(editorSettings?.wikiLink !== false ? [WikiLink] : []),
+        Tag,
         SearchHighlight,
         HeadingHighlight,
         CodeBlockToolbar,
@@ -767,6 +729,20 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
             { from: fromPos, to },
             { type: 'wikiLink' as any, attrs: { note: noteName, heading: heading || null, display: display || null } }
           )
+          .run();
+      },
+      replaceRangeWithTag: (fromPos: number, tag: string) => {
+        if (!editor) return;
+        const to = editor.state.selection.from;
+        editor
+          .chain()
+          .focus()
+          .insertContentAt(
+            { from: fromPos, to },
+            { type: 'tag' as any, attrs: { tag } }
+          )
+          // 插入一个空格方便继续输入
+          .insertContent(" ")
           .run();
       },
       resize: () => {

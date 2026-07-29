@@ -1,0 +1,57 @@
+/* 标签样式 - 类似 Obsidian 的柔和标签效果 */
+.md-tag,
+span[data-tag] {
+  display: inline-block;
+  color: var(--accent, #8fa9f2);
+  background: rgba(var(--accent-rgb, 143, 169, 242), 0.15);
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.9em;
+  line-height: 1.6;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  border: 1px solid rgba(var(--accent-rgb, 143, 169, 242), 0.1);
+  white-space: nowrap;
+  vertical-align: baseline;
+  user-select: all;
+}
+
+.md-tag:hover,
+span[data-tag]:hover {
+  background: rgba(var(--accent-rgb, 143, 169, 242), 0.25);
+  border-color: rgba(var(--accent-rgb, 143, 169, 242), 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(var(--accent-rgb, 143, 169, 242), 0.12);
+}
+
+/* 编辑器内部的标签 */
+.tiptap-editor .md-tag,
+.tiptap-editor span[data-tag] {
+  color: var(--accent, #8fa9f2) !important;
+  background: rgba(var(--accent-rgb, 143, 169, 242), 0.13) !important;
+  padding: 1px 8px !important;
+  border-radius: 10px !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+  border: 1px solid rgba(var(--accent-rgb, 143, 169, 242), 0.08) !important;
+  font-family: inherit !important;
+  font-size: 0.92em !important;
+  white-space: nowrap !important;
+  vertical-align: baseline !important;
+  transition: all 0.15s ease !important;
+}
+
+.tiptap-editor .md-tag:hover,
+.tiptap-editor span[data-tag]:hover {
+  background: rgba(var(--accent-rgb, 143, 169, 242), 0.22) !important;
+  border-color: rgba(var(--accent-rgb, 143, 169, 242), 0.18) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 6px rgba(var(--accent-rgb, 143, 169, 242), 0.1) !important;
+}
+
+/* Slash 子标签（如 #状态/待整理）斜杠稍暗 */
+.md-tag sub {
+  opacity: 0.7;
+  font-size: 0.85em;
+}
