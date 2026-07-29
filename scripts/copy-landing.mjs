@@ -42,9 +42,18 @@ try {
   process.exit(1);
 }
 
-// Replace landing page paths for site context
-// The landing page uses relative paths (./) which should work in both contexts
-// but we need to adjust navigation links for the site
+// Fix documentation links for GitHub Pages deployment
+// GitHub Pages deploys under /Tydora/ path (baseHref in markdown-publish config)
+// Links like /index/ or /知识管理/wiki链接/ need /Tydora/ prefix
+// But we must NOT modify:
+//   - External URLs (starting with https://)
+//   - Anchor links (starting with #)
+//   - Protocol-relative URLs (starting with //)
+//   - Already-prefixed paths (starting with /Tydora/)
+html = html.replace(
+  /href="(\/(?!\/|Tydora\/|index\.html)[^"]*)"/g,
+  (match, path) => `href="/Tydora${path}"`
+);
 
 // Write the landing page as the site's index.html
 writeFileSync(dest, html, "utf-8");
