@@ -9,6 +9,9 @@
 [![Tauri](https://img.shields.io/badge/Tauri-v2-blue?style=flat-square)](https://v2.tauri.app/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square)](https://react.dev/)
 
+<br />
+
+![zjm.png](./website/zjm.png )
 
 ## 核心特性
 
@@ -23,13 +26,13 @@
 
 ## 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| 前端 | React 19 + TypeScript + Vite 6 |
-| 编辑器 | TipTap 3.x (WYSIWYG) + CodeMirror 6 (源码) |
-| 后端 | Rust (Tauri v2) |
-| 可视化 | D3.js (图谱) + markmap (思维导图) + React Flow (画布) |
-| 插件 | tauri-plugin-fs / dialog / window-state / updater / process |
+| 层级  | 技术                                                          |
+| --- | ----------------------------------------------------------- |
+| 前端  | React 19 + TypeScript + Vite 6                              |
+| 编辑器 | TipTap 3.x (WYSIWYG) + CodeMirror 6 (源码)                    |
+| 后端  | Rust (Tauri v2)                                             |
+| 可视化 | D3.js (图谱) + markmap (思维导图) + React Flow (画布)               |
+| 插件  | tauri-plugin-fs / dialog / window-state / updater / process |
 
 ## 快速开始
 

@@ -58,6 +58,7 @@ npm run sync-version       # 将 VERSION 中的版本号同步到以下文件：
 ```
 
 **发布流程**：
+
 1. 修改 `VERSION` 文件中的版本号
 2. 运行 `npm run sync-version` 同步所有配置
 3. 或直接构建（`npm run tauri`），构建前会自动同步版本
@@ -69,12 +70,14 @@ npm run sync-version       # 将 VERSION 中的版本号同步到以下文件：
 **入口**: `main.tsx` → 用 `ThemeProvider` 包裹整个应用，挂载到 `#root`。
 
 **主题系统**:
+
 - `ThemeManager.ts` — 8 种内置主题定义（`white`、`mint`、`mint-dark`、`liquid-glass`、`claude-code`、`purple`、`hermes`、`next`）。默认主题为 `mint`。
 - `CustomThemeManager.ts` — 自定义主题的导入/导出/管理，存储在 Tauri `appDataDir` 中。
 - `codeThemes.ts` — 11 种代码语法高亮配色方案。
 - `themes.tsx` 提供 `ThemeContext`，主题通过 `document.documentElement.dataset.theme` 设置，并在切换时同步更新 highlight.js 代码高亮样式。
 
 **App 组件** (`App.tsx`) — 应用状态中心：
+
 - 管理编辑器内容 (`content`)、当前文件路径 (`fileName`)、修改状态 (`modified`)、编辑模式 (`viewMode: "ir" | "sv"`)
 - 管理仓库列表 (`vaults`)、当前激活仓库索引 (`activeVaultIndex`)、侧栏状态 (`sidebarOpen`/`sidebarWidth`)
 - 所有状态持久化到 `localStorage`：`zmd-vaults`、`zmd-active-vault`、`zmd-sidebar-width`、`zmd-window-state`、`zmd-theme`
@@ -84,6 +87,7 @@ npm run sync-version       # 将 VERSION 中的版本号同步到以下文件：
 - `EditorErrorBoundary` 类组件防止编辑器崩溃导致白屏
 
 **TipTapEditor** (`src/Editor/TipTapEditor.tsx`) — TipTap 封装：
+
 - 使用 `forwardRef` + `useImperativeHandle` 暴露 `getValue`/`setValue`/`resize`/`executeCommand` 等方法
 - 通过内部标志 `isInternalRef` 区分程序化变更和用户输入，避免 `setValue` 后触发 `onChange` 造成循环
 - 使用 `tiptap-markdown` 进行 Markdown ↔ HTML 双向转换
@@ -91,10 +95,12 @@ npm run sync-version       # 将 VERSION 中的版本号同步到以下文件：
 - 支持两种模式：IR（即时渲染/WYSIWYG）和 SV（源码模式，使用 CodeMirror）
 
 **SourceEditor** (`src/Editor/SourceEditor.tsx`) — CodeMirror 6 源码编辑器：
+
 - 使用 `@codemirror/lang-markdown` 提供 Markdown 语法支持
 - 自定义行号显示、搜索高亮、主题适配
 
 **Sidebar** (`Sidebar.tsx`) — 包含三个子模块：
+
 1. **FileTree**: 递归树形组件，渲染仓库目录文件结构。支持展开/折叠目录、右键菜单（新建文件/文件夹、重命名、删除、复制路径）、内联重命名、拖拽移动文件到其他目录。
 2. **Outline**: 解析 Markdown 标题（`# ~ ######`），渲染可点击的大纲列表，点击滚动到编辑器对应位置。
 3. **VaultSwitcher**: 底部仓库选择器，含仓库列表下拉菜单和主题选择设置弹出面板。
@@ -106,6 +112,7 @@ npm run sync-version       # 将 VERSION 中的版本号同步到以下文件：
 **入口**: `main.rs` → 调用 `tydora_lib::run()`
 
 **源码结构**:
+
 ```
 src-tauri/src/
 ├── main.rs
@@ -116,38 +123,42 @@ src-tauri/src/
 ```
 
 **Tauri 插件**（5 个）:
-| 插件 | 用途 |
-|------|------|
-| `tauri-plugin-fs` | 文件系统访问 |
-| `tauri-plugin-dialog` | 系统对话框 |
+
+| 插件                          | 用途      |
+| --------------------------- | ------- |
+| `tauri-plugin-fs`           | 文件系统访问  |
+| `tauri-plugin-dialog`       | 系统对话框   |
 | `tauri-plugin-window-state` | 窗口状态持久化 |
-| `tauri-plugin-updater` | 应用自动更新 |
-| `tauri-plugin-process` | 进程管理 |
+| `tauri-plugin-updater`      | 应用自动更新  |
+| `tauri-plugin-process`      | 进程管理    |
 
 **自定义 Tauri 命令**（15 个）:
-| 命令 | 用途 |
-|------|------|
-| `get_default_content` | 获取默认编辑器内容 |
-| `get_app_version` | 获取应用版本号 |
-| `get_cwd` | 获取当前工作目录 |
-| `open_settings_window` | 打开设置窗口（800×600，无装饰） |
-| `open_file_in_new_window` | 在新窗口打开文件（1200×800） |
-| `open_file_location` | 在系统文件管理器中定位文件 |
-| `open_file` | 用系统默认应用打开文件 |
-| `open_directory` | 在系统文件管理器中打开目录 |
-| `open_mindmap_window` | 打开思维导图窗口（900×600） |
-| `open_graph_window` | 打开知识图谱窗口（1000×700） |
-| `watch_vault` | 启动仓库文件系统监听 |
-| `unwatch_vault` | 停止仓库文件系统监听 |
-| `run_markdown_publish` | 调用 `@abstractwebunit/markdown-publish` CLI 发布网站 |
-| `preview_site` | 启动 HTTP 服务器预览已发布站点 |
-| `stop_preview` | 停止预览 HTTP 服务器 |
+
+| 命令                        | 用途                                              |
+| ------------------------- | ----------------------------------------------- |
+| `get_default_content`     | 获取默认编辑器内容                                       |
+| `get_app_version`         | 获取应用版本号                                         |
+| `get_cwd`                 | 获取当前工作目录                                        |
+| `open_settings_window`    | 打开设置窗口（800×600，无装饰）                             |
+| `open_file_in_new_window` | 在新窗口打开文件（1200×800）                              |
+| `open_file_location`      | 在系统文件管理器中定位文件                                   |
+| `open_file`               | 用系统默认应用打开文件                                     |
+| `open_directory`          | 在系统文件管理器中打开目录                                   |
+| `open_mindmap_window`     | 打开思维导图窗口（900×600）                               |
+| `open_graph_window`       | 打开知识图谱窗口（1000×700）                              |
+| `watch_vault`             | 启动仓库文件系统监听                                      |
+| `unwatch_vault`           | 停止仓库文件系统监听                                      |
+| `run_markdown_publish`    | 调用 `@abstractwebunit/markdown-publish` CLI 发布网站 |
+| `preview_site`            | 启动 HTTP 服务器预览已发布站点                              |
+| `stop_preview`            | 停止预览 HTTP 服务器                                   |
 
 **状态管理**（lib.rs）:
+
 - `WatcherState` (`Mutex<Option<RecommendedWatcher>>`) — 仓库文件监听状态
 - `PreviewServer` (`Mutex<Option<Child>>`) — 预览 HTTP 服务器子进程
 
 **其他**:
+
 - `register_uri_scheme_protocol("local-file", ...)` — 自定义 URI scheme，用于加载本地文件
 - Debug 模式下自动打开 DevTools
 - `windows_subsystem = "windows"` 防止 release 模式出现控制台窗口
@@ -158,13 +169,13 @@ src-tauri/src/
 
 Tydora 采用多窗口架构，主进程通过 Tauri Window API 管理多个独立窗口：
 
-| 窗口 | 触发方式 | 默认大小 | 说明 |
-|------|----------|----------|------|
-| 主窗口 | 应用启动 | 1200×800 | 编辑器、侧栏等核心 UI |
-| 设置窗口 | `open_settings_window` | 800×600 | 独立设置面板（无装饰） |
-| 文件窗口 | `open_file_in_new_window` | 1200×800 | 在独立窗口中编辑文件 |
-| 图谱窗口 | `open_graph_window` | 1000×700 | 知识图谱可视化 |
-| 思维导图窗口 | `open_mindmap_window` | 900×600 | 思维导图可视化 |
+| 窗口     | 触发方式                      | 默认大小     | 说明           |
+| ------ | ------------------------- | -------- | ------------ |
+| 主窗口    | 应用启动                      | 1200×800 | 编辑器、侧栏等核心 UI |
+| 设置窗口   | `open_settings_window`    | 800×600  | 独立设置面板（无装饰）  |
+| 文件窗口   | `open_file_in_new_window` | 1200×800 | 在独立窗口中编辑文件   |
+| 图谱窗口   | `open_graph_window`       | 1000×700 | 知识图谱可视化      |
+| 思维导图窗口 | `open_mindmap_window`     | 900×600  | 思维导图可视化      |
 
 各独立窗口（如 GraphWindow、MindmapWindow）渲染各自的 React 组件树，通过序列化的 JSON 数据（如 LinkIndexService 序列化的链接索引）与主窗口共享状态。
 
@@ -188,30 +199,31 @@ Tydora 采用多窗口架构，主进程通过 Tauri Window API 管理多个独�
 
 Obsidian 风格的 `[[双向链接]]` 由三个模块协作实现：
 
-| 模块 | 文件 | 职责 |
-|------|------|------|
-| 解析器 | `LinkParser.ts` | 正则匹配 `[[link]]` 和 `![[embed]]` 语法 |
-| 索引服务 | `LinkIndexService.ts` | 维护 outlinks/backlinks 映射、文件名快速查找，支持全量重建和增量更新，可序列化为 JSON 跨窗口传输 |
-| DOM 处理器 | `WikiLinkProcessor.ts` | 将文本节点中的 `[[...]]` 转换为可点击的样式化链接 |
-| TipTap 扩展 | `extensions/wiki-link.ts` | 编辑器内的 WikiLink Node 扩展 |
-| 自动补全 | `WikiLinkAutocomplete.tsx` | 监听 `wiki-link-trigger` 事件显示补全列表，通过 Selection API 替换文本 |
-| 反向链接面板 | `BacklinksPanel.tsx` | 展示当前文件的反向链接和出链 |
+| 模块        | 文件                         | 职责                                                            |
+| --------- | -------------------------- | ------------------------------------------------------------- |
+| 解析器       | `LinkParser.ts`            | 正则匹配 `[[link]]` 和 `![[embed]]` 语法                             |
+| 索引服务      | `LinkIndexService.ts`      | 维护 outlinks/backlinks 映射、文件名快速查找，支持全量重建和增量更新，可序列化为 JSON 跨窗口传输 |
+| DOM 处理器   | `WikiLinkProcessor.ts`     | 将文本节点中的 `[[...]]` 转换为可点击的样式化链接                                |
+| TipTap 扩展 | `extensions/wiki-link.ts`  | 编辑器内的 WikiLink Node 扩展                                        |
+| 自动补全      | `WikiLinkAutocomplete.tsx` | 监听 `wiki-link-trigger` 事件显示补全列表，通过 Selection API 替换文本         |
+| 反向链接面板    | `BacklinksPanel.tsx`       | 展示当前文件的反向链接和出链                                                |
 
 ### 发布功能
 
 将 Vault 中的 Markdown 文件发布为静态网站：
 
-| 模块 | 文件 | 职责 |
-|------|------|------|
-| 发布面板 | `PublishPanel.tsx` | 发布操作覆盖面板 |
-| 发布设置 | `PublishSettings.tsx` | 发布配置表单 |
-| 发布服务 | `PublishService.ts` | 加载/保存发布配置，调用 `run_markdown_publish` Rust 命令 |
-| Rust 命令 | `run_markdown_publish` | 调用 `@abstractwebunit/markdown-publish` CLI |
-| 预览 | `preview_site` / `stop_preview` | 启动/停止 Node.js HTTP 服务器预览发布结果 |
+| 模块      | 文件                              | 职责                                          |
+| ------- | ------------------------------- | ------------------------------------------- |
+| 发布面板    | `PublishPanel.tsx`              | 发布操作覆盖面板                                    |
+| 发布设置    | `PublishSettings.tsx`           | 发布配置表单                                      |
+| 发布服务    | `PublishService.ts`             | 加载/保存发布配置，调用 `run_markdown_publish` Rust 命令 |
+| Rust 命令 | `run_markdown_publish`          | 调用 `@abstractwebunit/markdown-publish` CLI  |
+| 预览      | `preview_site` / `stop_preview` | 启动/停止 Node.js HTTP 服务器预览发布结果                |
 
 ### 文件监听系统
 
 `useVaultWatcher.ts` — React Hook，在 Vault 切换时：
+
 1. 调用 `watch_vault` Rust 命令启动 `notify` crate 文件系统监听
 2. 防抖处理文件变更事件
 3. 自动更新 LinkIndexService 的链接索引
@@ -229,13 +241,15 @@ Obsidian 风格的 `[[双向链接]]` 由三个模块协作实现：
 ### GitHub Actions
 
 **`.github/workflows/release.yml`**:
+
 - 触发: push 到 `release` 分支或手动 dispatch
-- 跨平台构建矩阵: `windows-latest`、`macos-latest` (aarch64 + x86_64)、`ubuntu-22.04`
+- 跨平台构建矩阵: `windows-latest`、`macos-latest` (aarch64 + x86\_64)、`ubuntu-22.04`
 - 使用 `dtolnay/rust-toolchain@stable`、`swatinem/rust-cache@v2`、`tauri-apps/tauri-action@v0`
 - 创建 Draft GitHub Release，使用 `TAURI_SIGNING_PRIVATE_KEY` 进行代码签名
 - Linux 依赖: `libwebkit2gtk-4.1-dev`、`libappindicator3-dev`、`librsvg2-dev`、`patchelf`、`libgtk-3-dev`
 
 **`.github/workflows/deploy-docs.yml`**:
+
 - 触发: push 到 `main` 且变更涉及 `website/` 目录下的文档文件
 - 使用 Python 3.12 构建 MkDocs 站点，部署到 GitHub Pages
 
@@ -245,43 +259,31 @@ Obsidian 风格的 `[[双向链接]]` 由三个模块协作实现：
 
 编辑器使用以下 TipTap 扩展：
 
-| 扩展 | 用途 |
-|------|------|
-| StarterKit | 核心扩展集合（已禁用部分以单独配置） |
-| Bold/Italic/Strike/Code | 行内格式（禁用了内置快捷键，使用自定义快捷键系统） |
-| Blockquote/BulletList/OrderedList/ListItem | 块级格式 |
-| CodeBlockLowlight | 代码块（带语法高亮） |
-| Image | 图片（支持 inline、base64） |
-| Link | 超链接 |
-| Table/TableRow/TableCell/TableHeader | 表格（支持 resizable） |
-| TaskList/TaskItem | 任务列表 |
-| Highlight | 高亮 |
-| Typography | 排版优化 |
-| Placeholder | 占位符文本 |
-| Markdown (tiptap-markdown) | Markdown 序列化 |
+| 扩展                                         | 用途                        |
+| ------------------------------------------ | ------------------------- |
+| StarterKit                                 | 核心扩展集合（已禁用部分以单独配置）        |
+| Bold/Italic/Strike/Code                    | 行内格式（禁用了内置快捷键，使用自定义快捷键系统） |
+| Blockquote/BulletList/OrderedList/ListItem | 块级格式                      |
+| CodeBlockLowlight                          | 代码块（带语法高亮）                |
+| Image                                      | 图片（支持 inline、base64）      |
+| Link                                       | 超链接                       |
+| Table/TableRow/TableCell/TableHeader       | 表格（支持 resizable）          |
+| TaskList/TaskItem                          | 任务列表                      |
+| Highlight                                  | 高亮                        |
+| Typography                                 | 排版优化                      |
+| Placeholder                                | 占位符文本                     |
+| Markdown (tiptap-markdown)                 | Markdown 序列化              |
 
 ### 自定义扩展
 
-| 文件 | 用途 |
-|------|------|
-| `extensions/wiki-link.ts` | Obsidian 风格的 `[[wiki-link]]` 支持 |
-| `extensions/search-highlight.ts` | 搜索结果高亮 |
-| `extensions/code-block-toolbar.ts` | 代码块工具栏（语言选择、复制、删除、折叠） |
-| `extensions/custom-commands.ts` | 命令分发（根据命令名调用对应编辑器操作） |
+| 文件                                 | 用途                              |
+| ---------------------------------- | ------------------------------- |
+| `extensions/wiki-link.ts`          | Obsidian 风格的 `[[wiki-link]]` 支持 |
+| `extensions/search-highlight.ts`   | 搜索结果高亮                          |
+| `extensions/code-block-toolbar.ts` | 代码块工具栏（语言选择、复制、删除、折叠）           |
+| `extensions/custom-commands.ts`    | 命令分发（根据命令名调用对应编辑器操作）            |
 
-### 待实现的扩展（备份在 `.mimocode/backup-extensions/`）
-
-以下扩展已开发但因 Tiptap v3 兼容性问题暂未集成：
-
-| 文件 | 用途 | 状态 |
-|------|------|------|
-| `slash-command.ts` | Slash 命令菜单（`/` 触发） | 代码完成，待集成 |
-| `slash-command-view.ts` | Slash 菜单 tippy.js 定位渲染器 | 代码完成，待集成 |
-| `SlashCommandMenu.tsx` | Slash 菜单 React 组件 | 代码完成，待集成 |
-| `slash-command.css` | Slash 菜单样式 | 代码完成，待集成 |
-| `selection-toolbar.ts` | 选中文本浮动工具栏 | 代码完成，待集成 |
-| `drag-handle.ts` | 拖拽手柄（自定义实现） | 代码完成，待集成 |
-| `safe-focus.ts` | SafeFocus 扩展（替代有 bug 的 Focus 扩展） | 代码完成，待集成 |
+<br />
 
 ### Frontmatter 支持
 
@@ -363,6 +365,7 @@ editor.commands.setContent(htmlOrMarkdown);
 **问题**：`@tiptap/extensions` v3.27.1 的 Focus 扩展在 `decorations` prop 中访问 `this.editor.isEditable`，但在 React 19 的渲染时序下，`this.editor` 可能为 undefined。
 
 **错误信息**：
+
 ```
 TypeError: Cannot destructure property 'isEditable' of 'editor' as it is undefined.
     at Plugin.apply (state.ts:71:15)
@@ -371,10 +374,12 @@ TypeError: Cannot destructure property 'isEditable' of 'editor' as it is undefin
 **根因**：`@tiptap/extension-placeholder` 通过 re-export 引入了 `@tiptap/extensions` 的 barrel export，导致 Focus 扩展被打包进项目。
 
 **解决方案（待实施）**：
+
 - 使用 `patch-package` 对 `@tiptap/extensions` 打持久化补丁
 - 或改用子模块路径导入：`import { Placeholder } from "@tiptap/extensions/placeholder"`
 
 **教训**：
+
 - 不要直接 patch `node_modules` 文件，Vite 的预构建缓存会覆盖修改
 - Barrel export（`export * from ...`）会将整个模块树拉入 bundle，即使只使用其中一个导出
 - 应使用 `patch-package` 等工具进行持久化 patch
@@ -384,6 +389,7 @@ TypeError: Cannot destructure property 'isEditable' of 'editor' as it is undefin
 **问题**：Vite dev 模式会预构建依赖并缓存在 `node_modules/.vite`。直接修改 `node_modules` 中的文件不会被 Vite 加载。
 
 **解决方案**：
+
 - 使用 `patch-package` 生成 diff 文件，在 `npm install` 后自动应用
 - 或使用 `resolve.alias` 将有问题的模块重定向到本地修复版
 
@@ -486,11 +492,13 @@ src/
 **规则**：在白板（Canvas）功能中，所有文件路径必须使用相对路径（相对于 Vault 根目录），不能使用绝对路径。
 
 **原因**：
+
 - 绝对路径在不同机器上无法使用
 - 移动画布文件后路径会失效
 - 需要与 Obsidian 保持兼容
 
 **实现方式**：
+
 ```typescript
 // 保存时：转换为相对路径
 function toRelativePath(absolutePath: string, vaultPath: string): string {
@@ -512,6 +520,7 @@ function resolveFilePath(basePath: string, relativePath: string): string {
 ```
 
 **使用场景**：
+
 - 插入笔记卡片（.md 文件）
 - 插入媒体文件（图片、视频、音频、PDF）
 - 插入白板文件（.canvas）
