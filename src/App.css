@@ -142,6 +142,15 @@ body {
   align-items: center;
 }
 
+.window-controls-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: rgba(127, 127, 127, 0.28);
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
 .window-control-btn {
   width: 32px;
   height: 28px;

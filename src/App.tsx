@@ -1573,9 +1573,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
               <div className="editor-topbar-more-wrapper" ref={moreMenuRef}>
                 <button className="window-control-btn" title="更多" onClick={() => setMoreMenuOpen((v) => !v)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <circle cx="12" cy="5" r="2" />
+                    <circle cx="5" cy="12" r="2" />
                     <circle cx="12" cy="12" r="2" />
-                    <circle cx="12" cy="19" r="2" />
+                    <circle cx="19" cy="12" r="2" />
                   </svg>
                 </button>
                 {moreMenuOpen && (
