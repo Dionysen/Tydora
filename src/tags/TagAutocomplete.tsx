@@ -88,11 +88,17 @@ export function TagAutocomplete({ query, position, onSelect, onClose }: TagAutoc
         e.stopPropagation();
         onClose();
       } else if (e.key === " ") {
-        // 空格时如果只有一个匹配项或有选中项，自动补全
         if (suggestions.length > 0 && suggestions[selectedIndex]) {
-          e.preventDefault();
-          e.stopPropagation();
-          onSelect(suggestions[selectedIndex]);
+          if (query.trim()) {
+            // 用户已输入查询文本，空格时自动补全为选中的标签
+            e.preventDefault();
+            e.stopPropagation();
+            onSelect(suggestions[selectedIndex]);
+          } else {
+            // query 为空（用户只输入了 #），说明用户可能想输入标题 (# 标题)
+            // 关闭面板，让空格键正常输入到编辑器
+            onClose();
+          }
         }
       }
     };
