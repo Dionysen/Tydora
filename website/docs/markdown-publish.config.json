@@ -7,5 +7,5 @@
   "buildMode": "full",
   "baseHref": "/Tydora/",
   "out": "website/site",
-  "home": "首页"
+  "home": "index"
 }
