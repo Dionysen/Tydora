@@ -11,7 +11,7 @@
 
 <br />
 
-![zjm.png](./website/zjm.png )
+![zjm.png](./website/zjm.png)
 
 ## 核心特性
 

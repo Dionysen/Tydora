@@ -7,16 +7,6 @@
 # 帮助文档
 website/site/
 
-website-new/node_modules/
-
-website-new/
-
-website/*
-!website/landing/
-!website/docs/
-!website/markdown-publish.config.json
-
-
 # Dependencies
 node_modules/
 
