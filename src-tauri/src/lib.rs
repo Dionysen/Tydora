@@ -885,6 +885,32 @@ pub fn run() {
             app.manage(PreviewServer(std::sync::Mutex::new(None)));
             app.manage(HttpClientState::new());
 
+            // 处理命令行参数（从文件管理器"打开方式"启动时传入的文件路径）
+            let args: Vec<String> = std::env::args().collect();
+            if args.len() > 1 {
+                let file_paths: Vec<String> = args[1..]
+                    .iter()
+                    .filter(|p| {
+                        let lower = p.to_lowercase();
+                        lower.ends_with(".md")
+                            || lower.ends_with(".markdown")
+                            || lower.ends_with(".mdx")
+                    })
+                    .cloned()
+                    .collect();
+
+                if !file_paths.is_empty() {
+                    let app_handle = app.handle().clone();
+                    std::thread::spawn(move || {
+                        // 等待前端加载完成后再发送事件
+                        std::thread::sleep(std::time::Duration::from_millis(800));
+                        for path in &file_paths {
+                            let _ = app_handle.emit_to("main", "open-file", path);
+                        }
+                    });
+                }
+            }
+
             #[cfg(debug_assertions)]
             {
                 let window = app.get_webview_window("main").unwrap();
