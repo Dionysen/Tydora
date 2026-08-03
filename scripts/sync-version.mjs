@@ -41,13 +41,13 @@ writeFileSync(landingPath, landingHtml);
 console.log(`Updated landing page`);
 
 // 更新文档关于页版本号
-const aboutPath = join(root, "website", "docs", "关于.md");
+const aboutPath = join(root, "website", "docs", "01-开始使用", "02-关于.md");
 let aboutMd = readFileSync(aboutPath, "utf-8");
 aboutMd = aboutMd.replace(
-  /当前版本：\d+\.\d+\.\d+/,
-  `当前版本：${version}`
+  /(\|\s*当前版本\s*\|\s*)\d+\.\d+\.\d+(\s*\|)/,
+  `$1${version}$2`
 );
 writeFileSync(aboutPath, aboutMd);
-console.log(`Updated docs/关于.md`);
+console.log(`Updated docs/01-开始使用/02-关于.md`);
 
 console.log(`All versions synced to ${version}`);

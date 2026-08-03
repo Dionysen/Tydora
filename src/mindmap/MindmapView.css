@@ -79,15 +79,20 @@
   box-shadow: 0 0 0 1px var(--border);
 }
 
+.markmap-foreign {
+  display: flex !important;
+  align-items: center !important;
+}
+
 .markmap-foreign svg {
   fill: currentColor;
   display: inline-block;
-  vertical-align: middle;
   margin-right: 4px;
+  flex-shrink: 0;
 }
 
 .markmap-foreign input[type="checkbox"] {
   margin: 0 4px 0 0;
-  vertical-align: middle;
   pointer-events: none;
+  flex-shrink: 0;
 }
