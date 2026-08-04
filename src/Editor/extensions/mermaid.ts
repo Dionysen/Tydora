@@ -133,10 +133,11 @@ export const Mermaid = Node.create({
             if (pos !== undefined && editor) {
               const pmNode = editor.state.doc.nodeAt(pos);
               if (pmNode) {
+                const content = newText ? [editor.state.schema.text(newText)] : [];
                 const tr = editor.state.tr.replaceWith(
                   pos + 1,
                   pos + pmNode.nodeSize - 1,
-                  editor.state.schema.text(newText),
+                  content,
                 );
                 editor.view.dispatch(tr);
               }

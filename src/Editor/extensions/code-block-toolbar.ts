@@ -171,9 +171,10 @@ function applyLanguage(wrapper: HTMLElement, lang: string) {
   if (lang === "mermaid") {
     const content = nodeAtPos.textContent;
     const nodeSize = nodeAtPos.nodeSize;
+    const mermaidContent = content ? [pmView.state.schema.text(content)] : [];
     const mermaidNode = pmView.state.schema.nodes.mermaid?.create(
       null,
-      pmView.state.schema.text(content),
+      mermaidContent,
     );
     if (mermaidNode) {
       pmView.dispatch(
