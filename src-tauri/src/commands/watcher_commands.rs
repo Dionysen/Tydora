@@ -10,7 +10,6 @@ struct FsEvent {
     paths: Vec<String>,
 }
 
-/// Start watching a vault directory for file system changes.
 #[tauri::command]
 pub fn watch_vault(
     path: String,
@@ -46,7 +45,6 @@ pub fn watch_vault(
     Ok(())
 }
 
-/// Stop watching the vault.
 #[tauri::command]
 pub fn unwatch_vault(state: State<WatcherState>) -> Result<(), String> {
     let mut guard = state.0.lock().map_err(|e| e.to_string())?;

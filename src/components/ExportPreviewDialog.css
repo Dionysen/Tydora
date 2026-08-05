@@ -76,7 +76,7 @@
 }
 
 .export-preview-body--pdf {
-  padding: 0;
+  padding: 16px;
 }
 
 .export-preview-frame {
@@ -89,11 +89,11 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* PDF 预览 iframe：透明背景，分页卡片自带阴影 */
+/* PDF 预览 iframe：透明背景 + 外层阴影，与图片预览风格一致 */
 .export-preview-frame--pdf {
   background: transparent;
-  border-radius: 0;
-  box-shadow: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
 
 .export-preview-img-wrap {

@@ -1,6 +1,7 @@
 // 导出相关的 DOM / CSS 工具函数
 import { readFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
+import appIconUrl from "../assets/icon.png";
 
 /** 收集当前页面所有同源 <style> 的 CSS 文本（用于自包含 HTML 导出） */
 export function collectDocumentCSS(): string {
@@ -188,6 +189,28 @@ function svgToPngDataUrl(svg: SVGSVGElement): Promise<{ dataUrl: string; width: 
 }
 
 /**
+ * 创建导出文件顶部的应用标识 header（图标 + 名称）
+ */
+function createExportHeader(): HTMLElement {
+  const header = document.createElement("div");
+  header.className = "export-app-header";
+  Object.assign(header.style, {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
+    paddingBottom: "16px",
+    marginBottom: "16px",
+    borderBottom: "1px solid var(--border, #d9ede5)",
+  } as CSSStyleDeclaration);
+  header.innerHTML = `
+    <img src="${appIconUrl}" alt="Tydora" style="width:32px;height:32px;flex-shrink:0;" />
+    <span style="font-size:20px;font-weight:700;color:var(--text-primary, #1f2330);letter-spacing:0.5px;">Tydora</span>
+  `;
+  return header;
+}
+
+/**
  * 把从编辑器克隆来的内容元素清理后挂到屏幕外容器，保证布局正常（供栅格化/截图）。
  * 返回容器与清理函数。
  */
@@ -214,13 +237,18 @@ export function prepareExportElement(
     left: "-9999px",
     top: "0",
     width: "820px",
-    padding: "48px",
+    padding: "16px 48px 48px 48px",
     boxSizing: "border-box",
     background: forceLightTheme ? "#ffffff" : "var(--bg-primary, #ffffff)",
     color: forceLightTheme ? "#1e293b" : "var(--text-primary, #1f2330)",
     fontFamily: "var(--editor-font, sans-serif)",
   } as CSSStyleDeclaration);
   container.setAttribute("data-theme", exportTheme);
+
+  // 在内容顶部插入应用标识 header
+  const header = createExportHeader();
+  raw.insertBefore(header, raw.firstChild);
+
   container.appendChild(raw);
   document.body.appendChild(container);
 

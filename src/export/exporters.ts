@@ -297,6 +297,9 @@ html, body { margin: 0; height: 100%; overflow-y: auto; }
 </html>`;
 }
 
+/** html2canvas 渲染倍率，4x 保证 PDF 文字高度清晰 */
+const RENDER_SCALE = 4;
+
 /**
  * 把内容元素绘制到 canvas。
  * 使用 html2canvas（直接遍历 DOM 绘制，不借助 foreignObject），
@@ -305,7 +308,7 @@ html, body { margin: 0; height: 100%; overflow-y: auto; }
 async function renderToCanvas(raw: HTMLElement, backgroundColor: string): Promise<HTMLCanvasElement> {
   return html2canvas(raw, {
     backgroundColor,
-    scale: 2,
+    scale: RENDER_SCALE,
     useCORS: true,
     logging: false,
     windowWidth: raw.scrollWidth,
@@ -375,6 +378,82 @@ function collectCodeBlockLines(
 }
 
 /**
+ * 收集任意文本元素内每一行的上下边界（按视觉行，处理自动换行）。
+ * 与 collectCodeBlockLines 逻辑相同，但泛化到 p / li / h1-h6 等。
+ * 返回的坐标已换算为 canvas 像素，且相对于容器顶部。
+ */
+function collectParagraphLines(
+  el: HTMLElement,
+  scale: number,
+  offsetY: number,
+): Array<{ top: number; bottom: number }> {
+  const lines: Array<{ top: number; bottom: number }> = [];
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let node: Node | null;
+  while ((node = walker.nextNode())) {
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    const rects = range.getClientRects();
+    for (let i = 0; i < rects.length; i++) {
+      const rect = rects[i];
+      lines.push({
+        top: rect.top * scale - offsetY,
+        bottom: rect.bottom * scale - offsetY,
+      });
+    }
+  }
+
+  if (lines.length === 0) return [];
+
+  // 合并同一视觉行的多个文本片段
+  lines.sort((a, b) => a.top - b.top);
+  const merged: Array<{ top: number; bottom: number }> = [];
+  for (const line of lines) {
+    const last = merged[merged.length - 1];
+    if (last && Math.abs(line.top - last.top) < 2 * scale) {
+      last.bottom = Math.max(last.bottom, line.bottom);
+    } else {
+      merged.push({ top: line.top, bottom: line.bottom });
+    }
+  }
+  return merged;
+}
+
+/**
+ * 将断点位置 snap 到最近的文本行边界（用于 p/li/h1-h6 等文本元素）。
+ * 相比代码块使用更宽松的 40% 阈值以适配较大的行间距。
+ */
+function snapToTextLineBoundary(
+  nextY: number,
+  currentY: number,
+  pageCanvasH: number,
+  lines: Array<{ top: number; bottom: number }>,
+): number {
+  for (let i = 0; i < lines.length - 1; i++) {
+    const thisLineBottom = lines[i].bottom;
+    const nextLineTop = lines[i + 1].top;
+    if (nextY >= thisLineBottom && nextY <= nextLineTop) {
+      if (thisLineBottom - currentY >= pageCanvasH * 0.40) {
+        return thisLineBottom;
+      }
+      return nextLineTop;
+    }
+  }
+
+  const lastLine = lines[lines.length - 1];
+  if (lastLine && nextY > lastLine.bottom) {
+    return lastLine.bottom;
+  }
+
+  const firstLine = lines[0];
+  if (firstLine && nextY < firstLine.top) {
+    return firstLine.top;
+  }
+
+  return nextY;
+}
+
+/**
  * 将断点位置 snap 到最近的代码行边界，确保不会把一行代码切成两半。
  * 优先向上取整（让当前页以完整行结尾），若留白过少则向下取整。
  */
@@ -430,6 +509,11 @@ function findSafePageBreaks(
   const containerRect = container.getBoundingClientRect();
   const offsetY = containerRect.top * scale;
 
+  // 内容区域的 canvas 坐标范围（排除容器 padding）
+  const rawRect = raw.getBoundingClientRect();
+  const contentTop = (rawRect.top - containerRect.top) * scale;
+  const contentBottom = (rawRect.bottom - containerRect.top) * scale;
+
   const elements = Array.from(raw.querySelectorAll(UNSPLITTABLE_SELECTORS.join(", ")));
   const rects = elements
     .map((el) => {
@@ -454,24 +538,27 @@ function findSafePageBreaks(
       }
     });
 
-  const breaks: number[] = [0];
-  let currentY = 0;
+  const breaks: number[] = [contentTop];
+  let currentY = contentTop;
 
-  while (currentY < canvasH) {
-    let nextY = Math.min(currentY + pageCanvasH, canvasH);
-    if (nextY >= canvasH) break;
+  while (currentY < contentBottom) {
+    let nextY = Math.min(currentY + pageCanvasH, contentBottom);
+    if (nextY >= contentBottom) break;
 
     // 优先处理代码块：即使比页面高，也按行边界 snap，而不是任意切断
     const cutPre = rects.find(
       (r) => r.el.tagName === "PRE" && r.top < nextY && r.bottom > nextY,
     );
     if (cutPre) {
-      const lines = codeBlockLines.get(cutPre.el);
-      if (lines && lines.length > 0) {
-        nextY = snapToCodeLineBoundary(nextY, currentY, pageCanvasH, lines);
-      } else if (cutPre.height < pageCanvasH) {
-        // 代码块整体能放进一页，但被切断，则整体移到下一页
-        nextY = cutPre.bottom;
+      if (cutPre.height < pageCanvasH) {
+        // 代码块整体能放进一页，整体移到下一页
+        nextY = cutPre.top;
+      } else {
+        // 代码块比页面高，按行边界 snap 避免切断代码行
+        const lines = codeBlockLines.get(cutPre.el);
+        if (lines && lines.length > 0) {
+          nextY = snapToCodeLineBoundary(nextY, currentY, pageCanvasH, lines);
+        }
       }
       // 若代码块比页面高且无法获取行边界，则按原位置切分（不得已）
     } else {
@@ -485,10 +572,27 @@ function findSafePageBreaks(
         const before = Math.max(currentY, cut.top);
         // 方案 B：在该元素之后分页（把该元素整体放到下一页）
         const after = cut.bottom;
+        const tag = cut.el.tagName;
 
-        // 若方案 A 仍保留超过 55% 的可用高度，优先提前分页，否则延后
-        if (before - currentY >= pageCanvasH * 0.55) {
+        // 列表项、表格行、图片整体不可再分：直接整体移到下一页
+        if (tag === "LI" || tag === "TR" || tag === "FIGURE") {
           nextY = before;
+        } else if (before - currentY >= pageCanvasH * 0.55) {
+          // 若方案 A 仍保留超过 55% 的可用高度，优先提前分页
+          nextY = before;
+        } else if (after > currentY + pageCanvasH) {
+          // 元素超出页面：尝试按文本行边界 snap，避免切断一行文字
+          const tLines = collectParagraphLines(cut.el, scale, offsetY);
+          if (tLines.length > 1) {
+            nextY = snapToTextLineBoundary(
+              currentY + pageCanvasH,
+              currentY,
+              pageCanvasH,
+              tLines,
+            );
+          } else {
+            nextY = after;
+          }
         } else {
           nextY = after;
         }
@@ -496,20 +600,20 @@ function findSafePageBreaks(
     }
 
     if (nextY <= currentY) {
-      nextY = Math.min(currentY + pageCanvasH, canvasH);
+      nextY = Math.min(currentY + pageCanvasH, contentBottom);
     }
 
     breaks.push(nextY);
     currentY = nextY;
   }
 
-  breaks.push(canvasH);
+  breaks.push(contentBottom);
   return breaks;
 }
 
 /** 导出为 PDF 二进制（A4 多页切片，按页裁剪 + JPEG 压缩以减小体积） */
 export async function exportPdfBytes(raw: HTMLElement, backgroundColor: string): Promise<Uint8Array> {
-  // 一次性渲染完整内容（保持 2x 保证清晰度）
+  // 一次性渲染完整内容（高倍率保证文字清晰度）
   const canvas = await renderToCanvas(raw, backgroundColor);
   const canvasW = canvas.width;
   const canvasH = canvas.height;
@@ -536,7 +640,7 @@ export async function exportPdfBytes(raw: HTMLElement, backgroundColor: string):
   const pageCanvasH = Math.ceil(contentH_pt * pxPerPt);
 
   // 计算安全分页断点，避免切断块级元素
-  const breaks = findSafePageBreaks(raw, pageCanvasH, 2, canvasH);
+  const breaks = findSafePageBreaks(raw, pageCanvasH, RENDER_SCALE, canvasH);
   const totalPages = breaks.length - 1;
 
   // 逐页裁剪，每页只嵌入当前页的 JPEG（而非整张大 PNG）
@@ -557,8 +661,8 @@ export async function exportPdfBytes(raw: HTMLElement, backgroundColor: string):
     ctx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
     ctx.drawImage(canvas, 0, yStart, canvasW, cropH, 0, 0, cropCanvas.width, cropH);
 
-    // JPEG 质量 0.92：文字文档几乎无可见差异，体积却比 PNG 小 5-10 倍
-    const jpegDataUrl = cropCanvas.toDataURL("image/jpeg", 0.92);
+    // JPEG 高质量，配合 4x 渲染保证文字清晰
+    const jpegDataUrl = cropCanvas.toDataURL("image/jpeg", 0.98);
     const imgH_pt = cropH / pxPerPt;
     pdf.addImage(jpegDataUrl, "JPEG", margin_pt, margin_pt, contentW_pt, imgH_pt);
   }
