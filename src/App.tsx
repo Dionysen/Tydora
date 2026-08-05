@@ -12,6 +12,8 @@ import { QuickOpen } from "./components";
 import { CommandPalette } from "./components";
 import { useTheme } from "./themes";
 import { ConfirmDialog } from "./components";
+import { buildExportArtifact, EXPORT_FORMATS, type ExportFormat, type BuiltArtifact } from "./export";
+import { ExportPreviewDialog } from "./components/ExportPreviewDialog";
 import { emit, listen } from "@tauri-apps/api/event";
 import { loadImageSettings, type ImageSettings } from "./services";
 import { loadEditorSettings, type EditorSettings, EDITOR_SETTINGS_KEY, SHORTCUTS_KEY, GRAPH_SETTINGS_KEY, DEFAULT_GRAPH } from "./Settings";
@@ -69,6 +71,7 @@ const ACTIVE_VAULT_KEY = "zmd-active-vault";
 const SIDEBAR_WIDTH_KEY = "zmd-sidebar-width";
 const WINDOW_STATE_KEY = "zmd-window-state";
 const RECENT_FILES_KEY = "zmd-recent-files";
+const PINNED_ITEMS_KEY = "zmd-pinned-toolbar-items";
 
 // 最近访问文件的最大数量
 const MAX_RECENT_FILES = 20;
@@ -309,6 +312,28 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const historyIndexRef = useRef(-1);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+  const [showExportFormatPicker, setShowExportFormatPicker] = useState(false);
+  const [exportPreview, setExportPreview] = useState<{ format: ExportFormat; artifact: BuiltArtifact } | null>(null);
+
+  // 顶部栏固定项（思维导图、关系图谱、导出）
+  const [pinnedItems, setPinnedItems] = useState<{ mindmap: boolean; graph: boolean; export: boolean }>(() => {
+    try {
+      const saved = localStorage.getItem(PINNED_ITEMS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { mindmap: !!parsed.mindmap, graph: !!parsed.graph, export: !!parsed.export };
+      }
+    } catch {
+      // ignore
+    }
+    return { mindmap: false, graph: false, export: false };
+  });
+
+  // Persist pinned items
+  useEffect(() => {
+    localStorage.setItem(PINNED_ITEMS_KEY, JSON.stringify(pinnedItems));
+  }, [pinnedItems]);
 
   // 最近访问的文件列表（按仓库路径分组）
   const [recentFiles, setRecentFiles] = useState<Record<string, string[]>>(() => {
@@ -331,6 +356,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     const handleClickOutside = (e: MouseEvent) => {
       if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
         setMoreMenuOpen(false);
+        setShowExportFormatPicker(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -1453,6 +1479,26 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const openFileGenerationRef = useRef(0);
   const title = fileName && typeof fileName === "string" ? fileName.split(/[/\\]/).pop() || "untitled.md" : "Tydora";
 
+  // ── 导出 ──
+  const handleExport = async (format: ExportFormat) => {
+    if (exporting || viewMode === "sv") return;
+    setShowExportFormatPicker(false);
+    setExporting(true);
+    try {
+      const artifact = await buildExportArtifact(format, {
+        getContentElement: () => editorHandleRef.current?.getContentElement() ?? null,
+        themeName: theme,
+        title: title.replace(/\.[^.]+$/, ""),
+      });
+      setExportPreview({ format, artifact });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      alert("导出预览失败：" + msg);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // ── 命令面板命令列表 ──
   const commands = useMemo(() => [
     // 文件操作
@@ -1608,31 +1654,52 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
               <span className={`traffic-light traffic-light--${fileName ? saveStatus : "idle"}`} />
             </span>
             <div className="window-controls">
-              <button className="window-control-btn" title="打开思维导图" onClick={() => {
-                localStorage.setItem("zmd-mindmap-mode", "document");
-                localStorage.setItem("zmd-mindmap-content", content);
-                invoke("open_mindmap_window");
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M20 4a1 1 0 0 1 0 2h-2.7a7.4 7.4 0 0 0-7.2 6H20a1 1 0 0 1 0 2h-9.9a7.4 7.4 0 0 0 7.2 6H20a1 1 0 0 1 0 2h-2.7a9.4 9.4 0 0 1-9.2-8H4a1 1 0 0 1 0-2h4.1a9.4 9.4 0 0 1 9.2-8H20z" />
-                </svg>
-              </button>
-              <button className="window-control-btn" title="打开关系图谱" onClick={() => {
-                if (getGraphSettings().openInNewWindow) {
-                  invoke("open_graph_window");
-                } else {
-                  setGraphViewOpen(prev => !prev);
-                }
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="5" r="3" />
-                  <circle cx="4" cy="19" r="3" />
-                  <circle cx="20" cy="19" r="3" />
-                  <line x1="9.5" y1="6.5" x2="5.5" y2="16.5" />
-                  <line x1="14.5" y1="6.5" x2="18.5" y2="16.5" />
-                  <line x1="7" y1="19" x2="17" y2="19" />
-                </svg>
-              </button>
+              {pinnedItems.mindmap && (
+                <button className="window-control-btn" title="思维导图" onClick={() => {
+                  localStorage.setItem("zmd-mindmap-mode", "document");
+                  localStorage.setItem("zmd-mindmap-content", content);
+                  invoke("open_mindmap_window");
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 4a1 1 0 0 1 0 2h-2.7a7.4 7.4 0 0 0-7.2 6H20a1 1 0 0 1 0 2h-9.9a7.4 7.4 0 0 0 7.2 6H20a1 1 0 0 1 0 2h-2.7a9.4 9.4 0 0 1-9.2-8H4a1 1 0 0 1 0-2h4.1a9.4 9.4 0 0 1 9.2-8H20z" />
+                  </svg>
+                </button>
+              )}
+              {pinnedItems.graph && (
+                <button className="window-control-btn" title="关系图谱" onClick={() => {
+                  if (getGraphSettings().openInNewWindow) {
+                    invoke("open_graph_window");
+                  } else {
+                    setGraphViewOpen(prev => !prev);
+                  }
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="5" r="3" />
+                    <circle cx="4" cy="19" r="3" />
+                    <circle cx="20" cy="19" r="3" />
+                    <line x1="9.5" y1="6.5" x2="5.5" y2="16.5" />
+                    <line x1="14.5" y1="6.5" x2="18.5" y2="16.5" />
+                    <line x1="7" y1="19" x2="17" y2="19" />
+                  </svg>
+                </button>
+              )}
+              {pinnedItems.export && (
+                <button
+                  className="window-control-btn"
+                  title="导出"
+                  disabled={viewMode === "sv" || exporting}
+                  onClick={() => {
+                    if (viewMode === "sv" || exporting) return;
+                    setShowExportFormatPicker(true);
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                </button>
+              )}
               <div className="editor-topbar-more-wrapper" ref={moreMenuRef}>
                 <button className="window-control-btn" title="更多" onClick={() => setMoreMenuOpen((v) => !v)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -1645,7 +1712,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                   <div className="editor-topbar-more-menu">
                     <div
                       className={`editor-topbar-more-menu-item${historyIndex <= 0 ? ' disabled' : ''}`}
-                      onClick={() => { setMoreMenuOpen(false); navigateBack(); }}
+                      onClick={() => { setMoreMenuOpen(false); setShowExportFormatPicker(false); navigateBack(); }}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="15 18 9 12 15 6" />
@@ -1654,12 +1721,105 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                     </div>
                     <div
                       className={`editor-topbar-more-menu-item${historyIndex >= fileHistory.length - 1 ? ' disabled' : ''}`}
-                      onClick={() => { setMoreMenuOpen(false); navigateForward(); }}
+                      onClick={() => { setMoreMenuOpen(false); setShowExportFormatPicker(false); navigateForward(); }}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="9 18 15 12 9 6" />
                       </svg>
                       前进
+                    </div>
+                    <div className="editor-topbar-more-menu-divider" />
+                    <div
+                      className="editor-topbar-more-menu-item"
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        localStorage.setItem("zmd-mindmap-mode", "document");
+                        localStorage.setItem("zmd-mindmap-content", content);
+                        invoke("open_mindmap_window");
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 4a1 1 0 0 1 0 2h-2.7a7.4 7.4 0 0 0-7.2 6H20a1 1 0 0 1 0 2h-9.9a7.4 7.4 0 0 0 7.2 6H20a1 1 0 0 1 0 2h-2.7a9.4 9.4 0 0 1-9.2-8H4a1 1 0 0 1 0-2h4.1a9.4 9.4 0 0 1 9.2-8H20z" />
+                      </svg>
+                      <span className="editor-topbar-more-menu-label">思维导图</span>
+                      <button
+                        className={`editor-topbar-more-menu-pin${pinnedItems.mindmap ? ' pinned' : ''}`}
+                        title={pinnedItems.mindmap ? '取消固定' : '固定在顶部栏'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPinnedItems(prev => ({ ...prev, mindmap: !prev.mindmap }));
+                        }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="12" y1="17" x2="12" y2="22" />
+                          <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
+                          {pinnedItems.mindmap && <line x1="2" y1="2" x2="22" y2="22" />}
+                        </svg>
+                      </button>
+                    </div>
+                    <div
+                      className="editor-topbar-more-menu-item"
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        if (getGraphSettings().openInNewWindow) {
+                          invoke("open_graph_window");
+                        } else {
+                          setGraphViewOpen(prev => !prev);
+                        }
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="5" r="3" />
+                        <circle cx="4" cy="19" r="3" />
+                        <circle cx="20" cy="19" r="3" />
+                        <line x1="9.5" y1="6.5" x2="5.5" y2="16.5" />
+                        <line x1="14.5" y1="6.5" x2="18.5" y2="16.5" />
+                        <line x1="7" y1="19" x2="17" y2="19" />
+                      </svg>
+                      <span className="editor-topbar-more-menu-label">关系图谱</span>
+                      <button
+                        className={`editor-topbar-more-menu-pin${pinnedItems.graph ? ' pinned' : ''}`}
+                        title={pinnedItems.graph ? '取消固定' : '固定在顶部栏'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPinnedItems(prev => ({ ...prev, graph: !prev.graph }));
+                        }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="12" y1="17" x2="12" y2="22" />
+                          <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
+                          {pinnedItems.graph && <line x1="2" y1="2" x2="22" y2="22" />}
+                        </svg>
+                      </button>
+                    </div>
+                    <div
+                      className={`editor-topbar-more-menu-item${viewMode === "sv" || exporting ? ' disabled' : ''}`}
+                      onClick={() => {
+                        if (viewMode === "sv" || exporting) return;
+                        setMoreMenuOpen(false);
+                        setShowExportFormatPicker(true);
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      <span className="editor-topbar-more-menu-label">{exporting ? "导出中…" : "导出"}</span>
+                      <button
+                        className={`editor-topbar-more-menu-pin${pinnedItems.export ? ' pinned' : ''}`}
+                        title={pinnedItems.export ? '取消固定' : '固定在顶部栏'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPinnedItems(prev => ({ ...prev, export: !prev.export }));
+                        }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="12" y1="17" x2="12" y2="22" />
+                          <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
+                          {pinnedItems.export && <line x1="2" y1="2" x2="22" y2="22" />}
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 )}
@@ -1803,6 +1963,75 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         onConfirm={handleSaveConfirm}
         onCancel={handleSaveCancel}
       />
+
+      {showExportFormatPicker && (
+        <div className="export-formatpicker-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowExportFormatPicker(false); }}>
+          <div className="export-formatpicker-dialog">
+            <div className="export-formatpicker-header">
+              <span>导出格式</span>
+              <button className="export-formatpicker-close" onClick={() => setShowExportFormatPicker(false)}>✕</button>
+            </div>
+            <div className="export-formatpicker-body">
+              {(Object.keys(EXPORT_FORMATS) as ExportFormat[]).map((fmt) => (
+                <button
+                  key={fmt}
+                  className="export-formatpicker-option"
+                  onClick={() => handleExport(fmt)}
+                  disabled={exporting}
+                >
+                  <span className="export-formatpicker-option-icon">
+                    {fmt === "pdf" && (
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <polyline points="10 9 9 9 8 9" />
+                      </svg>
+                    )}
+                    {fmt === "html" && (
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="16 18 22 12 16 6" />
+                        <polyline points="8 6 2 12 8 18" />
+                      </svg>
+                    )}
+                    {fmt === "docx" && (
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                      </svg>
+                    )}
+                    {fmt === "png" && (
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="export-formatpicker-option-label">{EXPORT_FORMATS[fmt].label}</span>
+                  <span className="export-formatpicker-option-ext">.{EXPORT_FORMATS[fmt].ext}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {exportPreview && (
+        <ExportPreviewDialog
+          format={exportPreview.format}
+          artifact={exportPreview.artifact}
+          title={title.replace(/\.[^.]+$/, "")}
+          onClose={() => setExportPreview(null)}
+          onSaveSuccess={(savedPath) => {
+            setExportPreview(null);
+            invoke("open_file", { filePath: savedPath });
+          }}
+        />
+      )}
 
       <BookmarkDialog
         isOpen={bookmarkDialogState.isOpen}

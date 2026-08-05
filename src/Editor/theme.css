@@ -421,6 +421,303 @@
   opacity: 0.6;
 }
 
+/* ── 导出内容样式（.tiptap-export-content 用于 PDF/PNG 截图） ── */
+
+.tiptap-export-content p {
+  margin: 0.5em 0;
+  line-height: 1.6;
+}
+.tiptap-export-content hr {
+  border: none;
+  border-top: 1px solid var(--border, #d9ede5);
+  margin: 2em 0;
+}
+/* ── 导出列表 ── */
+.tiptap-export-content ul,
+.tiptap-export-content ol {
+  padding-left: 2em;
+  margin: 0.5em 0;
+  position: relative;
+}
+.tiptap-export-content ul { list-style-type: disc; }
+.tiptap-export-content ol { list-style-type: decimal; }
+.tiptap-export-content ul ul { list-style-type: circle; }
+.tiptap-export-content ul ul ul { list-style-type: square; }
+.tiptap-export-content li { margin: 0.25em 0; }
+.tiptap-export-content li > p { margin: 0; }
+
+/* 嵌套无序列表缩进引导竖线（画在嵌套 ul 上，比画在父 li 上更容易对齐） */
+.tiptap-export-content li > ul:not([data-type="taskList"])::before {
+  content: '';
+  position: absolute;
+  left: -0.5em;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border, #d9ede5);
+  opacity: 0.6;
+}
+/* 嵌套有序列表缩进引导竖线 */
+.tiptap-export-content ol ol::before,
+.tiptap-export-content ul ol::before {
+  content: '';
+  position: absolute;
+  left: -0.8em;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border, #d9ede5);
+  opacity: 0.6;
+}
+
+/* ── 导出任务列表 ── */
+.tiptap-export-content ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+  position: relative;
+}
+.tiptap-export-content ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+.tiptap-export-content ul[data-type="taskList"] li > label {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 1px;
+}
+/* 隐藏 TipTap 内置的 checkboxStyler 空 span（不影响导出 SVG 替换） */
+.tiptap-export-content ul[data-type="taskList"] li > label > span:not(.export-checkbox-svg) {
+  display: none;
+}
+/* 圆形复选框 */
+.tiptap-export-content ul[data-type="taskList"] li > label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border: 2px solid var(--border, #c0c0c0);
+  border-radius: 50%;
+  background: transparent;
+  position: relative;
+  flex-shrink: 0;
+  outline: none;
+}
+/* 已选中的复选框：填充主题色 + 打勾 */
+.tiptap-export-content ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+  background: #5b8c5a;
+  border-color: #5b8c5a;
+}
+.tiptap-export-content ul[data-type="taskList"] li > label input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+/* 任务内容容器 */
+.tiptap-export-content ul[data-type="taskList"] li > div {
+  flex: 1;
+  min-width: 0;
+}
+.tiptap-export-content ul[data-type="taskList"] li > div > p:first-child {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.tiptap-export-content ul[data-type="taskList"] li > div > p + p {
+  margin-top: 0.5em;
+}
+/* 已完成任务 - 删除线 */
+.tiptap-export-content ul[data-type="taskList"] li[data-checked="true"] > div > p {
+  text-decoration: line-through;
+  color: var(--text-secondary, #999);
+}
+/* 嵌套任务列表 */
+.tiptap-export-content ul[data-type="taskList"] ul[data-type="taskList"] {
+  margin: 0.25em 0;
+  margin-left: 10px;
+  position: relative;
+}
+/* 任务列表缩进引导竖线 - 穿过复选框中心 */
+.tiptap-export-content ul[data-type="taskList"] ul[data-type="taskList"]::before {
+  content: '';
+  position: absolute;
+  left: -26px;
+  top: 0;
+  bottom: 0.5em;
+  width: 1px;
+  background: var(--border, #d9ede5);
+  opacity: 0.6;
+}
+
+.tiptap-export-content blockquote {
+  border-left: 3px solid var(--border, #d9ede5);
+  padding-left: 1em;
+  margin: 1em 0;
+  color: var(--text-secondary, #666);
+}
+
+/* 行内代码 */
+.tiptap-export-content :not(pre) > code {
+  background: var(--bg-code-inline, rgba(0, 0, 0, 0.06));
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-family: var(--editor-font, "Fira Code", "Consolas", monospace);
+  font-size: 0.9em;
+  color: var(--text-code, #e83e8c);
+}
+
+/* ── 导出代码块 ── */
+.tiptap-export-content pre {
+  background: var(--bg-code, #f5f5f5);
+  border-radius: 6px;
+  padding: 1em;
+  overflow-x: auto;
+  font-family: var(--editor-font, "Fira Code", "Consolas", monospace);
+  font-size: 0.9em;
+  line-height: 1.5;
+  color: var(--text-primary, #1f2330);
+}
+.tiptap-export-content pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+  color: inherit;
+}
+/* 代码块语法高亮 (highlight.js / lowlight) */
+.tiptap-export-content .hljs-keyword,
+.tiptap-export-content .hljs-selector-tag,
+.tiptap-export-content .hljs-type,
+.tiptap-export-content .hljs-literal,
+.tiptap-export-content .hljs-section,
+.tiptap-export-content .hljs-link {
+  color: var(--hljs-keyword, #d73a49);
+}
+.tiptap-export-content .hljs-string,
+.tiptap-export-content .hljs-title,
+.tiptap-export-content .hljs-name,
+.tiptap-export-content .hljs-attribute,
+.tiptap-export-content .hljs-symbol,
+.tiptap-export-content .hljs-bullet,
+.tiptap-export-content .hljs-addition,
+.tiptap-export-content .hljs-variable,
+.tiptap-export-content .hljs-template-tag,
+.tiptap-export-content .hljs-template-variable {
+  color: var(--hljs-string, #032f62);
+}
+.tiptap-export-content .hljs-comment,
+.tiptap-export-content .hljs-quote,
+.tiptap-export-content .hljs-deletion,
+.tiptap-export-content .hljs-meta {
+  color: var(--hljs-comment, #6a7781);
+}
+.tiptap-export-content .hljs-number,
+.tiptap-export-content .hljs-regexp,
+.tiptap-export-content .hljs-params {
+  color: var(--hljs-number, #005cc5);
+}
+.tiptap-export-content .hljs-built_in,
+.tiptap-export-content .hljs-operator {
+  color: var(--hljs-built_in, #e36209);
+}
+
+/* 表格 */
+.tiptap-export-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+.tiptap-export-content th,
+.tiptap-export-content td {
+  border: 1px solid var(--border, #d9ede5);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+.tiptap-export-content th {
+  background: var(--bg-secondary, #f5f5f5);
+  font-weight: 600;
+}
+
+/* Callouts */
+.tiptap-export-content .callout {
+  border-left: 4px solid;
+  border-radius: 0 6px 6px 0;
+  padding: 12px 16px;
+  margin: 1em 0;
+  position: relative;
+  color: inherit;
+}
+.tiptap-export-content .callout-title-marker {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+}
+.tiptap-export-content .callout-title {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: 0.9em;
+}
+.tiptap-export-content .callout-foldable .callout-title {
+  cursor: default;
+}
+.tiptap-export-content .callout-foldable .callout-title::after {
+  content: " ▾";
+  font-size: 0.75em;
+  vertical-align: middle;
+}
+.tiptap-export-content .callout-foldable.callout-collapsed .callout-title {
+  margin-bottom: 0;
+}
+.tiptap-export-content .callout-foldable.callout-collapsed .callout-title::after {
+  content: " ▸";
+}
+.tiptap-export-content .callout-collapsed > *:is(p, ul, ol, pre, h1, h2, h3, h4, h5, h6, table) {
+  display: none;
+}
+
+/* Callout 颜色 */
+.tiptap-export-content .callout-note       { background: rgba(9, 105, 218, 0.08);   border-color: #0969da; }
+.tiptap-export-content .callout-tip        { background: rgba(26, 127, 55, 0.08);   border-color: #1a7f37; }
+.tiptap-export-content .callout-important  { background: rgba(130, 80, 223, 0.08);  border-color: #8250df; }
+.tiptap-export-content .callout-warning    { background: rgba(191, 135, 0, 0.08);   border-color: #bf8700; }
+.tiptap-export-content .callout-caution    { background: rgba(207, 34, 46, 0.08);   border-color: #cf222e; }
+.tiptap-export-content .callout-abstract   { background: rgba(9, 105, 218, 0.08);   border-color: #0969da; }
+.tiptap-export-content .callout-info       { background: rgba(9, 105, 218, 0.08);   border-color: #0969da; }
+.tiptap-export-content .callout-success    { background: rgba(26, 127, 55, 0.08);   border-color: #1a7f37; }
+.tiptap-export-content .callout-question   { background: rgba(130, 80, 223, 0.08);  border-color: #8250df; }
+.tiptap-export-content .callout-failure    { background: rgba(207, 34, 46, 0.08);   border-color: #cf222e; }
+.tiptap-export-content .callout-danger     { background: rgba(207, 34, 46, 0.08);   border-color: #cf222e; }
+.tiptap-export-content .callout-bug        { background: rgba(207, 34, 46, 0.08);   border-color: #cf222e; }
+.tiptap-export-content .callout-example    { background: rgba(130, 80, 223, 0.08);  border-color: #8250df; }
+.tiptap-export-content .callout-quote      { background: rgba(157, 157, 157, 0.12); border-color: #9d9d9d; }
+.tiptap-export-content .callout-faq        { background: rgba(9, 105, 218, 0.08);   border-color: #0969da; }
+
+/* Callout 标题颜色 */
+.tiptap-export-content .callout-title-note,
+.tiptap-export-content .callout-title-abstract,
+.tiptap-export-content .callout-title-info      { color: #0969da; }
+.tiptap-export-content .callout-title-tip,
+.tiptap-export-content .callout-title-success   { color: #1a7f37; }
+.tiptap-export-content .callout-title-important,
+.tiptap-export-content .callout-title-question,
+.tiptap-export-content .callout-title-example   { color: #8250df; }
+.tiptap-export-content .callout-title-warning   { color: #bf8700; }
+.tiptap-export-content .callout-title-caution,
+.tiptap-export-content .callout-title-failure,
+.tiptap-export-content .callout-title-danger,
+.tiptap-export-content .callout-title-bug       { color: #cf222e; }
+.tiptap-export-content .callout-title-quote     { color: #9d9d9d; }
+.tiptap-export-content .callout-title-faq       { color: #0969da; }
+
 /* 列表思维导图图标 — heading 绝对定位到右侧 */
 .tiptap-editor .bullet-list-mindmap-heading {
   position: relative;

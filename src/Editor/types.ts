@@ -16,6 +16,8 @@ export interface EditorHandle {
   scrollToLine: (line: number) => void;
   getCursorOffset: () => number;
   isSourceMode: () => boolean;
+  /** 克隆当前渲染内容元素（用于导出）；源码模式下返回 null */
+  getContentElement: () => HTMLElement | null;
 }
 
 export type EditorMode = "ir" | "sv";

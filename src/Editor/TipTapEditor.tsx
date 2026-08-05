@@ -239,6 +239,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
               dom.loading = "lazy";
 
               if (absPath) {
+                dom.setAttribute("data-abs-path", absPath);
                 dom.src = convertFileSrc(absPath);
               } else if (src && (src.startsWith("http://") || src.startsWith("https://"))) {
                 // 网络图片：通过 Rust 后端代理下载，绕过 CORS 和 WebView2 限制
@@ -253,6 +254,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
                 if (basePath && (src.startsWith("./") || src.startsWith("../") || !src.match(/^[a-zA-Z]:\\/))) {
                   resolvedPath = resolveRelativePath(basePath, src);
                 }
+                dom.setAttribute("data-abs-path", resolvedPath);
                 dom.src = convertFileSrc(resolvedPath);
               } else {
                 dom.src = src;
@@ -835,6 +837,11 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         return editor.state.selection.from;
       },
       isSourceMode: () => mode === "sv",
+      // 返回当前渲染内容的克隆（用于导出）。源码模式下视图被销毁，返回 null。
+      getContentElement: () => {
+        if (!editor || !editor.view?.dom) return null;
+        return (editor.view.dom as HTMLElement).cloneNode(true) as HTMLElement;
+      },
     }));
 
     // 外部 value 同步

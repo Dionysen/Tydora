@@ -1,0 +1,148 @@
+.export-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 1000;
+}
+
+.export-preview-dialog {
+  position: fixed;
+  top: 44px;
+  right: 12px;
+  width: min(820px, 96vw);
+  height: 100vh;
+  max-height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary, #ffffff);
+  border: 1px solid var(--border, #ccc);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  color: var(--text-primary, #1f2330);
+  animation: exportPreviewSlideIn 0.12s ease-out;
+}
+
+@keyframes exportPreviewSlideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.export-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border, #ccc);
+  flex-shrink: 0;
+}
+
+.export-preview-title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.export-preview-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.export-preview-close {
+  background: transparent;
+  border: none;
+  color: var(--text-primary, #1f2330);
+  font-size: 16px;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.export-preview-close:hover {
+  background: rgba(128, 128, 128, 0.15);
+}
+
+.export-preview-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--bg-primary, #f5f5f5);
+  overflow: auto;
+  padding: 20px;
+}
+
+.export-preview-body--pdf {
+  padding: 0;
+}
+
+.export-preview-frame {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: none;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* PDF 预览 iframe：透明背景，分页卡片自带阴影 */
+.export-preview-frame--pdf {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.export-preview-img-wrap {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 16px;
+}
+
+.export-preview-img {
+  max-width: 100%;
+  height: auto;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+.export-preview-error {
+  color: #e5484d;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.export-preview-success {
+  color: #2da44e;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.export-preview-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #ccc);
+  background: transparent;
+  color: var(--text-primary, #1f2330);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.export-preview-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.export-preview-btn-confirm {
+  background: var(--accent, #4f8cff);
+  border-color: var(--accent, #4f8cff);
+  color: #fff;
+}
+
+.export-preview-btn-confirm:hover:not(:disabled) {
+  filter: brightness(1.05);
+}

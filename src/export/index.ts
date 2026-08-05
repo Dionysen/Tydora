@@ -1,0 +1,123 @@
+// 导出功能统一入口（构建与保存分离，便于预览）
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import {
+  collectDocumentCSS,
+  inlineImages,
+  prepareExportElement,
+  rasterizeMermaidSvgsForDocx,
+  replaceTaskCheckboxesWithSvg,
+} from "./dom";
+import {
+  buildHtmlDoc,
+  exportPdfBytes,
+  renderToPng,
+} from "./exporters";
+import { exportDocxBytes } from "./docx";
+
+export type ExportFormat = "pdf" | "html" | "docx" | "png";
+
+interface FormatMeta {
+  ext: string;
+  label: string;
+  filters: { name: string; extensions: string[] }[];
+}
+
+export const EXPORT_FORMATS: Record<ExportFormat, FormatMeta> = {
+  pdf: { ext: "pdf", label: "PDF", filters: [{ name: "PDF 文档", extensions: ["pdf"] }] },
+  png: { ext: "png", label: "图片", filters: [{ name: "PNG 图片", extensions: ["png"] }] },
+  html: { ext: "html", label: "HTML", filters: [{ name: "HTML 文档", extensions: ["html", "htm"] }] },
+  docx: { ext: "docx", label: "Word", filters: [{ name: "Word 文档", extensions: ["docx"] }] },
+};
+
+export interface ExportContext {
+  /** 从编辑器克隆当前渲染内容（源码模式下返回 null） */
+  getContentElement: () => HTMLElement | null;
+  themeName: string;
+  /** 用作文件名的标题（不含扩展名） */
+  title: string;
+}
+
+/** 构建后的产物：content 为最终写入内容，preview* 为预览用数据 */
+export interface BuiltArtifact {
+  content: string | Uint8Array;
+  previewHtml?: string;
+  previewPng?: string;
+}
+
+function sanitizeFileName(name: string): string {
+  return name.replace(/[\\/:*?"<>|]/g, "_").trim() || "document";
+}
+
+function dataUrlToUint8(dataUrl: string): Uint8Array {
+  const base64 = dataUrl.split(",")[1] || "";
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+/**
+ * 构建导出产物（不写文件）。返回最终内容与预览数据。
+ * 抛出 Error 表示构建失败（如源码模式）。
+ */
+export async function buildExportArtifact(format: ExportFormat, ctx: ExportContext): Promise<BuiltArtifact> {
+  const raw = ctx.getContentElement();
+  if (!raw) {
+    throw new Error("请切换到预览模式（WYSIWYG）后再导出");
+  }
+
+  // Word 导出固定使用浅色主题，避免暗色主题下文字/背景异常
+  const { container, cleanup } = prepareExportElement(raw, ctx.themeName, format === "docx");
+  try {
+    // 内联本地/远程图片，使产物自包含
+    await inlineImages(raw);
+
+    const css = collectDocumentCSS();
+    const bg = getComputedStyle(container).backgroundColor || "#ffffff";
+    const htmlDoc = buildHtmlDoc(raw, css, format === "docx" ? "white" : ctx.themeName, ctx.title);
+
+    switch (format) {
+      case "html":
+        return { content: htmlDoc, previewHtml: htmlDoc };
+      case "docx": {
+        // 先把 mermaid SVG 栅格化为图片，再生成真正的 .docx 二进制
+        await rasterizeMermaidSvgsForDocx(raw);
+        const bytes = await exportDocxBytes(raw);
+        return { content: bytes, previewHtml: htmlDoc };
+      }
+      case "pdf": {
+        replaceTaskCheckboxesWithSvg(container);
+        const bytes = await exportPdfBytes(container, bg);
+        const previewPng = await renderToPng(container, bg);
+        return { content: bytes, previewHtml: htmlDoc, previewPng };
+      }
+      case "png": {
+        replaceTaskCheckboxesWithSvg(container);
+        const dataUrl = await renderToPng(container, bg);
+        return { content: dataUrlToUint8(dataUrl), previewPng: dataUrl };
+      }
+    }
+  } finally {
+    cleanup();
+  }
+}
+
+/** 弹出保存对话框并写入文件；用户取消则返回 null */
+export async function saveExportArtifact(
+  format: ExportFormat,
+  content: string | Uint8Array,
+  title: string,
+): Promise<string | null> {
+  const meta = EXPORT_FORMATS[format];
+  const defaultPath = `${sanitizeFileName(title)}.${meta.ext}`;
+  const filePath = await save({ defaultPath, filters: meta.filters });
+  if (!filePath) return null;
+
+  if (typeof content === "string") {
+    await writeTextFile(filePath, content);
+  } else {
+    await writeFile(filePath, content);
+  }
+  return filePath;
+}

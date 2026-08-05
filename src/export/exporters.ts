@@ -1,0 +1,568 @@
+// 各格式的具体导出实现：返回字符串或二进制，由调用方负责保存
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** 构建自包含的 HTML 文档字符串 */
+export function buildHtmlDoc(raw: HTMLElement, css: string, themeName: string, title: string): string {
+  return `<!DOCTYPE html>
+<html data-theme="${escapeHtml(themeName)}" lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${escapeHtml(title)}</title>
+<style>
+${css}
+</style>
+<style>
+html, body { margin: 0; height: 100%; overflow-y: auto; }
+.export-page {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 48px;
+  box-sizing: border-box;
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #1f2330);
+}
+.export-page p {
+  margin: 0.5em 0;
+  line-height: 1.6;
+}
+.export-page hr {
+  border: none;
+  border-top: 1px solid var(--border, #d9ede5);
+  margin: 2em 0;
+}
+.export-page ul,
+.export-page ol {
+  padding-left: 2em;
+  margin: 0.5em 0;
+  position: relative;
+}
+.export-page ul { list-style-type: disc; }
+.export-page ol { list-style-type: decimal; }
+.export-page ul ul { list-style-type: circle; }
+.export-page ul ul ul { list-style-type: square; }
+.export-page li { margin: 0.25em 0; }
+.export-page li > p { margin: 0; }
+
+/* 嵌套无序列表缩进引导竖线（画在嵌套 ul 上，比画在父 li 上更容易对齐） */
+.export-page li > ul:not([data-type="taskList"])::before {
+  content: '';
+  position: absolute;
+  left: -1em;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #d9ede5;
+  opacity: 0.6;
+}
+/* 嵌套有序列表缩进引导竖线 */
+.export-page ol ol::before,
+.export-page ul ol::before {
+  content: '';
+  position: absolute;
+  left: -0.8em;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #d9ede5;
+  opacity: 0.6;
+}
+
+/* ── 任务列表 ── */
+.export-page ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+  position: relative;
+}
+.export-page ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+.export-page ul[data-type="taskList"] li > label {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 1px;
+}
+.export-page ul[data-type="taskList"] li > label > span:not(.export-checkbox-svg) {
+  display: none;
+}
+.export-page ul[data-type="taskList"] li > label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border: 2px solid #c0c0c0;
+  border-radius: 50%;
+  background: transparent;
+  position: relative;
+  flex-shrink: 0;
+  outline: none;
+}
+.export-page ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+  background: #5b8c5a;
+  border-color: #5b8c5a;
+}
+.export-page ul[data-type="taskList"] li > label input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.export-page ul[data-type="taskList"] li > div {
+  flex: 1;
+  min-width: 0;
+}
+.export-page ul[data-type="taskList"] li > div > p:first-child {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.export-page ul[data-type="taskList"] li > div > p + p {
+  margin-top: 0.5em;
+}
+.export-page ul[data-type="taskList"] li[data-checked="true"] > div > p {
+  text-decoration: line-through;
+  color: #999;
+}
+.export-page ul[data-type="taskList"] ul[data-type="taskList"] {
+  margin: 0.25em 0;
+  margin-left: 10px;
+  position: relative;
+}
+/* 任务列表缩进引导竖线 */
+.export-page ul[data-type="taskList"] ul[data-type="taskList"]::before {
+  content: '';
+  position: absolute;
+  left: -26px;
+  top: 0;
+  bottom: 0.5em;
+  width: 1px;
+  background: #d9ede5;
+  opacity: 0.6;
+}
+
+.export-page blockquote {
+  border-left: 3px solid var(--border, #d9ede5);
+  padding-left: 1em;
+  margin: 1em 0;
+  color: var(--text-secondary, #666);
+}
+
+.export-page :not(pre) > code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-family: "Fira Code", "Consolas", monospace;
+  font-size: 0.9em;
+  color: #e83e8c;
+}
+
+/* 代码块 */
+.export-page pre {
+  background: var(--bg-code, #f5f5f5);
+  border-radius: 6px;
+  padding: 1em;
+  overflow-x: auto;
+  font-family: "Fira Code", "Consolas", monospace;
+  font-size: 0.9em;
+  line-height: 1.5;
+  color: var(--text-primary, #1f2330);
+}
+.export-page pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+  color: inherit;
+}
+/* 代码块语法高亮 (highlight.js) */
+.export-page .hljs-keyword,
+.export-page .hljs-selector-tag,
+.export-page .hljs-type,
+.export-page .hljs-literal,
+.export-page .hljs-section,
+.export-page .hljs-link {
+  color: var(--hljs-keyword, #d73a49);
+}
+.export-page .hljs-string,
+.export-page .hljs-title,
+.export-page .hljs-name,
+.export-page .hljs-attribute,
+.export-page .hljs-symbol,
+.export-page .hljs-bullet,
+.export-page .hljs-addition,
+.export-page .hljs-variable,
+.export-page .hljs-template-tag,
+.export-page .hljs-template-variable {
+  color: var(--hljs-string, #032f62);
+}
+.export-page .hljs-comment,
+.export-page .hljs-quote,
+.export-page .hljs-deletion,
+.export-page .hljs-meta {
+  color: var(--hljs-comment, #6a737d);
+}
+.export-page .hljs-number,
+.export-page .hljs-regexp,
+.export-page .hljs-params {
+  color: var(--hljs-number, #005cc5);
+}
+.export-page .hljs-built_in,
+.export-page .hljs-operator {
+  color: var(--hljs-built_in, #e36209);
+}
+
+.export-page table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+.export-page th,
+.export-page td {
+  border: 1px solid var(--border, #d9ede5);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+.export-page th {
+  background: var(--bg-secondary, #f5f5f5);
+  font-weight: 600;
+}
+
+.export-page .callout {
+  border-left: 4px solid;
+  border-radius: 0 6px 6px 0;
+  padding: 12px 16px;
+  margin: 1em 0;
+  position: relative;
+  color: inherit;
+}
+.export-page .callout-title {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: 0.9em;
+}
+.export-page .callout-note       { background: rgba(9, 105, 218, 0.08);   border-color: #0969da; }
+.export-page .callout-tip        { background: rgba(26, 127, 55, 0.08);   border-color: #1a7f37; }
+.export-page .callout-important  { background: rgba(130, 80, 223, 0.08);  border-color: #8250df; }
+.export-page .callout-warning    { background: rgba(191, 135, 0, 0.08);   border-color: #bf8700; }
+.export-page .callout-caution    { background: rgba(207, 34, 46, 0.08);   border-color: #cf222e; }
+.export-page .callout-abstract   { background: rgba(9, 105, 218, 0.08);   border-color: #0969da; }
+.export-page .callout-info       { background: rgba(9, 105, 218, 0.08);   border-color: #0969da; }
+.export-page .callout-success    { background: rgba(26, 127, 55, 0.08);   border-color: #1a7f37; }
+.export-page .callout-question   { background: rgba(130, 80, 223, 0.08);  border-color: #8250df; }
+.export-page .callout-failure    { background: rgba(207, 34, 46, 0.08);   border-color: #cf222e; }
+.export-page .callout-danger     { background: rgba(207, 34, 46, 0.08);   border-color: #cf222e; }
+.export-page .callout-bug        { background: rgba(207, 34, 46, 0.08);   border-color: #cf222e; }
+.export-page .callout-example    { background: rgba(130, 80, 223, 0.08);  border-color: #8250df; }
+.export-page .callout-quote      { background: rgba(157, 157, 157, 0.12); border-color: #9d9d9d; }
+.export-page .callout-faq        { background: rgba(9, 105, 218, 0.08);   border-color: #0969da; }
+
+.export-page .callout-title-note,
+.export-page .callout-title-abstract,
+.export-page .callout-title-info      { color: #0969da; }
+.export-page .callout-title-tip,
+.export-page .callout-title-success   { color: #1a7f37; }
+.export-page .callout-title-important,
+.export-page .callout-title-question,
+.export-page .callout-title-example   { color: #8250df; }
+.export-page .callout-title-warning   { color: #bf8700; }
+.export-page .callout-title-caution,
+.export-page .callout-title-failure,
+.export-page .callout-title-danger,
+.export-page .callout-title-bug       { color: #cf222e; }
+.export-page .callout-title-quote     { color: #9d9d9d; }
+.export-page .callout-title-faq       { color: #0969da; }
+@media print {
+  .export-page { padding: 0; }
+}
+</style>
+</head>
+<body>
+<div class="export-page">${raw.outerHTML}</div>
+</body>
+</html>`;
+}
+
+/**
+ * 把内容元素绘制到 canvas。
+ * 使用 html2canvas（直接遍历 DOM 绘制，不借助 foreignObject），
+ * 避免 WebView2 下 foreignObject 导致 canvas 被污染（tainted）而无法导出。
+ */
+async function renderToCanvas(raw: HTMLElement, backgroundColor: string): Promise<HTMLCanvasElement> {
+  return html2canvas(raw, {
+    backgroundColor,
+    scale: 2,
+    useCORS: true,
+    logging: false,
+    windowWidth: raw.scrollWidth,
+  });
+}
+
+/** 将内容元素栅格化为 PNG data URL */
+export async function renderToPng(raw: HTMLElement, backgroundColor: string): Promise<string> {
+  const canvas = await renderToCanvas(raw, backgroundColor);
+  return canvas.toDataURL("image/png");
+}
+
+/** 不应跨页拆分的块级元素选择器 */
+const UNSPLITTABLE_SELECTORS = [
+  "p",
+  "li",
+  "pre",
+  "blockquote",
+  "h1", "h2", "h3", "h4", "h5", "h6",
+  ".callout",
+  "tr",
+  "figure",
+  "img",
+  "svg",
+  "ul[data-type='taskList'] > li",
+];
+
+/**
+ * 收集 <pre> 代码块内每一行的上下边界（按视觉行，处理自动换行）。
+ * 返回的坐标已换算为 canvas 像素，且相对于容器顶部。
+ */
+function collectCodeBlockLines(
+  pre: HTMLElement,
+  scale: number,
+  offsetY: number,
+): Array<{ top: number; bottom: number }> {
+  const lines: Array<{ top: number; bottom: number }> = [];
+  const walker = document.createTreeWalker(pre, NodeFilter.SHOW_TEXT);
+  let node: Node | null;
+  while ((node = walker.nextNode())) {
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    const rects = range.getClientRects();
+    for (let i = 0; i < rects.length; i++) {
+      const rect = rects[i];
+      lines.push({
+        top: rect.top * scale - offsetY,
+        bottom: rect.bottom * scale - offsetY,
+      });
+    }
+  }
+
+  if (lines.length === 0) return [];
+
+  // 合并同一视觉行的多个文本片段（按 top 排序后相邻且 top 差 < 2px 的视为同一行）
+  lines.sort((a, b) => a.top - b.top);
+  const merged: Array<{ top: number; bottom: number }> = [];
+  for (const line of lines) {
+    const last = merged[merged.length - 1];
+    if (last && Math.abs(line.top - last.top) < 2 * scale) {
+      last.bottom = Math.max(last.bottom, line.bottom);
+    } else {
+      merged.push({ top: line.top, bottom: line.bottom });
+    }
+  }
+  return merged;
+}
+
+/**
+ * 将断点位置 snap 到最近的代码行边界，确保不会把一行代码切成两半。
+ * 优先向上取整（让当前页以完整行结尾），若留白过少则向下取整。
+ */
+function snapToCodeLineBoundary(
+  nextY: number,
+  currentY: number,
+  pageCanvasH: number,
+  lines: Array<{ top: number; bottom: number }>,
+): number {
+  // 找到断点所在或相邻的行间隙
+  for (let i = 0; i < lines.length - 1; i++) {
+    const thisLineBottom = lines[i].bottom;
+    const nextLineTop = lines[i + 1].top;
+    if (nextY >= thisLineBottom && nextY <= nextLineTop) {
+      // 断点落在这两行之间，优先选择上一行底部（保留完整行）
+      if (thisLineBottom - currentY >= pageCanvasH * 0.35) {
+        return thisLineBottom;
+      }
+      return nextLineTop;
+    }
+  }
+
+  // 断点落在最后一行之后：若能放到上一行底部则放，否则保留原值
+  const lastLine = lines[lines.length - 1];
+  if (lastLine && nextY > lastLine.bottom) {
+    return lastLine.bottom;
+  }
+
+  // 断点落在第一行之前：放到第一行顶部
+  const firstLine = lines[0];
+  if (firstLine && nextY < firstLine.top) {
+    return firstLine.top;
+  }
+
+  return nextY;
+}
+
+/**
+ * 根据 DOM 元素位置计算安全的分页断点，尽量避免把段落、代码块、表格行等
+ * 块级元素从中间切断。
+ */
+function findSafePageBreaks(
+  container: HTMLElement,
+  pageCanvasH: number,
+  scale: number,
+  canvasH: number,
+): number[] {
+  const raw = container.querySelector(".tiptap-export-content") as HTMLElement | null;
+  if (!raw) {
+    return [0, canvasH];
+  }
+
+  const containerRect = container.getBoundingClientRect();
+  const offsetY = containerRect.top * scale;
+
+  const elements = Array.from(raw.querySelectorAll(UNSPLITTABLE_SELECTORS.join(", ")));
+  const rects = elements
+    .map((el) => {
+      const rect = el.getBoundingClientRect();
+      return {
+        el: el as HTMLElement,
+        top: rect.top * scale - offsetY,
+        bottom: rect.bottom * scale - offsetY,
+        height: rect.height * scale,
+      };
+    })
+    .filter((r) => r.height > 0);
+
+  // 预计算所有代码块的行边界（用于比页面还高的代码块）
+  const codeBlockLines = new Map<HTMLElement, Array<{ top: number; bottom: number }>>();
+  rects
+    .filter((r) => r.el.tagName === "PRE")
+    .forEach((r) => {
+      const lines = collectCodeBlockLines(r.el, scale, offsetY);
+      if (lines.length > 0) {
+        codeBlockLines.set(r.el, lines);
+      }
+    });
+
+  const breaks: number[] = [0];
+  let currentY = 0;
+
+  while (currentY < canvasH) {
+    let nextY = Math.min(currentY + pageCanvasH, canvasH);
+    if (nextY >= canvasH) break;
+
+    // 优先处理代码块：即使比页面高，也按行边界 snap，而不是任意切断
+    const cutPre = rects.find(
+      (r) => r.el.tagName === "PRE" && r.top < nextY && r.bottom > nextY,
+    );
+    if (cutPre) {
+      const lines = codeBlockLines.get(cutPre.el);
+      if (lines && lines.length > 0) {
+        nextY = snapToCodeLineBoundary(nextY, currentY, pageCanvasH, lines);
+      } else if (cutPre.height < pageCanvasH) {
+        // 代码块整体能放进一页，但被切断，则整体移到下一页
+        nextY = cutPre.bottom;
+      }
+      // 若代码块比页面高且无法获取行边界，则按原位置切分（不得已）
+    } else {
+      // 查找会被当前断点切断的其他元素（比页面高的元素无法避免，跳过）
+      const cut = rects.find(
+        (r) => r.top < nextY && r.bottom > nextY && r.height < pageCanvasH,
+      );
+
+      if (cut) {
+        // 方案 A：在该元素之前分页（保留更多空白在本页）
+        const before = Math.max(currentY, cut.top);
+        // 方案 B：在该元素之后分页（把该元素整体放到下一页）
+        const after = cut.bottom;
+
+        // 若方案 A 仍保留超过 55% 的可用高度，优先提前分页，否则延后
+        if (before - currentY >= pageCanvasH * 0.55) {
+          nextY = before;
+        } else {
+          nextY = after;
+        }
+      }
+    }
+
+    if (nextY <= currentY) {
+      nextY = Math.min(currentY + pageCanvasH, canvasH);
+    }
+
+    breaks.push(nextY);
+    currentY = nextY;
+  }
+
+  breaks.push(canvasH);
+  return breaks;
+}
+
+/** 导出为 PDF 二进制（A4 多页切片，按页裁剪 + JPEG 压缩以减小体积） */
+export async function exportPdfBytes(raw: HTMLElement, backgroundColor: string): Promise<Uint8Array> {
+  // 一次性渲染完整内容（保持 2x 保证清晰度）
+  const canvas = await renderToCanvas(raw, backgroundColor);
+  const canvasW = canvas.width;
+  const canvasH = canvas.height;
+
+  // 根据内容宽高比决定横/竖版
+  const orientation = canvasW >= canvasH ? "landscape" : "portrait";
+  const pdf = new jsPDF({
+    orientation,
+    unit: "pt",
+    format: "a4",
+    compress: true,
+  });
+
+  const pageW_pt = pdf.internal.pageSize.getWidth();
+  const pageH_pt = pdf.internal.pageSize.getHeight();
+
+  // 页面边距：内容不贴边
+  const margin_pt = 36;
+  const contentW_pt = pageW_pt - margin_pt * 2;
+  const contentH_pt = pageH_pt - margin_pt * 2;
+
+  // Canvas 像素 → PDF 内容区域点的换算比（按内容宽度缩放）
+  const pxPerPt = canvasW / contentW_pt;
+  const pageCanvasH = Math.ceil(contentH_pt * pxPerPt);
+
+  // 计算安全分页断点，避免切断块级元素
+  const breaks = findSafePageBreaks(raw, pageCanvasH, 2, canvasH);
+  const totalPages = breaks.length - 1;
+
+  // 逐页裁剪，每页只嵌入当前页的 JPEG（而非整张大 PNG）
+  for (let i = 0; i < totalPages; i++) {
+    if (i > 0) pdf.addPage();
+
+    const yStart = breaks[i];
+    const yEnd = breaks[i + 1];
+    const cropH = yEnd - yStart;
+
+    // 从完整 canvas 裁剪当前页部分
+    const cropCanvas = document.createElement("canvas");
+    cropCanvas.width = canvasW;
+    cropCanvas.height = cropH;
+    const ctx = cropCanvas.getContext("2d")!;
+    // 填充背景（JPEG 无透明通道，防止出现黑底）
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
+    ctx.drawImage(canvas, 0, yStart, canvasW, cropH, 0, 0, cropCanvas.width, cropH);
+
+    // JPEG 质量 0.92：文字文档几乎无可见差异，体积却比 PNG 小 5-10 倍
+    const jpegDataUrl = cropCanvas.toDataURL("image/jpeg", 0.92);
+    const imgH_pt = cropH / pxPerPt;
+    pdf.addImage(jpegDataUrl, "JPEG", margin_pt, margin_pt, contentW_pt, imgH_pt);
+  }
+
+  const buf = pdf.output("arraybuffer");
+  return new Uint8Array(buf);
+}
