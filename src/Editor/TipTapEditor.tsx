@@ -919,6 +919,21 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         }
         return results;
       },
+      selectMatch: (from: number, to: number) => {
+        if (!editor) return;
+        editor.chain().setTextSelection({ from, to }).run();
+        requestAnimationFrame(() => {
+          const scrollContainer = containerRef.current?.querySelector('.tiptap-editor') as HTMLElement | null;
+          if (!scrollContainer) return;
+          const { view } = editor;
+          const coords = view.coordsAtPos(from);
+          if (coords) {
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const targetScroll = scrollContainer.scrollTop + coords.top - containerRect.top - containerRect.height / 3;
+            scrollContainer.scrollTop = targetScroll;
+          }
+        });
+      },
       selectAndScroll: (from: number, to: number) => {
         if (!editor) return;
         editor.chain().focus().setTextSelection({ from, to }).run();

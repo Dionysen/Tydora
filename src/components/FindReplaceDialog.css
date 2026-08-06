@@ -22,6 +22,36 @@
   gap: 4px;
 }
 
+.find-replace-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.find-replace-expand-btn:hover {
+  color: var(--text-primary);
+  background: var(--hover-bg);
+}
+
+.find-replace-expand-btn.expanded {
+  transform: rotate(90deg);
+}
+
+.find-replace-expand-spacer {
+  width: 22px;
+  flex-shrink: 0;
+}
+
 .find-replace-input-group {
   display: flex;
   align-items: center;

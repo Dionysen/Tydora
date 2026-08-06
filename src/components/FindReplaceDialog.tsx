@@ -14,6 +14,7 @@ export default function FindReplaceDialog({ editorHandle, mode: initialMode, onC
   const [matches, setMatches] = useState<Array<{ from: number; to: number }>>([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [mode, setMode] = useState(initialMode);
+  const [showReplace, setShowReplace] = useState(initialMode === "replace");
   const findInputRef = useRef<HTMLInputElement>(null);
 
   // Update mode when prop changes
@@ -21,10 +22,14 @@ export default function FindReplaceDialog({ editorHandle, mode: initialMode, onC
     setMode(initialMode);
   }, [initialMode]);
 
-  // Auto-focus find input on mount
+  // Auto-focus find input on mount / mode change
   useEffect(() => {
-    findInputRef.current?.focus();
-  }, []);
+    // 延迟聚焦，确保编辑器的 selectMatch 调用不会抢走焦点
+    const timer = setTimeout(() => {
+      findInputRef.current?.focus();
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [initialMode]);
 
   // Perform search when query changes
   const doSearch = useCallback((q: string) => {
@@ -38,7 +43,7 @@ export default function FindReplaceDialog({ editorHandle, mode: initialMode, onC
     setMatches(results);
     if (results.length > 0) {
       setCurrentIndex(0);
-      editorHandle.selectAndScroll(results[0].from, results[0].to);
+      editorHandle.selectMatch(results[0].from, results[0].to);
       editorHandle.highlightSearch(q);
     } else {
       setCurrentIndex(-1);
@@ -97,12 +102,13 @@ export default function FindReplaceDialog({ editorHandle, mode: initialMode, onC
     editorHandle.clearHighlight();
   }, [editorHandle, matches, replaceText]);
 
-  // Keyboard shortcuts inside dialog
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        if (mode === "replace") {
+        const target = e.target as HTMLElement;
+        if (showReplace && target?.closest('.find-replace-row:last-child')) {
           replaceCurrent();
         } else {
           goToNext();
@@ -114,11 +120,20 @@ export default function FindReplaceDialog({ editorHandle, mode: initialMode, onC
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [mode, replaceCurrent, goToNext, onClose, editorHandle]);
+  }, [showReplace, replaceCurrent, goToNext, onClose, editorHandle]);
 
   return (
     <div className="find-replace-dialog">
       <div className="find-replace-row">
+        <button
+          className={`find-replace-expand-btn${showReplace ? ' expanded' : ''}`}
+          onClick={() => setShowReplace(v => !v)}
+          title={showReplace ? "收起替换" : "展开替换"}
+        >
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor">
+            <path d="M6.03 3.72a.75.75 0 0 1 1.06 0l4.97 4.97a.75.75 0 0 1 0 1.06l-4.97 4.97a.75.75 0 1 1-1.06-1.06L10.47 8.5 6.03 4.78a.75.75 0 0 1 0-1.06Z"/>
+          </svg>
+        </button>
         <div className="find-replace-input-group">
           <svg className="find-replace-icon" viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
             <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
@@ -171,11 +186,15 @@ export default function FindReplaceDialog({ editorHandle, mode: initialMode, onC
         </button>
       </div>
 
-      {mode === "replace" && (
+      {showReplace && (
         <div className="find-replace-row">
+          <div className="find-replace-expand-spacer" />
           <div className="find-replace-input-group">
-            <svg className="find-replace-icon" viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-              <path d="M1.97 9.53a.75.75 0 0 1 0-1.06l2-2a.75.75 0 0 1 1.06 1.06l-.72.72h5.44a3.25 3.25 0 0 0 0-6.5H4.5a.75.75 0 0 1 0-1.5h5.25a4.75 4.75 0 1 1 0 9.5H4.31l.72.72a.75.75 0 1 1-1.06 1.06l-2-2Zm10.06-3.06a.75.75 0 0 1 0 1.06l-2 2a.75.75 0 1 1-1.06-1.06l.72-.72H4.25a3.25 3.25 0 0 0 0 6.5h5.25a.75.75 0 0 1 0 1.5H4.25a4.75 4.75 0 1 1 0-9.5h5.44l-.72-.72a.75.75 0 0 1 1.06-1.06l2 2Z"/>
+            <svg className="find-replace-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 20V4"/>
+              <polyline points="4 8 8 4 12 8"/>
+              <path d="M16 4v16"/>
+              <polyline points="12 16 16 20 20 16"/>
             </svg>
             <input
               className="find-replace-input"

@@ -20,7 +20,9 @@ export interface EditorHandle {
   getContentElement: () => HTMLElement | null;
   /** 全文搜索，返回所有匹配位置 */
   findMatches: (query: string) => Array<{ from: number; to: number }>;
-  /** 选中指定范围并滚动到可见位置 */
+  /** 选中指定范围并滚动到可见位置（不聚焦编辑器，用于搜索高亮） */
+  selectMatch: (from: number, to: number) => void;
+  /** 选中指定范围并滚动到可见位置（同时聚焦编辑器，用于导航跳转） */
   selectAndScroll: (from: number, to: number) => void;
   /** 替换指定范围内容 */
   replaceAt: (from: number, to: number, replacement: string) => void;

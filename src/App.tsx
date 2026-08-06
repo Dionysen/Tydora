@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo, Component } from "re
 import { getCurrentWindow, availableMonitors } from "@tauri-apps/api/window";
 import { LogicalSize, LogicalPosition } from "@tauri-apps/api/dpi";
 import { clampWindowToMonitor } from "./services/windowState";
-import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import { readTextFile, writeTextFile, rename } from "@tauri-apps/plugin-fs";
 import { save } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { TipTapEditor as Editor, CodeMirrorEditor, type EditorHandle, type CodeMirrorEditorHandle, type EditorMode, MODE_LABELS } from "./Editor";
@@ -306,7 +306,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       return 260;
     }
   });
-  const [treeRefreshKey] = useState(0);
+  const [treeRefreshKey, setTreeRefreshKey] = useState(0);
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
   const [pendingFilePath, setPendingFilePath] = useState<string | null>(null);
   // 预览模式状态
@@ -1127,6 +1127,56 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
   }, []);
 
+  // 顶部栏更多菜单 - 文件操作
+  const handleBookmarkCurrentFile = useCallback(() => {
+    if (fileName) handleShowBookmarkDialog(fileName, false);
+    setMoreMenuOpen(false);
+  }, [fileName, handleShowBookmarkDialog]);
+
+  const handleRenameCurrentFile = useCallback(async () => {
+    if (!fileName) return;
+    const oldName = fileName.split(/[/\\]/).pop() || '';
+    const ext = oldName.includes('.') ? `.${oldName.split('.').pop()}` : '.md';
+    const baseName = ext === '.md' ? oldName.replace(/\.md$/, '') : oldName.slice(0, oldName.lastIndexOf('.'));
+    const newBaseName = window.prompt('输入新文件名', baseName);
+    if (!newBaseName || newBaseName === baseName) return;
+    const parentDir = fileName.replace(/[/\\][^/\\]*$/, '');
+    const newPath = `${parentDir}/${newBaseName}${ext}`;
+    try {
+      await rename(fileName, newPath);
+      setTreeRefreshKey(k => k + 1);
+      handleSelectFile(newPath);
+    } catch (err) {
+      console.error('重命名失败:', err);
+    }
+    setMoreMenuOpen(false);
+  }, [fileName, handleSelectFile]);
+
+  const handleCopyRelativePath = useCallback(() => {
+    if (!fileName) return;
+    const vaultPath = activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null;
+    const relativePath = vaultPath
+      ? fileName.replace(vaultPath.replace(/\\/g, '/') + '/', '').replace(vaultPath + '\\', '')
+      : fileName;
+    navigator.clipboard.writeText(relativePath);
+    setMoreMenuOpen(false);
+  }, [fileName, activeVaultIndex, vaults]);
+
+  const handleCopyAbsolutePath = useCallback(() => {
+    if (fileName) navigator.clipboard.writeText(fileName);
+    setMoreMenuOpen(false);
+  }, [fileName]);
+
+  const handleOpenFileLocation = useCallback(async () => {
+    if (!fileName) return;
+    try {
+      await invoke("open_file_location", { filePath: fileName });
+    } catch (err) {
+      console.error('打开文件位置失败:', err);
+    }
+    setMoreMenuOpen(false);
+  }, [fileName]);
+
   const handleMinimize = useCallback(() => {
     getCurrentWindow().minimize();
   }, []);
@@ -1821,11 +1871,76 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                         setFindReplaceDialogMode("replace");
                       }}
                     >
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M1.97 9.53a.75.75 0 0 1 0-1.06l2-2a.75.75 0 0 1 1.06 1.06l-.72.72h5.44a3.25 3.25 0 0 0 0-6.5H4.5a.75.75 0 0 1 0-1.5h5.25a4.75 4.75 0 1 1 0 9.5H4.31l.72.72a.75.75 0 1 1-1.06 1.06l-2-2Zm10.06-3.06a.75.75 0 0 1 0 1.06l-2 2a.75.75 0 1 1-1.06-1.06l.72-.72H4.25a3.25 3.25 0 0 0 0 6.5h5.25a.75.75 0 0 1 0 1.5H4.25a4.75 4.75 0 1 1 0-9.5h5.44l-.72-.72a.75.75 0 0 1 1.06-1.06l2 2Z"/>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M8 20V4"/>
+                        <polyline points="4 8 8 4 12 8"/>
+                        <path d="M16 4v16"/>
+                        <polyline points="12 16 16 20 20 16"/>
                       </svg>
                       <span className="editor-topbar-more-menu-label">替换</span>
                     </div>
+                    <div className="editor-topbar-more-menu-divider" />
+                    <div
+                      className={`editor-topbar-more-menu-item${!fileName ? ' disabled' : ''}`}
+                      onClick={() => { if (!fileName) return; handleBookmarkCurrentFile(); }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                      </svg>
+                      <span className="editor-topbar-more-menu-label">收藏</span>
+                    </div>
+                    <div
+                      className={`editor-topbar-more-menu-item${!fileName ? ' disabled' : ''}`}
+                      onClick={() => { if (!fileName) return; handleNewWindow(fileName); setMoreMenuOpen(false); }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <line x1="3" y1="9" x2="21" y2="9" />
+                        <line x1="9" y1="21" x2="9" y2="9" />
+                      </svg>
+                      <span className="editor-topbar-more-menu-label">在新窗口中打开</span>
+                    </div>
+                    <div
+                      className={`editor-topbar-more-menu-item${!fileName ? ' disabled' : ''}`}
+                      onClick={() => { if (!fileName) return; handleRenameCurrentFile(); }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="16 3 21 8 8 21 3 21 3 16" />
+                      </svg>
+                      <span className="editor-topbar-more-menu-label">重命名</span>
+                    </div>
+                    <div className={`editor-topbar-more-menu-item has-submenu${!fileName ? ' disabled' : ''}`}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                      </svg>
+                      <span className="editor-topbar-more-menu-label">复制路径</span>
+                      <span className="editor-topbar-more-menu-arrow">&#8250;</span>
+                      <div className="editor-topbar-more-submenu">
+                        <div
+                          className="editor-topbar-more-menu-item"
+                          onClick={() => { if (fileName) handleCopyRelativePath(); }}
+                        >
+                          基于库的相对路径
+                        </div>
+                        <div
+                          className="editor-topbar-more-menu-item"
+                          onClick={() => { if (fileName) handleCopyAbsolutePath(); }}
+                        >
+                          绝对路径
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      className={`editor-topbar-more-menu-item${!fileName ? ' disabled' : ''}`}
+                      onClick={() => { if (!fileName) return; handleOpenFileLocation(); }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                      </svg>
+                      <span className="editor-topbar-more-menu-label">在系统资源管理器中显示</span>
+                    </div>
+                    <div className="editor-topbar-more-menu-divider" />
                     <div
                       className="editor-topbar-more-menu-item"
                       onClick={() => {

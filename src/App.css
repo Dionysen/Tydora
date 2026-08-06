@@ -1666,6 +1666,12 @@ body {
   justify-content: space-between;
 }
 
+.editor-topbar-more-menu-arrow {
+  font-size: 16px;
+  opacity: 0.4;
+  margin-left: 4px;
+}
+
 .editor-topbar-more-submenu {
   display: none;
   position: absolute;

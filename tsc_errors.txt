@@ -1,9 +1,0 @@
-npm warn Unknown user config "phantomjs_cdnurl". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
-npm warn Unknown user config "chromedriver_cdnurl". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
-npm warn Unknown user config "sass_binary_site". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
-npm warn Unknown user config "ELECTRON_MIRROR". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
-npm warn Unknown user config "NVM_NODEJS_ORG_MIRROR". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
-npm warn Unknown user config "CHROMEDRIVER_CDNURL". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
-npm warn Unknown user config "OPERADRIVER". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
-npm warn Unknown user config "ELECTRON_BUILDER_BINARIES_MIRROR". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
-npm warn Unknown user config "PYTHON_MIRROR". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
