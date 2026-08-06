@@ -134,6 +134,16 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     } catch {}
     return 1.6;
   });
+  const [irLineNumbers, setIrLineNumbers] = useState(() => {
+    try {
+      const raw = localStorage.getItem("zmd-general-settings");
+      if (raw) {
+        const s = JSON.parse(raw);
+        return s.irLineNumbers ?? true;
+      }
+    } catch {}
+    return true;
+  });
   const [wordCount, setWordCount] = useState(0);
   const [isCurrentFileMarkdown, setIsCurrentFileMarkdown] = useState(true);
   const codeMirrorRef = useRef<CodeMirrorEditorHandle>(null);
@@ -193,6 +203,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           }
           if (typeof settings.lineHeight === 'number') {
             setLineHeight(settings.lineHeight);
+          }
+          if (typeof settings.irLineNumbers === 'boolean') {
+            setIrLineNumbers(settings.irLineNumbers);
           }
         }
       } catch {}
@@ -1149,7 +1162,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   }, [handleClose]);
 
   const toggleTypewriterMode = useCallback(() => {
-    setTypewriterMode((prev) => !prev);
+    setTypewriterMode((prev: boolean) => !prev);
   }, []);
 
   // Ctrl+Alt+T 打字机模式
@@ -1929,6 +1942,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                   typewriterMode={typewriterMode}
                   previewMaxWidth={previewMaxWidth}
                   lineHeight={lineHeight}
+                  irLineNumbers={irLineNumbers}
                   editorSettings={editorSettings}
                   imageSettings={imageSettings}
                   currentFilePath={fileName}

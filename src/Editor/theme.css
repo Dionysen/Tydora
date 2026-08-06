@@ -200,6 +200,12 @@
   line-height: 1.6;
 }
 
+/* 隐藏 IR 模式行号 */
+.hide-ir-line-numbers .tiptap > :where(p, h1, h2, h3, h4, h5, h6, blockquote, pre, hr, table, .code-block-toolbar-wrapper, [data-type="frontmatter"])::before,
+.hide-ir-line-numbers .tiptap li::before {
+  content: none;
+}
+
 /* 标题 */
 .tiptap-editor h1 { font-size: 2em; margin: 1em 0 0.5em; font-weight: 600; }
 .tiptap-editor h2 { font-size: 1.5em; margin: 1em 0 0.5em; font-weight: 600; }

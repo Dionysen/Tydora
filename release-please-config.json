@@ -30,6 +30,14 @@
           "type": "toml",
           "path": "src-tauri/Cargo.toml",
           "jsonpath": "$.package.version"
+        },
+        {
+          "type": "generic",
+          "path": "website/docs/01-开始使用/02-关于.md"
+        },
+        {
+          "type": "generic",
+          "path": "website/landing/index.html"
         }
       ]
     }

@@ -79,6 +79,7 @@ interface GeneralSettings {
   previewMaxWidth: number;
   typewriterMode: boolean;
   lineHeight: number;
+  irLineNumbers: boolean;
 }
 
 interface ShortcutItem {
@@ -100,6 +101,7 @@ const DEFAULT_GENERAL: GeneralSettings = {
   previewMaxWidth: 800,
   typewriterMode: false,
   lineHeight: 1.6,
+  irLineNumbers: true,
 };
 
 interface MindmapSettings {
@@ -249,6 +251,25 @@ function GeneralSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">编辑器字体</span>
+          </div>
+          <select
+            className="settings-select"
+            value={settings.editorFont}
+            onChange={(e) => onChange({ ...settings, editorFont: e.target.value })}
+          >
+            <option value="system-ui, -apple-system, sans-serif">系统默认</option>
+            <option value="'LXGW WenKai', system-ui, sans-serif">霞鹜文楷</option>
+            <option value="'LXGW XinXiHei', system-ui, sans-serif">霞鹜新晰黑</option>
+            <option value="'Inter', system-ui, sans-serif">Inter</option>
+            <option value="'Noto Sans SC', system-ui, sans-serif">Noto Sans SC</option>
+            <option value="ui-sans-serif, 'Segoe UI', system-ui, sans-serif">Segoe UI</option>
+            <option value="'Roboto', system-ui, sans-serif">Roboto</option>
+            <option value="'Source Sans 3', system-ui, sans-serif">Source Sans</option>
+          </select>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
             <span className="canvas-settings-row-title">字体大小</span>
           </div>
           <div className="canvas-settings-row-control">
@@ -286,28 +307,6 @@ function GeneralSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">编辑器字体</span>
-          </div>
-          <select
-            className="settings-select"
-            value={settings.editorFont}
-            onChange={(e) => onChange({ ...settings, editorFont: e.target.value })}
-          >
-            <option value="system-ui, -apple-system, sans-serif">系统默认</option>
-            <option value="'LXGW WenKai', system-ui, sans-serif">霞鹜文楷</option>
-            <option value="'LXGW XinXiHei', system-ui, sans-serif">霞鹜新晰黑</option>
-            <option value="'Inter', system-ui, sans-serif">Inter</option>
-            <option value="'Noto Sans SC', system-ui, sans-serif">Noto Sans SC</option>
-            <option value="ui-sans-serif, 'Segoe UI', system-ui, sans-serif">Segoe UI</option>
-            <option value="'Roboto', system-ui, sans-serif">Roboto</option>
-            <option value="'Source Sans 3', system-ui, sans-serif">Source Sans</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="canvas-settings-card">
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
             <span className="canvas-settings-row-title">打字机模式</span>
             <span className="canvas-settings-row-desc">始终将光标所在行保持在视口中央。</span>
           </div>
@@ -316,6 +315,20 @@ function GeneralSettingsContent({
               type="checkbox"
               checked={settings.typewriterMode}
               onChange={(e) => onChange({ ...settings, typewriterMode: e.target.checked })}
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">显示行号</span>
+            <span className="canvas-settings-row-desc">在 IR 模式下编辑器右侧显示行号。</span>
+          </div>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={settings.irLineNumbers}
+              onChange={(e) => onChange({ ...settings, irLineNumbers: e.target.checked })}
             />
             <span className="settings-switch-slider" />
           </label>
@@ -1458,6 +1471,7 @@ function ImageSettingsContent({
   );
 }
 
+// @ts-expect-error - Reserved for future editor settings UI
 function EditorSettingsContent({
   settings,
   onChange,
@@ -2066,7 +2080,7 @@ export default function Settings() {
   }, [imageSettings]);
 
   // 编辑器设置状态
-  const [editorSettings, setEditorSettings] = useState<EditorSettings>(() => loadEditorSettings());
+  const [editorSettings] = useState<EditorSettings>(() => loadEditorSettings());
 
   // 保存编辑器设置到 localStorage
   useEffect(() => {

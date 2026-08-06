@@ -50,6 +50,7 @@ import { HeadingHighlight } from "./extensions/heading-highlight";
 import { CodeBlockToolbar } from "./extensions/code-block-toolbar";
 import { TableFloatingToolbar } from "./extensions/table-floating-toolbar";
 import { BulletListMindmap } from "./extensions/bullet-list-mindmap";
+import { HardBreakCleanup } from "./extensions/hardbreak-cleanup";
 import { TableFloatingToolbar as TableFloatingToolbarComponent } from "./TableFloatingToolbar";
 import { executeCommand } from "./extensions/custom-commands";
 import { saveImageToLocal, loadImageSettings, resolveRelativePath, dirName } from "../services";
@@ -86,6 +87,8 @@ interface TipTapEditorProps {
   mode: EditorMode;
   theme: ThemeName;
   typewriterMode?: boolean;
+  previewMaxWidth?: number;
+  lineHeight?: number;
   editorSettings?: EditorSettings;
   imageSettings?: ImageSettings;
   currentFilePath?: string | null;
@@ -94,11 +97,12 @@ interface TipTapEditorProps {
 }
 
 const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
-  ({ value, onChange, mode, typewriterMode, previewMaxWidth, lineHeight, editorSettings, imageSettings, currentFilePath, activeVaultPath, onWordCount }, ref) => {
+  ({ value, onChange, mode, typewriterMode, previewMaxWidth, lineHeight, irLineNumbers, editorSettings, imageSettings, currentFilePath, activeVaultPath, onWordCount }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const onChangeRef = useRef(onChange);
     const onWordCountRef = useRef(onWordCount);
     const isInternalRef = useRef(false);
+    const mountingRef = useRef(true);
     const currentFilePathRef = useRef(currentFilePath);
     const prevFilePathRef = useRef(currentFilePath);
     const activeVaultPathRef = useRef(activeVaultPath);
@@ -198,7 +202,24 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         BulletList.extend({ addKeyboardShortcuts() { return {}; } }),
         OrderedList.extend({ addKeyboardShortcuts() { return {}; } }),
         ListItem,
-        HardBreak,
+        HardBreak.extend({
+          addStorage() {
+            return {
+              markdown: {
+                serialize(state: any, node: any, parent: any, index: number) {
+                  for (let i = index + 1; i < parent.childCount; i++)
+                    if (parent.child(i).type !== node.type) {
+                      state.write(state.inTable ? "<br>" : "  \n");
+                      return;
+                    }
+                },
+                parse: {
+                  // handled by markdown-it
+                },
+              },
+            };
+          },
+        }),
         Heading.extend({ addKeyboardShortcuts() { return {}; } }),
         Placeholder.configure({
           placeholder: "开始输入 Markdown...",
@@ -286,7 +307,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         Typography,
         Markdown.configure({
           html: true,
-          breaks: false,
+          breaks: true,
           transformPastedText: true,
           transformCopiedText: true,
         }),
@@ -300,6 +321,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         CodeBlockToolbar,
         ...(editorSettings?.tableToolbar !== false ? [TableFloatingToolbar] : []),
         BulletListMindmap,
+        HardBreakCleanup,
       ],
       content: value || "",
       onUpdate: ({ editor: ed }) => {
@@ -307,7 +329,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
 
         if (isInternalRef.current) {
           isInternalRef.current = false;
-        } else {
+        } else if (!mountingRef.current) {
           onChangeRef.current(md);
         }
 
@@ -438,6 +460,9 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
           }
           return false;
         },
+        clipboardTextSerializer: (content: any) => {
+          return content.content.textBetween(0, content.content.size, '\n', '\n');
+        },
       },
     });
 
@@ -485,6 +510,16 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
       window.addEventListener("link-dialog-open", handleLinkDialogOpen);
       return () => window.removeEventListener("link-dialog-open", handleLinkDialogOpen);
     }, []);
+
+    // 编辑器挂载后的静默期（500ms），防止初始化规范化操作触发保存
+    useEffect(() => {
+      if (!editor) return;
+      mountingRef.current = true;
+      const timer = setTimeout(() => {
+        mountingRef.current = false;
+      }, 500);
+      return () => clearTimeout(timer);
+    }, [editor]);
 
     // 链接弹窗确认：插入链接
     const handleLinkDialogConfirm = useCallback((text: string, url: string) => {
@@ -931,7 +966,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
 
     return (
       <div
-        className={`editor-wrapper${typewriterMode ? ' typewriter-mode' : ''}`}
+        className={`editor-wrapper${typewriterMode ? ' typewriter-mode' : ''}${irLineNumbers === false ? ' hide-ir-line-numbers' : ''}`}
         style={{ '--editor-max-width': previewMaxWidth ? `${previewMaxWidth}px` : '880px', '--editor-line-height': lineHeight ?? 1.8 } as React.CSSProperties}
       >
         <div

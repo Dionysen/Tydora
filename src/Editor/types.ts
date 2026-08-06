@@ -35,6 +35,7 @@ export interface EditorProps {
   typewriterMode?: boolean;
   previewMaxWidth?: number;
   lineHeight?: number;
+  irLineNumbers?: boolean;
   editorSettings?: EditorSettings;
   imageSettings?: ImageSettings;
   currentFilePath?: string | null;
