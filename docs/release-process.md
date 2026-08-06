@@ -14,6 +14,12 @@
   - [提交格式](#提交格式)
   - [可用类型](#可用类型)
   - [工具支持](#工具支持)
+- [版本决策规则](#版本决策规则)
+  - [三步决策流程](#三步决策流程)
+  - [版本 bump 速查表](#版本-bump-速查表)
+  - [常见场景](#常见场景)
+  - [预发布版本的特殊行为](#预发布版本的特殊行为)
+  - [常见误区](#常见误区)
 - [发布流水线](#发布流水线)
   - [Pipeline 一：Release Please（版本决策）](#pipeline-一release-please版本决策)
   - [Pipeline 二：Build & Release（构建发布）](#pipeline-二build--release构建发布)
@@ -137,6 +143,189 @@ Closes #42
 | **commitizen** | `npm run commit` | 交互式创建规范化提交 |
 | **commitlint** | `npm run lint:commit` | 检查最近一次提交是否合规 |
 | **git-cliff** | `npm run changelog` | 本地生成 CHANGELOG.md |
+
+---
+
+## 版本决策规则
+
+Release Please 根据 Conventional Commits 和 Semantic Versioning (SemVer) 规则自动决定下一个版本号。理解其决策逻辑对于预测和控制版本演进至关重要。
+
+---
+
+### 三步决策流程
+
+版本号的决策遵循一个严格的三步流程：
+
+```
+第一步：找到基线版本
+       │
+       │  按优先级查找：
+       │  1. git tags 匹配 v* 模式（上一次正式发布）
+       │  2. .release-please-manifest.json 中的版本
+       │  3. package.json 中的 version 字段
+       │
+       ▼
+第二步：扫描提交历史
+       │
+       │  从基线点扫描全部提交（不是只看最新的 push）
+       │  逐个匹配 Conventional Commits 类型
+       │
+       ▼
+第三步：决定版本 bump
+       │
+       │  根据扫描结果套用 SemVer 规则
+       │
+       ▼
+    输出新版本号 → 更新所有版本文件 → 创建 Release PR
+```
+
+#### 1. 找到基线版本
+
+Release Please 通过以下优先级确定「上次发版点」：
+
+| 优先级 | 来源 | 说明 |
+|--------|------|------|
+| **1** | git tags (`v*`) | 仓库中匹配 `v*` 模式的最新 tag，代表上一次正式发布 |
+| **2** | `.release-please-manifest.json` | 如果没找到 tag，回退读取 manifest 文件中的版本号 |
+| **3** | `package.json` | 最后的兜底方案，读取 `version` 字段 |
+
+基线确定后，起始扫描点可能是：
+
+- **有历史 tag**：从上一个 `v*` tag 的 commit 之后开始扫描
+- **无历史 tag（首次使用）**：从仓库的第一个 commit 开始，扫描全部提交历史
+
+#### 2. 扫描提交历史
+
+从基线点到 HEAD，逐一检查每条 commit message，匹配 Conventional Commits 格式：
+
+```
+git log (基线点..HEAD)
+    │
+    ├── feat: add markdown preview    → 标记为 feat
+    ├── fix: correct export path      → 标记为 fix
+    ├── chore: update dependencies    → 标记为 chore（不影响版本）
+    ├── docs: update README           → 标记为 docs（不影响版本）
+    ├── refactor: extract parser      → 标记为 refactor（不影响版本）
+    └── fix!: change API signature    → 标记为 fix + BREAKING CHANGE
+```
+
+| commit 类型 | 是否影响版本号？ |
+|------------|:---:|
+| `feat:` | ✅ 是 |
+| `fix:` | ✅ 是 |
+| `fix!/feat!` 或含 `BREAKING CHANGE:` | ✅ 是 |
+| `chore:`, `docs:`, `style:`, `refactor:`, `perf:`, `test:`, `ci:`, `build:` | ❌ 否 |
+
+#### 3. 套用 SemVer 规则
+
+根据扫描到的最高优先级变更类型，决定 MAJOR / MINOR / PATCH bump：
+
+```
+扫描结果
+    │
+    ├── 包含 BREAKING CHANGE（! / fix! / feat! / footer）
+    │       → MAJOR bump    0.1.3 → 1.0.0
+    │
+    ├── 包含 feat:（且无 BREAKING CHANGE）
+    │       → MINOR bump    0.1.3 → 0.2.0
+    │
+    ├── 包含 fix:（无 feat, 无 BREAKING CHANGE）
+    │       → PATCH bump    0.1.3 → 0.1.4
+    │
+    └── 无 feat 也无 fix
+            → 不 bump        版本号不变
+```
+
+> **核心原则**：取影响级别最高的那条规则。如果既有 `feat:` 又有 `fix!`，结果为 MAJOR bump（BREAKING CHANGE 优先级最高）。
+
+---
+
+### 版本 bump 速查表
+
+| 当前版本 | 只有 `fix:` | 有 `feat:` | 有 `BREAKING CHANGE` |
+|----------|:----------:|:---------:|:-------------------:|
+| 0.1.3 | → 0.1.4 | → 0.2.0 | → 1.0.0 |
+| 0.2.0 | → 0.2.1 | → 0.3.0 | → 1.0.0 |
+| 1.0.0 | → 1.0.1 | → 1.1.0 | → 2.0.0 |
+| 1.5.2 | → 1.5.3 | → 1.6.0 | → 2.0.0 |
+
+---
+
+### 常见场景
+
+**场景一：纯 Bug 修复**
+
+```bash
+git commit -m "fix: resolve crash on startup"
+git commit -m "fix(ui): correct button alignment"
+```
+
+结果：`0.1.3` → `0.1.4`（PATCH bump）
+
+**场景二：新增功能 + Bug 修复**
+
+```bash
+git commit -m "feat: add dark mode"
+git commit -m "fix: update broken styles"
+```
+
+结果：`0.1.3` → `0.2.0`（MINOR bump，因为 feat 的优先级高于 fix）
+
+**场景三：破坏性变更**
+
+```bash
+git commit -m "feat!: drop support for legacy API
+
+BREAKING CHANGE: The legacy API endpoints are no longer available."
+```
+
+结果：`0.2.0` → `1.0.0`（MAJOR bump）
+
+**场景四：只有非功能性变更**
+
+```bash
+git commit -m "chore: update deps"
+git commit -m "docs: update README"
+git commit -m "refactor: simplify logic"
+```
+
+结果：**版本号不变**，不会创建 Release PR
+
+---
+
+### 预发布版本的特殊行为
+
+对于 `0.x.y` 版本（major 为 0），Release Please 的默认行为与 SemVer 规范一致：
+
+- `feat:` → 触发 **MINOR** bump（0.1.3 → 0.2.0）
+- `fix:` → 触发 **PATCH** bump（0.1.3 → 0.1.4）
+- `BREAKING CHANGE` → 触发 **MAJOR** bump（0.1.3 → 1.0.0）
+
+如果需要更保守的版本策略（如不希望在 1.0.0 之前频繁增加 minor 版本），可以在 `release-please-config.json` 中配置：
+
+```json
+"bump-minor-pre-major": false
+```
+
+配置后，在 `0.x` 阶段 `feat:` 也仅触发 PATCH bump。
+
+---
+
+### 常见误区
+
+**误区 1："我只 push 了一次，版本号怎么跳了这么多？"**
+
+Release Please 扫描的是**所有自上次 tag 以来的提交**，不是只看最新的一次 push。如果仓库之前没有 release-please 打过的 tag，首次运行时它会扫描整个 git 历史，将所有符合 Conventional Commits 的提交都纳入计算。
+
+> 举例：仓库从第一个 commit 起就有 `feat:` 提交，并且从未有过 release-please tag。首次运行时，`0.1.3` 会直接 bump 到 `0.2.0`（因为历史中有 `feat:` 提交）。
+
+**误区 2："我这次只修了 bug，为什么版本没变？"**
+
+如果扫描范围内**没有** `feat:` 或 `fix:` 提交（只有 `chore:`, `docs:` 等），Release Please 不会创建 Release PR。只有在检测到可发版的变更时，才会创建或更新 PR。
+
+**误区 3："feat 和 fix 各取最高还是累计算？"**
+
+Release Please **只看类型、不计数**。1 个 `feat:` 和 100 个 `feat:` 结果一样，都是 MINOR bump。同理，1 个 `fix:` 和 100 个 `fix:` 都是 PATCH bump。一旦同时存在 `feat:` 和 `fix:`，结果是 MINOR（feat 优先级更高）。
 
 ---
 
