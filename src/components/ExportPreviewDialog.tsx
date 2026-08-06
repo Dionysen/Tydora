@@ -314,9 +314,6 @@ export function ExportPreviewDialog({ format, artifact, title, onClose, onSaveSu
           <span className="export-preview-title">导出预览 · {meta.label}</span>
           <div className="export-preview-header-actions">
             {error && <span className="export-preview-error">导出失败：{error}</span>}
-            <button className="export-preview-btn export-preview-btn-cancel" onClick={onClose} disabled={saving}>
-              取消
-            </button>
             <button className="export-preview-btn export-preview-btn-confirm" onClick={handleConfirm} disabled={saving}>
               {saving ? "导出中…" : `导出为 ${meta.label}`}
             </button>

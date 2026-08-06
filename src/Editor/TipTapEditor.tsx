@@ -749,7 +749,15 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
       },
       resize: () => {
         if (!editor) return;
+        const scrollContainer = containerRef.current?.querySelector('.tiptap-editor') as HTMLElement | null;
+        const savedScrollTop = scrollContainer?.scrollTop ?? 0;
         editor.commands.focus();
+        // 恢复滚动位置，避免 focus() 导致跳到底部
+        if (scrollContainer) {
+          requestAnimationFrame(() => {
+            scrollContainer.scrollTop = savedScrollTop;
+          });
+        }
       },
       highlightSearch: (query: string) => {
         if (!editor) return;

@@ -89,6 +89,7 @@ interface GeneralSettings {
   editorFont: string;
   autoSave: boolean;
   autoHideTopbar: boolean;
+  autoHideTopbarOnCollapse: boolean;
 }
 
 interface ShortcutItem {
@@ -106,6 +107,7 @@ const DEFAULT_GENERAL: GeneralSettings = {
   editorFont: "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
   autoSave: true,
   autoHideTopbar: true,
+  autoHideTopbarOnCollapse: true,
 };
 
 interface MindmapSettings {
@@ -300,6 +302,23 @@ function GeneralSettingsContent({
               type="checkbox"
               checked={settings.autoHideTopbar}
               onChange={(e) => onChange({ ...settings, autoHideTopbar: e.target.checked })}
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+      </div>
+
+      <div className="canvas-settings-card">
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">折叠侧栏时隐藏顶部栏</span>
+            <span className="canvas-settings-row-desc">开启后，折叠侧栏时顶部栏也会自动隐藏。关闭后，折叠侧栏时顶部栏保持可见。</span>
+          </div>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={settings.autoHideTopbarOnCollapse}
+              onChange={(e) => onChange({ ...settings, autoHideTopbarOnCollapse: e.target.checked })}
             />
             <span className="settings-switch-slider" />
           </label>

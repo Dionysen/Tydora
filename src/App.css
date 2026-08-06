@@ -1117,7 +1117,7 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 7px 14px;
+  padding: 3px 10px;
   background: var(--accent);
   border: none;
   border-radius: 11px;

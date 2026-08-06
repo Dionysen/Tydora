@@ -153,6 +153,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           if (typeof settings.autoHideTopbar === 'boolean') {
             setAutoHideTopbar(settings.autoHideTopbar);
           }
+          if (typeof settings.autoHideTopbarOnCollapse === 'boolean') {
+            setAutoHideTopbarOnCollapse(settings.autoHideTopbarOnCollapse);
+          }
         }
       } catch {}
     };
@@ -229,6 +232,16 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       if (raw) {
         const s = JSON.parse(raw);
         return s.autoHideTopbar ?? true;
+      }
+    } catch {}
+    return true;
+  });
+  const [autoHideTopbarOnCollapse, setAutoHideTopbarOnCollapse] = useState(() => {
+    try {
+      const raw = localStorage.getItem("zmd-general-settings");
+      if (raw) {
+        const s = JSON.parse(raw);
+        return s.autoHideTopbarOnCollapse ?? true;
       }
     } catch {}
     return true;
@@ -1605,7 +1618,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         />
 
         {/* 编辑区域 */}
-        <main className={`editor-container${(!sidebarOpen || autoHideTopbar) ? ' sidebar-collapsed' : ''}`}>
+        <main className={`editor-container${(autoHideTopbar || (!sidebarOpen && autoHideTopbarOnCollapse)) ? ' sidebar-collapsed' : ''}`}>
           <div className="editor-topbar-trigger" />
           {/* 顶部透明栏 */}
           <div className="editor-topbar">
