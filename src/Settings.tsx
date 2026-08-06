@@ -1880,7 +1880,7 @@ function AboutSettingsContent() {
 
       <div className="settings-item">
         <label className="settings-item-label">版本信息</label>
-        <span className="settings-about-value">{version || "加载中..."}</span>
+        <span className="settings-about-value">{version ? `v${version}` : "加载中..."}</span>
       </div>
 
       <div className="settings-item">
@@ -1906,26 +1906,24 @@ function AboutSettingsContent() {
 
       <div className="settings-item">
         <label className="settings-item-label">GitHub</label>
-        <a
-          href="https://github.com/zuorn/Tydora"
-          target="_blank"
-          rel="noopener noreferrer"
+        <span
           className="settings-link"
+          style={{ cursor: "pointer" }}
+          onClick={() => invoke("open_url", { url: "https://github.com/zuorn/Tydora" })}
         >
           访问 GitHub 仓库
-        </a>
+        </span>
       </div>
 
       <div className="settings-item">
         <label className="settings-item-label">问题反馈</label>
-        <a
-          href="https://github.com/zuorn/Tydora/issues"
-          target="_blank"
-          rel="noopener noreferrer"
+        <span
           className="settings-link"
+          style={{ cursor: "pointer" }}
+          onClick={() => invoke("open_url", { url: "https://github.com/zuorn/Tydora/issues" })}
         >
           Report an Issue
-        </a>
+        </span>
       </div>
     </div>
   );

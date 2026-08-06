@@ -295,7 +295,7 @@ export default function VaultManagerWindow() {
       <div className="vault-manager-content">
         <img src={appIcon} alt="Tydora" className="vault-manager-icon" />
         <h1 className="vault-manager-title">Tydora</h1>
-        <p className="vault-manager-version">{version ? `版本 ${version}` : ""}</p>
+        <p className="vault-manager-version">{version ? `版本 v${version}` : ""}</p>
 
         <div className="vault-manager-actions">
           <div className="vault-manager-action">
