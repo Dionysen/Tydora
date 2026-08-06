@@ -452,7 +452,7 @@ body {
   line-height: 1.75;
   color: var(--text-primary);
   font-family: var(--font-ui);
-  max-width: 880px;
+  max-width: var(--editor-max-width, 880px);
   width: 100%;
   margin: 0 auto;
 }

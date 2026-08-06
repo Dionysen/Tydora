@@ -33,6 +33,8 @@ export interface EditorProps {
   mode: EditorMode;
   theme: ThemeName;
   typewriterMode?: boolean;
+  previewMaxWidth?: number;
+  lineHeight?: number;
   editorSettings?: EditorSettings;
   imageSettings?: ImageSettings;
   currentFilePath?: string | null;

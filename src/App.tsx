@@ -104,7 +104,36 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const [saveStatus, setSaveStatus] = useState<"idle" | "modified" | "saved">("idle");
   const [editorSettings, setEditorSettings] = useState<EditorSettings>(() => loadEditorSettings());
   const [viewMode, setViewMode] = useState<EditorMode>(editorSettings.defaultMode);
-  const [typewriterMode, setTypewriterMode] = useState(editorSettings.typewriterMode);
+  const [typewriterMode, setTypewriterMode] = useState(() => {
+    try {
+      const raw = localStorage.getItem("zmd-general-settings");
+      if (raw) {
+        const s = JSON.parse(raw);
+        return s.typewriterMode ?? false;
+      }
+    } catch {}
+    return false;
+  });
+  const [previewMaxWidth, setPreviewMaxWidth] = useState(() => {
+    try {
+      const raw = localStorage.getItem("zmd-general-settings");
+      if (raw) {
+        const s = JSON.parse(raw);
+        return s.previewMaxWidth ?? 800;
+      }
+    } catch {}
+    return 800;
+  });
+  const [lineHeight, setLineHeight] = useState(() => {
+    try {
+      const raw = localStorage.getItem("zmd-general-settings");
+      if (raw) {
+        const s = JSON.parse(raw);
+        return s.lineHeight ?? 1.6;
+      }
+    } catch {}
+    return 1.6;
+  });
   const [wordCount, setWordCount] = useState(0);
   const [isCurrentFileMarkdown, setIsCurrentFileMarkdown] = useState(true);
   const codeMirrorRef = useRef<CodeMirrorEditorHandle>(null);
@@ -156,6 +185,15 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           if (typeof settings.autoHideTopbarOnCollapse === 'boolean') {
             setAutoHideTopbarOnCollapse(settings.autoHideTopbarOnCollapse);
           }
+          if (typeof settings.typewriterMode === 'boolean') {
+            setTypewriterMode(settings.typewriterMode);
+          }
+          if (typeof settings.previewMaxWidth === 'number') {
+            setPreviewMaxWidth(settings.previewMaxWidth);
+          }
+          if (typeof settings.lineHeight === 'number') {
+            setLineHeight(settings.lineHeight);
+          }
         }
       } catch {}
     };
@@ -203,7 +241,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         const newSettings = loadEditorSettings();
         setEditorSettings(newSettings);
         setViewMode(newSettings.defaultMode);
-        setTypewriterMode(newSettings.typewriterMode);
       }
     };
     window.addEventListener("storage", handleEditorStorage);
@@ -1586,7 +1623,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "settings-general", label: "通用设置", category: "设置", aliases: ["通用", "general"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "general"); invoke("open_settings_window"); } },
     { id: "settings-theme", label: "主题设置", category: "设置", aliases: ["主题", "theme", "颜色", "外观"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "theme"); invoke("open_settings_window"); } },
     { id: "settings-shortcuts", label: "快捷键设置", category: "设置", aliases: ["快捷键", "shortcuts", "键盘"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "shortcuts"); invoke("open_settings_window"); } },
-    { id: "settings-editor", label: "编辑器设置", category: "设置", aliases: ["编辑器", "editor"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "editor"); invoke("open_settings_window"); } },
     { id: "settings-mindmap", label: "思维导图设置", category: "设置", aliases: ["思维导图", "mindmap"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "mindmap"); invoke("open_settings_window"); } },
     { id: "settings-graph", label: "关系图谱设置", category: "设置", aliases: ["图谱", "graph", "关系"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "graph"); invoke("open_settings_window"); } },
     { id: "settings-image", label: "图像设置", category: "设置", aliases: ["图像", "image", "图片"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "image"); invoke("open_settings_window"); } },
@@ -1891,6 +1927,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                   mode={viewMode}
                   theme={theme}
                   typewriterMode={typewriterMode}
+                  previewMaxWidth={previewMaxWidth}
+                  lineHeight={lineHeight}
                   editorSettings={editorSettings}
                   imageSettings={imageSettings}
                   currentFilePath={fileName}

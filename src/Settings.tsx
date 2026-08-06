@@ -19,7 +19,7 @@ import "./Settings.css";
 
 // ── Types ────────────────────────────────────────────────────────────
 
-type SettingsTab = "general" | "theme" | "shortcuts" | "editor" | "mindmap" | "graph" | "image" | "canvas" | "publish" | "about";
+type SettingsTab = "general" | "theme" | "shortcuts" | "mindmap" | "graph" | "image" | "canvas" | "publish" | "about";
 
 interface NavItem {
   id: SettingsTab;
@@ -38,7 +38,6 @@ interface NavGroup {
 export interface EditorSettings {
   // 编辑模式
   defaultMode: "ir" | "sv";
-  typewriterMode: boolean;
   // 编辑行为
   counterType: "markdown" | "text";
   // 扩展功能
@@ -51,7 +50,6 @@ export interface EditorSettings {
 
 export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
   defaultMode: "ir",
-  typewriterMode: false,
   counterType: "text",
   callout: true,
   mermaid: true,
@@ -78,6 +76,9 @@ interface GeneralSettings {
   autoSave: boolean;
   autoHideTopbar: boolean;
   autoHideTopbarOnCollapse: boolean;
+  previewMaxWidth: number;
+  typewriterMode: boolean;
+  lineHeight: number;
 }
 
 interface ShortcutItem {
@@ -96,6 +97,9 @@ const DEFAULT_GENERAL: GeneralSettings = {
   autoSave: true,
   autoHideTopbar: true,
   autoHideTopbarOnCollapse: true,
+  previewMaxWidth: 800,
+  typewriterMode: false,
+  lineHeight: 1.6,
 };
 
 interface MindmapSettings {
@@ -227,6 +231,61 @@ function GeneralSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">预览区域宽度</span>
+            <span className="canvas-settings-row-desc">编辑器内容区域的最大宽度。</span>
+          </div>
+          <div className="canvas-settings-row-control">
+            <input
+              type="range"
+              className="canvas-settings-slider"
+              min={600}
+              max={1200}
+              step={20}
+              value={settings.previewMaxWidth}
+              onChange={(e) => onChange({ ...settings, previewMaxWidth: Number(e.target.value) })}
+            />
+            <span className="canvas-settings-unit">{settings.previewMaxWidth}px</span>
+          </div>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">字体大小</span>
+          </div>
+          <div className="canvas-settings-row-control">
+            <input
+              type="range"
+              className="canvas-settings-slider"
+              min="10"
+              max="24"
+              value={settings.fontSize}
+              onChange={(e) => onChange({ ...settings, fontSize: Number(e.target.value) })}
+            />
+            <span className="canvas-settings-unit">{settings.fontSize}px</span>
+          </div>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">行间距</span>
+            <span className="canvas-settings-row-desc">编辑器正文的行间距。</span>
+          </div>
+          <div className="canvas-settings-row-control">
+            <input
+              type="range"
+              className="canvas-settings-slider"
+              min={14}
+              max={28}
+              step={1}
+              value={Math.round(settings.lineHeight * 10)}
+              onChange={(e) => onChange({ ...settings, lineHeight: Number(e.target.value) / 10 })}
+            />
+            <span className="canvas-settings-unit">{settings.lineHeight.toFixed(1)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="canvas-settings-card">
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
             <span className="canvas-settings-row-title">编辑器字体</span>
           </div>
           <select
@@ -244,21 +303,22 @@ function GeneralSettingsContent({
             <option value="'Source Sans 3', system-ui, sans-serif">Source Sans</option>
           </select>
         </div>
+      </div>
+
+      <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">字体大小</span>
+            <span className="canvas-settings-row-title">打字机模式</span>
+            <span className="canvas-settings-row-desc">始终将光标所在行保持在视口中央。</span>
           </div>
-          <div className="canvas-settings-row-control">
+          <label className="settings-switch">
             <input
-              type="range"
-              className="canvas-settings-slider"
-              min="10"
-              max="24"
-              value={settings.fontSize}
-              onChange={(e) => onChange({ ...settings, fontSize: Number(e.target.value) })}
+              type="checkbox"
+              checked={settings.typewriterMode}
+              onChange={(e) => onChange({ ...settings, typewriterMode: e.target.checked })}
             />
-            <span className="canvas-settings-unit">{settings.fontSize}px</span>
-          </div>
+            <span className="settings-switch-slider" />
+          </label>
         </div>
       </div>
 
@@ -294,9 +354,6 @@ function GeneralSettingsContent({
             <span className="settings-switch-slider" />
           </label>
         </div>
-      </div>
-
-      <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
             <span className="canvas-settings-row-title">折叠侧栏时隐藏顶部栏</span>
@@ -1430,20 +1487,6 @@ function EditorSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">打字机模式</span>
-            <span className="canvas-settings-row-desc">始终将光标所在行保持在视口中央。</span>
-          </div>
-          <label className="settings-switch">
-            <input
-              type="checkbox"
-              checked={settings.typewriterMode}
-              onChange={(e) => update("typewriterMode", e.target.checked)}
-            />
-            <span className="settings-switch-slider" />
-          </label>
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
             <span className="canvas-settings-row-title">字数统计类型</span>
           </div>
           <select
@@ -1896,7 +1939,7 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
     try {
       const saved = localStorage.getItem("zmd-settings-initial-tab") as SettingsTab | null;
-      if (saved && ["general", "theme", "shortcuts", "editor", "mindmap", "graph", "image", "canvas", "publish", "about"].includes(saved)) {
+      if (saved && ["general", "theme", "shortcuts", "mindmap", "graph", "image", "canvas", "publish", "about"].includes(saved)) {
         localStorage.removeItem("zmd-settings-initial-tab");
         return saved;
       }
@@ -2098,12 +2141,6 @@ export default function Settings() {
     {
       title: "功能",
       items: [
-        { id: "editor", label: "编辑器", icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-          </svg>
-        ), searchTerms: ["编辑器", "editor", "编辑模式", "Markdown", "渲染", "代码高亮", "预览", "数学公式", "链接"] },
         { id: "mindmap", label: "思维导图", icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M20 4a1 1 0 0 1 0 2h-2.7a7.4 7.4 0 0 0-7.2 6H20a1 1 0 0 1 0 2h-9.9a7.4 7.4 0 0 0 7.2 6H20a1 1 0 0 1 0 2h-2.7a9.4 9.4 0 0 1-9.2-8H4a1 1 0 0 1 0-2h4.1a9.4 9.4 0 0 1 9.2-8H20z" />
@@ -2253,9 +2290,6 @@ export default function Settings() {
             <ThemeSettingsContent theme={theme} setTheme={setTheme} />
           )}
           {activeTab === "shortcuts" && <ShortcutsSettingsContent />}
-          {activeTab === "editor" && (
-            <EditorSettingsContent settings={editorSettings} onChange={setEditorSettings} />
-          )}
           {activeTab === "mindmap" && (
             <MindmapSettingsContent settings={mindmapSettings} onChange={setMindmapSettings} />
           )}

@@ -94,7 +94,7 @@ interface TipTapEditorProps {
 }
 
 const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
-  ({ value, onChange, mode, editorSettings, imageSettings, currentFilePath, activeVaultPath, onWordCount }, ref) => {
+  ({ value, onChange, mode, typewriterMode, previewMaxWidth, lineHeight, editorSettings, imageSettings, currentFilePath, activeVaultPath, onWordCount }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const onChangeRef = useRef(onChange);
     const onWordCountRef = useRef(onWordCount);
@@ -102,6 +102,9 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
     const currentFilePathRef = useRef(currentFilePath);
     const prevFilePathRef = useRef(currentFilePath);
     const activeVaultPathRef = useRef(activeVaultPath);
+    const typewriterModeRef = useRef(typewriterMode);
+    const typewriterRafRef = useRef<number | null>(null);
+    typewriterModeRef.current = typewriterMode;
     const imageSettingsRef = useRef(imageSettings);
     const sourceEditorRef = useRef<CodeMirrorEditorHandle>(null);
     const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
@@ -313,6 +316,22 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
           ? md.length
           : text.replace(/\s/g, "").length;
         onWordCountRef.current?.(count);
+      },
+      onSelectionUpdate: ({ editor: ed }) => {
+        if (!typewriterModeRef.current) return;
+        if (typewriterRafRef.current) return; // 已排帧，跳过
+        typewriterRafRef.current = requestAnimationFrame(() => {
+          typewriterRafRef.current = null;
+          const scrollContainer = containerRef.current?.querySelector('.tiptap-editor') as HTMLElement | null;
+          if (!scrollContainer) return;
+          const { from } = ed.state.selection;
+          const coords = ed.view.coordsAtPos(from);
+          if (!coords) return;
+          const containerTop = scrollContainer.getBoundingClientRect().top;
+          const cursorYInContent = coords.top - containerTop + scrollContainer.scrollTop;
+          const targetScroll = cursorYInContent - scrollContainer.clientHeight / 2;
+          scrollContainer.scrollTop = Math.max(0, targetScroll);
+        });
       },
       editorProps: {
         handleDOMEvents: {
@@ -911,7 +930,10 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
     };
 
     return (
-      <div className="editor-wrapper">
+      <div
+        className={`editor-wrapper${typewriterMode ? ' typewriter-mode' : ''}`}
+        style={{ '--editor-max-width': previewMaxWidth ? `${previewMaxWidth}px` : '880px', '--editor-line-height': lineHeight ?? 1.8 } as React.CSSProperties}
+      >
         <div
           ref={containerRef}
           className="editor-container"
