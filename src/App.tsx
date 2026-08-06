@@ -29,12 +29,14 @@ import { useCanvasStore } from "./Canvas/canvas-store";
 import { useVaultWatcher } from "./services";
 import PublishPanel from "./publish/PublishPanel";
 import { BookmarkDialog, BookmarksService } from "./Bookmarks";
+import FindReplaceDialog from "./components/FindReplaceDialog";
 import "./App.css";
 import "./components/FilePreview.css";
 import "./wikilink/WikiLink.css";
 import "./wikilink/WikiLinkPreview.css";
 import "./tags/Tag.css";
 import "./tags/TagAutocomplete.css";
+import "./components/FindReplaceDialog.css";
 
 // 错误边界：防止编辑器错误导致整个页面空白
 class EditorErrorBoundary extends Component<
@@ -378,6 +380,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const [exporting, setExporting] = useState(false);
   const [showExportFormatPicker, setShowExportFormatPicker] = useState(false);
   const [exportPreview, setExportPreview] = useState<{ format: ExportFormat; artifact: BuiltArtifact } | null>(null);
+  const [findReplaceDialogMode, setFindReplaceDialogMode] = useState<"find" | "replace" | null>(null);
 
   // 顶部栏固定项（思维导图、关系图谱、导出）
   const [pinnedItems, setPinnedItems] = useState<{ mindmap: boolean; graph: boolean; export: boolean }>(() => {
@@ -1156,6 +1159,14 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           handleClose();
         }
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+        e.preventDefault();
+        setFindReplaceDialogMode("find");
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "h") {
+        e.preventDefault();
+        setFindReplaceDialogMode("replace");
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -1203,7 +1214,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   // 行内代码快捷键（从 localStorage 读取）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      let shortcutKeys = ["Ctrl", "H"];
+      let shortcutKeys = ["Ctrl", "E"];
       try {
         const saved = localStorage.getItem(SHORTCUTS_KEY);
         if (saved) {
@@ -1757,8 +1768,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
                   </svg>
                 </button>
               )}
@@ -1791,6 +1802,30 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       前进
                     </div>
                     <div className="editor-topbar-more-menu-divider" />
+                    <div
+                      className="editor-topbar-more-menu-item"
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        setFindReplaceDialogMode("find");
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
+                      </svg>
+                      <span className="editor-topbar-more-menu-label">查找</span>
+                    </div>
+                    <div
+                      className="editor-topbar-more-menu-item"
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        setFindReplaceDialogMode("replace");
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M1.97 9.53a.75.75 0 0 1 0-1.06l2-2a.75.75 0 0 1 1.06 1.06l-.72.72h5.44a3.25 3.25 0 0 0 0-6.5H4.5a.75.75 0 0 1 0-1.5h5.25a4.75 4.75 0 1 1 0 9.5H4.31l.72.72a.75.75 0 1 1-1.06 1.06l-2-2Zm10.06-3.06a.75.75 0 0 1 0 1.06l-2 2a.75.75 0 1 1-1.06-1.06l.72-.72H4.25a3.25 3.25 0 0 0 0 6.5h5.25a.75.75 0 0 1 0 1.5H4.25a4.75 4.75 0 1 1 0-9.5h5.44l-.72-.72a.75.75 0 0 1 1.06-1.06l2 2Z"/>
+                      </svg>
+                      <span className="editor-topbar-more-menu-label">替换</span>
+                    </div>
                     <div
                       className="editor-topbar-more-menu-item"
                       onClick={() => {
@@ -1864,8 +1899,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
                       </svg>
                       <span className="editor-topbar-more-menu-label">{exporting ? "导出中…" : "导出"}</span>
                       <button
@@ -1908,6 +1943,13 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
           {/* 编辑器面板 */}
           <div className="editor-panel">
+            {findReplaceDialogMode && isCurrentFileMarkdown && (
+              <FindReplaceDialog
+                editorHandle={editorHandleRef.current}
+                mode={findReplaceDialogMode}
+                onClose={() => setFindReplaceDialogMode(null)}
+              />
+            )}
             {graphViewOpen ? (
               <div className="graph-view-embedded">
                 <GraphView

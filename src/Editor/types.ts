@@ -18,6 +18,12 @@ export interface EditorHandle {
   isSourceMode: () => boolean;
   /** 克隆当前渲染内容元素（用于导出）；源码模式下返回 null */
   getContentElement: () => HTMLElement | null;
+  /** 全文搜索，返回所有匹配位置 */
+  findMatches: (query: string) => Array<{ from: number; to: number }>;
+  /** 选中指定范围并滚动到可见位置 */
+  selectAndScroll: (from: number, to: number) => void;
+  /** 替换指定范围内容 */
+  replaceAt: (from: number, to: number, replacement: string) => void;
 }
 
 export type EditorMode = "ir" | "sv";

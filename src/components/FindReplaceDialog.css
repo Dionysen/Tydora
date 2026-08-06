@@ -1,0 +1,155 @@
+/* ── 查找替换对话框 ── */
+.find-replace-dialog {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-color, #e1e1e1);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  min-width: 360px;
+  max-width: 480px;
+}
+
+.find-replace-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.find-replace-input-group {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  background: var(--bg-secondary, #f5f5f5);
+  border: 1px solid var(--border-color, #e1e1e1);
+  border-radius: 6px;
+  padding: 0 8px;
+  min-width: 0;
+}
+
+.find-replace-input-group:focus-within {
+  border-color: var(--accent-color, #4a90d9);
+  box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.15);
+}
+
+.find-replace-icon {
+  flex-shrink: 0;
+  color: var(--text-tertiary, #999);
+  margin-right: 4px;
+}
+
+.find-replace-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--text-primary, #333);
+  outline: none;
+  min-width: 0;
+  font-family: inherit;
+}
+
+.find-replace-input::placeholder {
+  color: var(--text-tertiary, #999);
+}
+
+.find-replace-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  user-select: none;
+  white-space: nowrap;
+  margin-left: 4px;
+}
+
+.find-replace-nav-btn,
+.find-replace-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary, #666);
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.find-replace-nav-btn:hover,
+.find-replace-close-btn:hover {
+  background: var(--bg-hover, #e8e8e8);
+  color: var(--text-primary, #333);
+}
+
+.find-replace-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.find-replace-action-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--border-color, #e1e1e1);
+  border-radius: 4px;
+  background: var(--bg-secondary, #f5f5f5);
+  color: var(--text-primary, #333);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+
+.find-replace-action-btn:hover:not(:disabled) {
+  background: var(--bg-hover, #e8e8e8);
+}
+
+.find-replace-action-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.find-replace-all-btn {
+  background: var(--accent-color, #4a90d9);
+  color: #fff;
+  border-color: var(--accent-color, #4a90d9);
+}
+
+.find-replace-all-btn:hover:not(:disabled) {
+  background: var(--accent-color-hover, #3a7bc8);
+}
+
+/* 暗色主题适配 */
+[data-theme="dark"] .find-replace-dialog {
+  background: var(--bg-primary, #1e1e1e);
+  border-color: var(--border-color, #333);
+}
+
+[data-theme="dark"] .find-replace-input-group {
+  background: var(--bg-secondary, #2a2a2a);
+  border-color: var(--border-color, #444);
+}
+
+[data-theme="dark"] .find-replace-action-btn {
+  background: var(--bg-secondary, #2a2a2a);
+  border-color: var(--border-color, #444);
+  color: var(--text-primary, #ddd);
+}
+
+[data-theme="dark"] .find-replace-action-btn:hover:not(:disabled) {
+  background: var(--bg-hover, #3a3a3a);
+}
+
+[data-theme="dark"] .find-replace-all-btn {
+  background: var(--accent-color, #4a90d9);
+  color: #fff;
+}

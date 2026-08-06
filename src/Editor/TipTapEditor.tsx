@@ -904,6 +904,40 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         if (!editor || !editor.view?.dom) return null;
         return (editor.view.dom as HTMLElement).cloneNode(true) as HTMLElement;
       },
+      findMatches: (query: string) => {
+        if (!editor || !query) return [];
+        const results: Array<{ from: number; to: number }> = [];
+        const content = editor.state.doc.textContent;
+        const lowerContent = content.toLowerCase();
+        const lowerQuery = query.toLowerCase();
+        let startIndex = 0;
+        while (startIndex < lowerContent.length) {
+          const idx = lowerContent.indexOf(lowerQuery, startIndex);
+          if (idx === -1) break;
+          results.push({ from: idx + 1, to: idx + query.length + 1 });
+          startIndex = idx + 1;
+        }
+        return results;
+      },
+      selectAndScroll: (from: number, to: number) => {
+        if (!editor) return;
+        editor.chain().focus().setTextSelection({ from, to }).run();
+        requestAnimationFrame(() => {
+          const scrollContainer = containerRef.current?.querySelector('.tiptap-editor') as HTMLElement | null;
+          if (!scrollContainer) return;
+          const { view } = editor;
+          const coords = view.coordsAtPos(from);
+          if (coords) {
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const targetScroll = scrollContainer.scrollTop + coords.top - containerRect.top - containerRect.height / 3;
+            scrollContainer.scrollTop = targetScroll;
+          }
+        });
+      },
+      replaceAt: (from: number, to: number, replacement: string) => {
+        if (!editor) return;
+        editor.chain().focus().setTextSelection({ from, to }).insertContent(replacement).run();
+      },
     }));
 
     // 外部 value 同步
