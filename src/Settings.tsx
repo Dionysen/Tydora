@@ -41,14 +41,6 @@ export interface EditorSettings {
   typewriterMode: boolean;
   // 编辑行为
   counterType: "markdown" | "text";
-  // 代码高亮
-  codeLineNumber: boolean;
-  // 预览
-  previewMaxWidth: number;
-  // 数学公式
-  mathEngine: "KaTeX" | "MathJax";
-  // 链接行为
-  linkOpenNewTab: boolean;
   // 扩展功能
   callout: boolean;
   mermaid: boolean;
@@ -61,10 +53,6 @@ export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
   defaultMode: "ir",
   typewriterMode: false,
   counterType: "text",
-  codeLineNumber: false,
-  previewMaxWidth: 800,
-  mathEngine: "KaTeX",
-  linkOpenNewTab: true,
   callout: true,
   mermaid: true,
   wikiLink: true,
@@ -1466,70 +1454,6 @@ function EditorSettingsContent({
             <option value="markdown">Markdown（含语法符号）</option>
             <option value="text">纯文本（仅文字）</option>
           </select>
-        </div>
-      </div>
-
-      <div className="canvas-settings-card">
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">代码行号</span>
-            <span className="canvas-settings-row-desc">在代码块左侧显示行号。</span>
-          </div>
-          <label className="settings-switch">
-            <input type="checkbox" checked={settings.codeLineNumber} onChange={(e) => update("codeLineNumber", e.target.checked)} />
-            <span className="settings-switch-slider" />
-          </label>
-        </div>
-      </div>
-
-      <div className="canvas-settings-card">
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">预览区域最大宽度</span>
-            <span className="canvas-settings-row-desc">编辑器内容区域的最大宽度。</span>
-          </div>
-          <div className="canvas-settings-row-control">
-            <input
-              type="range"
-              className="canvas-settings-slider"
-              min={600}
-              max={1200}
-              step={20}
-              value={settings.previewMaxWidth}
-              onChange={(e) => update("previewMaxWidth", Number(e.target.value))}
-            />
-            <span className="canvas-settings-unit">{settings.previewMaxWidth}px</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="canvas-settings-card">
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">渲染引擎</span>
-            <span className="canvas-settings-row-desc">数学公式的渲染引擎选择。</span>
-          </div>
-          <select
-            className="settings-select"
-            value={settings.mathEngine}
-            onChange={(e) => update("mathEngine", e.target.value as EditorSettings["mathEngine"])}
-          >
-            <option value="KaTeX">KaTeX（更快）</option>
-            <option value="MathJax">MathJax（更全）</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="canvas-settings-card">
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">新窗口打开链接</span>
-            <span className="canvas-settings-row-desc">点击链接时在新窗口中打开。</span>
-          </div>
-          <label className="settings-switch">
-            <input type="checkbox" checked={settings.linkOpenNewTab} onChange={(e) => update("linkOpenNewTab", e.target.checked)} />
-            <span className="settings-switch-slider" />
-          </label>
         </div>
       </div>
 

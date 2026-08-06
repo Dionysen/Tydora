@@ -3,8 +3,6 @@ name: Release
 on:
   workflow_dispatch:
   push:
-    branches:
-      - release
     tags:
       - 'v*'
 
@@ -29,6 +27,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -55,6 +55,31 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --latest --strip all
+        env:
+          OUTPUT: RELEASE_NOTES.md
+
+      - name: Prepare release body
+        id: notes
+        shell: bash
+        run: |
+          VERSION=$(cat VERSION)
+          {
+            echo "RELEASE_BODY<<GITCLIFF_EOF"
+            echo "# Tydora v$VERSION"
+            echo ""
+            if [ -s RELEASE_NOTES.md ]; then
+              cat RELEASE_NOTES.md
+            else
+              echo "See the assets to download and install this version."
+            fi
+            echo "GITCLIFF_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -63,7 +88,7 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: 'Tydora v__VERSION__'
-          releaseBody: 'See the assets to download this version.'
+          releaseBody: ${{ steps.notes.outputs.RELEASE_BODY }}
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
