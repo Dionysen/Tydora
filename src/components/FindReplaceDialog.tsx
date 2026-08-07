@@ -13,14 +13,8 @@ export default function FindReplaceDialog({ editorHandle, mode: initialMode, onC
   const [replaceText, setReplaceText] = useState("");
   const [matches, setMatches] = useState<Array<{ from: number; to: number }>>([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
-  const [mode, setMode] = useState(initialMode);
   const [showReplace, setShowReplace] = useState(initialMode === "replace");
   const findInputRef = useRef<HTMLInputElement>(null);
-
-  // Update mode when prop changes
-  useEffect(() => {
-    setMode(initialMode);
-  }, [initialMode]);
 
   // Auto-focus find input on mount / mode change
   useEffect(() => {
