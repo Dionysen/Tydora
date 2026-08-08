@@ -33,8 +33,18 @@ function loadEnv(envPath) {
 // Load .env for Tauri code signing keys
 loadEnv(resolve(projectRoot, ".env"));
 
-// Run tauri CLI
 const args = process.argv.slice(2);
+
+// 扩展命令：tauri build:msix → 调用 build-msix.ps1 打包 MSIX
+// （Tauri CLI 原生不支持 msix 目标，这里用 MakeAppx 自行打包）
+if (args[0] === "build:msix") {
+  const ps1 = resolve(projectRoot, "scripts", "build-msix.ps1");
+  const psArgs = ["-ExecutionPolicy", "Bypass", "-File", ps1, ...args.slice(1)];
+  const result = spawnSync("powershell", psArgs, { shell: true, stdio: "inherit" });
+  process.exit(result.status ?? 1);
+}
+
+// Run tauri CLI
 const result = spawnSync("npx", ["tauri", ...args], {
   shell: true,
   stdio: "inherit",

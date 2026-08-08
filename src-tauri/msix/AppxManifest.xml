@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
   AppxManifest 模板 —— 用于打包 MSIX 提交到微软商店。
 
@@ -22,9 +22,9 @@
 
   <Properties>
     <DisplayName>Tydora</DisplayName>
-    <PublisherDisplayName>Tydora</PublisherDisplayName>
-    <Description>A modern Markdown editor built with Tauri</Description>
+    <PublisherDisplayName>左瑞宁</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
+    <Description>一个现代的桌面 Markdown 编辑器，为思考与知识管理而生。基于 Tauri v2 + React 19 构建，轻量、快速、美观。</Description>
   </Properties>
 
   <Resources>
@@ -41,11 +41,11 @@
                  EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
         DisplayName="Tydora"
-        Description="A modern Markdown editor built with Tauri"
+        Description="一个现代的桌面 Markdown 编辑器，为思考与知识管理而生。基于 Tauri v2 + React 19 构建，轻量、快速、美观。"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">
-        <uap:DefaultTile Square310x310Logo="Assets\Square310x310Logo.png" Square71x71Logo="Assets\Square71x71Logo.png" />
+        <uap:DefaultTile Square71x71Logo="Assets\Square71x71Logo.png" />
       </uap:VisualElements>
       <Extensions>
         <uap:Extension Category="windows.fileTypeAssociation">
