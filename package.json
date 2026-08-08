@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "node scripts/run-tauri.mjs",
+    "build:msix": "powershell -ExecutionPolicy Bypass -File scripts/build-msix.ps1",
     "sync-version": "node scripts/sync-version.mjs",
     "docs:build": "npx markdown-publish build --config website/docs/markdown-publish.config.json",
     "docs:serve": "node website/site/__preview_server.cjs",
