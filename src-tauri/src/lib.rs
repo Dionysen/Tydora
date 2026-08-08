@@ -560,6 +560,24 @@ fn open_url(url: String) -> Result<(), String> {
     Ok(())
 }
 
+/// 创建/截断导出文件（分块写入第一步）
+#[tauri::command]
+fn create_export_file(path: String) -> Result<(), String> {
+    std::fs::File::create(&path).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// 追加写入导出文件（分块写入，避免大字符串通过 IPC 触发 STATUS_HEAP_CORRUPTION）
+#[tauri::command]
+fn append_export_file(path: String, data: String) -> Result<(), String> {
+    use std::io::Write;
+    let mut file = std::fs::OpenOptions::new()
+        .append(true)
+        .open(&path)
+        .map_err(|e| e.to_string())?;
+    file.write_all(data.as_bytes()).map_err(|e| e.to_string())
+}
+
 /// 获取当前工作目录
 #[tauri::command]
 fn get_cwd() -> Result<String, String> {
@@ -877,7 +895,9 @@ pub fn run() {
             stop_preview,
             fetch_remote_image,
             start_proxy_server,
-            fetch_page_title
+            fetch_page_title,
+            create_export_file,
+            append_export_file
         ])
         .setup(|app| {
             // 初始化文件监听器状态

@@ -1,6 +1,7 @@
 // 导出功能统一入口（构建与保存分离，便于预览）
+import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
-import { writeFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import { writeFile } from "@tauri-apps/plugin-fs";
 import {
   collectDocumentCSS,
   inlineImages,
@@ -118,7 +119,13 @@ export async function saveExportArtifact(
   if (!filePath) return null;
 
   if (typeof content === "string") {
-    await writeTextFile(filePath, content);
+    // 分块写入，避免大字符串通过 Tauri IPC 触发 STATUS_HEAP_CORRUPTION
+    const CHUNK_SIZE = 512 * 1024; // 512KB per chunk
+    await invoke("create_export_file", { path: filePath });
+    for (let i = 0; i < content.length; i += CHUNK_SIZE) {
+      const chunk = content.slice(i, i + CHUNK_SIZE);
+      await invoke("append_export_file", { path: filePath, data: chunk });
+    }
   } else {
     await writeFile(filePath, content);
   }

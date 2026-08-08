@@ -44,7 +44,7 @@ ${css}
 <style>
 html, body { margin: 0; height: 100%; overflow-y: auto; }
 .export-page {
-  max-width: 820px;
+  max-width: 1024px;
   margin: 0 auto;
   padding: 48px;
   box-sizing: border-box;
