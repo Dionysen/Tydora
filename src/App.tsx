@@ -722,7 +722,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       const cursorPos = editorHandleRef.current?.getCursorOffset();
       if (cursorPos !== undefined && cursorPos !== null) {
         const textBefore = value.slice(Math.max(0, cursorPos - 200), cursorPos);
-        const hasOpenWikiLink = /\[\[[^\]]*$/.test(textBefore) || /【【[^】]*$/.test(textBefore);
+        const hasOpenWikiLink = /\[\[[^\]]*$/.test(textBefore) || /【【[^】]*$/.test(textBefore) || /@\S*$/.test(textBefore);
         if (!hasOpenWikiLink) {
           setWikiAutocompleteVisible(false);
         }

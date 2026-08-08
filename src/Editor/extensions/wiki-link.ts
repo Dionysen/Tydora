@@ -225,6 +225,32 @@ export const WikiLink = Node.create({
           }));
         },
       }),
+      // Rule 3: @ 触发自动补全
+      new InputRule({
+        find: /@(\S*)$/,
+        handler: ({ range, match }) => {
+          const query = match[1];
+          let screenPos: { x: number; y: number } | null = null;
+          try {
+            const editor = this.editor;
+            if (editor) {
+              const coords = editor.view.coordsAtPos(range.from);
+              if (coords) {
+                screenPos = { x: coords.left, y: coords.bottom };
+              }
+            }
+          } catch {
+            // coordsAtPos 可能失败，使用 null
+          }
+          window.dispatchEvent(new CustomEvent("wiki-link-trigger", {
+            detail: {
+              query,
+              editorPosition: range.from,
+              screenPosition: screenPos,
+            }
+          }));
+        },
+      }),
     ];
   },
 
