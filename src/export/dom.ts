@@ -1,7 +1,7 @@
 // 导出相关的 DOM / CSS 工具函数
 import { readFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
-import appIconUrl from "../assets/icon.png";
+import appIconUrl from "../assets/icon.png?inline";
 
 /** 收集当前页面所有同源 <style> 的 CSS 文本（用于自包含 HTML 导出） */
 export function collectDocumentCSS(): string {
@@ -57,11 +57,21 @@ function decodeAssetUrl(url: string): string {
   return decodeURIComponent(url.replace(/^asset:\/\/localhost\//, "").replace(/^asset:\/\//, ""));
 }
 
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 /**
  * 将导出内容中的所有本地/远程图片内联为 data: URI，使其自包含。
  * - 带 data-abs-path 的本地图片：直接读文件
  * - asset:// 图片：解码路径后读文件
  * - http(s) 远程图片：经 Rust 代理下载为 data URL
+ * - 其他非 data: 图片（如相对路径、Vite 资源路径等）：通过 fetch 转换为 data URI
  */
 export async function inlineImages(root: HTMLElement): Promise<void> {
   const imgs = Array.from(root.querySelectorAll("img"));
@@ -76,6 +86,13 @@ export async function inlineImages(root: HTMLElement): Promise<void> {
       } else if (src.startsWith("http://") || src.startsWith("https://")) {
         const dataUrl = await invoke<string>("fetch_remote_image", { url: src });
         img.src = dataUrl;
+      } else if (!src.startsWith("data:")) {
+        // 处理相对路径、Vite 资源路径等本地资源，通过 fetch 转为 data URI
+        const response = await fetch(src);
+        if (response.ok) {
+          const blob = await response.blob();
+          img.src = await blobToDataUrl(blob);
+        }
       }
     } catch (e) {
       console.warn("[export] 内联图片失败:", src, e);

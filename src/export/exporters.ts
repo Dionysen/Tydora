@@ -7,13 +7,37 @@ function escapeHtml(s: string): string {
 }
 
 /** 构建自包含的 HTML 文档字符串 */
-export function buildHtmlDoc(raw: HTMLElement, css: string, themeName: string, title: string): string {
+export function buildHtmlDoc(
+  raw: HTMLElement,
+  css: string,
+  themeName: string,
+  title: string,
+  options?: { exportShadow?: boolean },
+): string {
+  const shadowCss = options?.exportShadow
+    ? `
+<style>
+/* 导出文件专属：内容区背景阴影（不影响预览窗口） */
+html, body { background: var(--bg-secondary, #f5f5f5); }
+.export-page {
+  margin: 40px auto !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+}
+@media print {
+  html, body { background: var(--bg-primary, #ffffff); }
+  .export-page { margin: 0 auto !important; box-shadow: none; border-radius: 0; }
+}
+</style>`
+    : "";
+
   return `<!DOCTYPE html>
 <html data-theme="${escapeHtml(themeName)}" lang="zh-CN">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${escapeHtml(title)}</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none'%3E%3Crect width='32' height='32' rx='7' fill='%238a5cf5'/%3E%3Cg stroke='%23fff' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M10 11 L16 21 M22 11 L16 21 M10 11 L22 11'/%3E%3C/g%3E%3Cg fill='%23fff'%3E%3Ccircle cx='10' cy='11' r='3'/%3E%3Ccircle cx='22' cy='11' r='3'/%3E%3Ccircle cx='16' cy='21' r='3'/%3E%3C/g%3E%3C/svg%3E" />
 <style>
 ${css}
 </style>
@@ -290,6 +314,7 @@ html, body { margin: 0; height: 100%; overflow-y: auto; }
   .export-page { padding: 0; }
 }
 </style>
+${shadowCss}
 </head>
 <body>
 <div class="export-page">${raw.outerHTML}</div>

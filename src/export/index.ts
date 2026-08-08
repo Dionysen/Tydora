@@ -79,7 +79,10 @@ export async function buildExportArtifact(format: ExportFormat, ctx: ExportConte
 
     switch (format) {
       case "html":
-        return { content: htmlDoc, previewHtml: htmlDoc };
+        return {
+          content: buildHtmlDoc(raw, css, ctx.themeName, ctx.title, { exportShadow: true }),
+          previewHtml: htmlDoc,
+        };
       case "docx": {
         // 先把 mermaid SVG 栅格化为图片，再生成真正的 .docx 二进制
         await rasterizeMermaidSvgsForDocx(raw);
