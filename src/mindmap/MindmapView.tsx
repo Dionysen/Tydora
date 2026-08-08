@@ -1,6 +1,9 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useCallback, useImperativeHandle } from "react";
 import { Transformer } from "markmap-lib";
 import { Markmap, loadCSS, loadJS } from "markmap-view";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { invoke } from "@tauri-apps/api/core";
 import { MINDMAP_SETTINGS_KEY, DEFAULT_MINDMAP, type MindmapSettings } from "../Settings";
 import "./MindmapView.css";
 
@@ -12,6 +15,15 @@ declare global {
 
 interface MindmapViewProps {
   content: string;
+  expandLevel: number;
+  onExpandLevelChange: (level: number) => void;
+  ref?: React.Ref<MindmapViewHandle>;
+}
+
+export interface MindmapViewHandle {
+  fit: () => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
 }
 
 const transformer = new Transformer();
@@ -25,15 +37,33 @@ function getMindmapSettings(): MindmapSettings {
   }
 }
 
-export default function MindmapView({ content }: MindmapViewProps) {
+export default function MindmapView({ content, expandLevel, onExpandLevelChange, ref }: MindmapViewProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const mmRef = useRef<Markmap | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragRef = useRef<{ startX: number; startY: number; startTx: number; startTy: number } | null>(null);
-  const [expandLevel, setExpandLevel] = useState(() => getMindmapSettings().initialExpandLevel);
   const effectiveExpandLevelRef = useRef<number>(getMindmapSettings().initialExpandLevel);
   const selectedNodeRef = useRef<any>(null);
+
+  // Expose toolbar handlers to parent (MindmapWindow)
+  useImperativeHandle(ref, () => ({
+    fit: () => { mmRef.current?.fit(); },
+    zoomIn: () => {
+      if (!mmRef.current) return;
+      const svg = mmRef.current.svg;
+      const tx = svg.attr("transform");
+      const m = tx?.match(/scale\(([^)]+)\)/);
+      mmRef.current.rescale((m ? parseFloat(m[1]) : 1) * 1.2);
+    },
+    zoomOut: () => {
+      if (!mmRef.current) return;
+      const svg = mmRef.current.svg;
+      const tx = svg.attr("transform");
+      const m = tx?.match(/scale\(([^)]+)\)/);
+      mmRef.current.rescale((m ? parseFloat(m[1]) : 1) / 1.2);
+    },
+  }), []);
 
   const renderMindmap = useCallback(async (markdown: string) => {
     if (!svgRef.current) return;
@@ -113,7 +143,7 @@ export default function MindmapView({ content }: MindmapViewProps) {
       };
       const newLevel = calcEffectiveLevel(mmRef.current.state.data);
       effectiveExpandLevelRef.current = newLevel;
-      setExpandLevel(newLevel);
+      onExpandLevelChange(newLevel);
     }
   }, []);
 
@@ -325,39 +355,14 @@ export default function MindmapView({ content }: MindmapViewProps) {
     };
   }, []);
 
-  const handleFit = useCallback(() => {
-    if (mmRef.current) mmRef.current.fit();
-  }, []);
-
-  const handleZoomIn = useCallback(() => {
-    if (mmRef.current) {
-      const svg = mmRef.current.svg;
-      const currentTransform = svg.attr("transform");
-      const match = currentTransform?.match(/scale\(([^)]+)\)/);
-      const currentScale = match ? parseFloat(match[1]) : 1;
-      mmRef.current.rescale(currentScale * 1.2);
-    }
-  }, []);
-
-  const handleZoomOut = useCallback(() => {
-    if (mmRef.current) {
-      const svg = mmRef.current.svg;
-      const currentTransform = svg.attr("transform");
-      const match = currentTransform?.match(/scale\(([^)]+)\)/);
-      const currentScale = match ? parseFloat(match[1]) : 1;
-      mmRef.current.rescale(currentScale / 1.2);
-    }
-  }, []);
-
-  const handleExpandLevelChange = useCallback((level: number) => {
-    setExpandLevel(level);
-    effectiveExpandLevelRef.current = level;
+  // React to expandLevel changes from parent (MindmapWindow toolbar select)
+  useEffect(() => {
+    effectiveExpandLevelRef.current = expandLevel;
     if (!mmRef.current) return;
 
-    // level matches markmap directly: 1=root only, 2=root+children, -1=all
     const toggleNodes = (node: any, currentLevel: number) => {
       if (!node.children) return;
-      const shouldFold = level >= 0 && currentLevel >= level;
+      const shouldFold = expandLevel >= 0 && currentLevel >= expandLevel;
       if (node.payload) {
         node.payload.fold = shouldFold ? 1 : 0;
       }
@@ -369,45 +374,139 @@ export default function MindmapView({ content }: MindmapViewProps) {
       toggleNodes(data, 1);
       mmRef.current.renderData(data);
     }
+  }, [expandLevel]);
+
+  // ── Export as SVG via custom event ──
+  useEffect(() => {
+    const handleExport = () => {
+      const svgEl = svgRef.current;
+      const mm = mmRef.current;
+      if (!svgEl || !mm) return;
+
+      // Step 1: Fit so all content is visible
+      mm.fit();
+
+      // Step 2: Wait for fit animation to settle, then export
+      setTimeout(async () => {
+        try {
+          const gEl = svgEl.querySelector("g") as SVGGElement | null;
+          if (!gEl) return;
+
+          const bbox = gEl.getBBox();
+          if (!bbox || bbox.width === 0 || bbox.height === 0) return;
+
+          const padding = 20;
+          const vbX = bbox.x - padding;
+          const vbY = bbox.y - padding;
+          const vbW = Math.ceil(bbox.width + padding * 2);
+          const vbH = Math.ceil(bbox.height + padding * 2);
+
+          // Step 3: Deep-clone the SVG, resetting g transform
+          const clone = svgEl.cloneNode(true) as SVGSVGElement;
+          const gClone = clone.querySelector("g");
+          if (gClone) {
+            gClone.setAttribute("transform", "translate(0,0) scale(1)");
+          }
+
+          clone.setAttribute("viewBox", `${vbX} ${vbY} ${vbW} ${vbH}`);
+          clone.setAttribute("width", String(vbW));
+          clone.setAttribute("height", String(vbH));
+          clone.removeAttribute("tabindex");
+          clone.removeAttribute("class");
+          clone.removeAttribute("style");
+
+          // Step 4: Inline computed styles so the exported SVG looks exactly like the rendered one
+          // (markmap loads cross-origin stylesheets that embedGlobalCSS can't capture, so
+          // we bake the computed visual styles into each element as presentation attributes)
+          const originalElements = svgEl.querySelectorAll("*");
+          const cloneElements = clone.querySelectorAll("*");
+          for (let i = 0; i < originalElements.length; i++) {
+            const orig = originalElements[i] as SVGElement;
+            const cl = cloneElements[i] as SVGElement;
+            const computed = getComputedStyle(orig);
+            const svgVisualProps: string[] = [
+              "fill",
+              "stroke",
+              "stroke-width",
+              "stroke-dasharray",
+              "stroke-linecap",
+              "stroke-linejoin",
+              "stroke-opacity",
+              "fill-opacity",
+              "opacity",
+              "color",
+              "font-family",
+              "font-size",
+              "font-weight",
+              "font-style",
+              "text-anchor",
+              "dominant-baseline",
+            ];
+            for (const prop of svgVisualProps) {
+              let value = computed.getPropertyValue(prop);
+              if (!value) continue;
+              if (value === "normal" || value === "auto") continue;
+              if (value === "transparent" || value === "rgba(0, 0, 0, 0)" || value === "rgba(0,0,0,0)") {
+                value = "none";
+              }
+              cl.setAttribute(prop, value);
+            }
+          }
+
+          // Step 5: Also capture relevant CSS rules from document stylesheets as fallback
+          try {
+            let extraCss = "";
+            for (const sheet of Array.from(document.styleSheets)) {
+              try {
+                for (const rule of Array.from(sheet.cssRules || [])) {
+                  if (
+                    rule instanceof CSSStyleRule &&
+                    /\.(markmap|mindmap)/.test(rule.selectorText)
+                  ) {
+                    extraCss += rule.cssText + "\n";
+                  }
+                }
+              } catch {
+                // Cross-origin stylesheet – skip
+              }
+            }
+            if (extraCss) {
+              const styleEl = document.createElementNS("http://www.w3.org/2000/svg", "style");
+              styleEl.textContent = extraCss;
+              clone.insertBefore(styleEl, clone.firstChild);
+            }
+          } catch {
+            // CSS capture failed – continue without extra styles
+          }
+
+          // Step 6: Serialize SVG
+          const serializer = new XMLSerializer();
+          const svgString =
+            '<?xml version="1.0" encoding="UTF-8"?>\n' +
+            serializer.serializeToString(clone);
+
+          // Step 6: Let user choose save path
+          const filePath = await save({
+            defaultPath: "mindmap.svg",
+            filters: [{ name: "SVG 图片", extensions: ["svg"] }],
+          });
+          if (!filePath) return; // User cancelled
+
+          // Step 7: Write file and open it
+          await writeTextFile(filePath, svgString);
+          await invoke("open_file", { filePath });
+        } catch (err) {
+          console.error("[MindmapExport] Failed:", err);
+        }
+      }, 200);
+    };
+
+    window.addEventListener("mindmap-export", handleExport);
+    return () => window.removeEventListener("mindmap-export", handleExport);
   }, []);
 
   return (
     <div className="mindmap-container" ref={containerRef}>
-      <div className="mindmap-toolbar">
-        <button className="mindmap-toolbar-btn" onClick={handleFit} title="适配视图">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-          </svg>
-        </button>
-        <button className="mindmap-toolbar-btn" onClick={handleZoomIn} title="放大">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35M11 8v6M8 11h6" />
-          </svg>
-        </button>
-        <button className="mindmap-toolbar-btn" onClick={handleZoomOut} title="缩小">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <path d="M21 21l-4.35-4.35M8 11h6" />
-          </svg>
-        </button>
-        <div className="mindmap-toolbar-divider" />
-        <select
-          className="mindmap-toolbar-select"
-          value={expandLevel}
-          onChange={(e) => handleExpandLevelChange(Number(e.target.value))}
-          title="展开层级"
-        >
-          <option value={-1}>全部</option>
-          <option value={1}>1 级</option>
-          <option value={2}>2 级</option>
-          <option value={3}>3 级</option>
-          <option value={4}>4 级</option>
-          <option value={5}>5 级</option>
-          <option value={6}>6 级</option>
-        </select>
-      </div>
-
       <svg
         ref={svgRef}
         className="mindmap-svg"

@@ -4,11 +4,21 @@ import { LogicalSize, LogicalPosition } from "@tauri-apps/api/dpi";
 import { availableMonitors } from "@tauri-apps/api/window";
 import { clampWindowToMonitor } from "../services/windowState";
 import { listen } from "@tauri-apps/api/event";
-import MindmapView from "./MindmapView";
+import MindmapView, { type MindmapViewHandle } from "./MindmapView";
+import { MINDMAP_SETTINGS_KEY, DEFAULT_MINDMAP } from "../Settings";
 import "./MindmapWindow.css";
 
 const MINDMAP_CONTENT_KEY = "zmd-mindmap-content";
 const MINDMAP_WINDOW_STATE_KEY = "zmd-mindmap-window-state";
+
+function getInitialExpandLevel(): number {
+  try {
+    const saved = localStorage.getItem(MINDMAP_SETTINGS_KEY);
+    return saved ? JSON.parse(saved).initialExpandLevel ?? DEFAULT_MINDMAP.initialExpandLevel : DEFAULT_MINDMAP.initialExpandLevel;
+  } catch {
+    return DEFAULT_MINDMAP.initialExpandLevel;
+  }
+}
 
 export default function MindmapWindow() {
   const [content, setContent] = useState(() => {
@@ -18,6 +28,9 @@ export default function MindmapWindow() {
       return "# 思维导图\n\n等待内容加载...";
     }
   });
+
+  const [expandLevel, setExpandLevel] = useState(getInitialExpandLevel);
+  const mindmapViewRef = useRef<MindmapViewHandle>(null);
 
   // Listen for real-time updates from main window
   useEffect(() => {
@@ -135,6 +148,18 @@ export default function MindmapWindow() {
     await win.minimize();
   }, []);
 
+  const handleExportImage = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("mindmap-export"));
+  }, []);
+
+  const handleFit = useCallback(() => mindmapViewRef.current?.fit(), []);
+  const handleZoomIn = useCallback(() => mindmapViewRef.current?.zoomIn(), []);
+  const handleZoomOut = useCallback(() => mindmapViewRef.current?.zoomOut(), []);
+
+  const handleExpandLevelChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setExpandLevel(Number(e.target.value));
+  }, []);
+
   const handleToggleMaximize = useCallback(async () => {
     const win = getCurrentWebviewWindow();
     const isMax = await win.isMaximized();
@@ -149,12 +174,55 @@ export default function MindmapWindow() {
     <div className="mindmap-window">
       <div className="mindmap-window-titlebar" data-tauri-drag-region>
         <span className="mindmap-window-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: 5, verticalAlign: 'middle', marginTop: -1 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
             <path d="M20 4a1 1 0 0 1 0 2h-2.7a7.4 7.4 0 0 0-7.2 6H20a1 1 0 0 1 0 2h-9.9a7.4 7.4 0 0 0 7.2 6H20a1 1 0 0 1 0 2h-2.7a9.4 9.4 0 0 1-9.2-8H4a1 1 0 0 1 0-2h4.1a9.4 9.4 0 0 1 9.2-8H20z" />
           </svg>
           思维导图
         </span>
         <div className="mindmap-window-controls">
+          <button className="mindmap-window-btn" onClick={handleExportImage} title="导出为图片">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+          </button>
+          <div className="mindmap-window-separator" />
+          <div className="mindmap-window-toolbar">
+            <button className="mindmap-toolbar-btn" onClick={handleFit} title="适配视图">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+              </svg>
+            </button>
+            <button className="mindmap-toolbar-btn" onClick={handleZoomIn} title="放大">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.35-4.35M11 8v6M8 11h6" />
+              </svg>
+            </button>
+            <button className="mindmap-toolbar-btn" onClick={handleZoomOut} title="缩小">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.35-4.35M8 11h6" />
+              </svg>
+            </button>
+            <div className="mindmap-toolbar-divider" />
+            <select
+              className="mindmap-toolbar-select"
+              value={expandLevel}
+              onChange={handleExpandLevelChange}
+              title="展开层级"
+            >
+              <option value={-1}>全部</option>
+              <option value={1}>1 级</option>
+              <option value={2}>2 级</option>
+              <option value={3}>3 级</option>
+              <option value={4}>4 级</option>
+              <option value={5}>5 级</option>
+              <option value={6}>6 级</option>
+            </select>
+          </div>
+          <div className="mindmap-window-separator" />
           <button className="mindmap-window-btn" onClick={handleMinimize} title="最小化">
             <svg width="10" height="10" viewBox="0 0 10 10">
               <line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" strokeWidth="1.2" />
@@ -174,7 +242,12 @@ export default function MindmapWindow() {
         </div>
       </div>
       <div className="mindmap-window-content">
-        <MindmapView content={content} />
+        <MindmapView
+          ref={mindmapViewRef}
+          content={content}
+          expandLevel={expandLevel}
+          onExpandLevelChange={setExpandLevel}
+        />
       </div>
     </div>
   );
