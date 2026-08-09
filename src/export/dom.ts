@@ -240,10 +240,14 @@ export function prepareExportElement(
   raw.removeAttribute("contenteditable");
   raw.classList.add("tiptap-export-content");
   // 移除工具栏和源码区，避免它们出现在导出内容中
-  raw.querySelectorAll(".mermaid-toolbar, .mermaid-source, .code-block-toolbar").forEach((el) => el.remove());
+  raw.querySelectorAll(".mermaid-toolbar, .mermaid-source, .code-block-toolbar, .bullet-list-mindmap-icon").forEach((el) => el.remove());
   raw
     .querySelectorAll(".ProseMirror-selectednode, .has-focus, .cm-editor")
     .forEach((el) => el.classList.remove("ProseMirror-selectednode", "has-focus"));
+  // 清理思维导图编辑器专属类
+  raw
+    .querySelectorAll(".bullet-list-mindmap-heading, .bullet-list-mindmap-list-container")
+    .forEach((el) => el.classList.remove("bullet-list-mindmap-heading", "bullet-list-mindmap-list-container"));
   // Wiki-Link / Tag 等节点视图通常渲染为纯文本 span，保留即可
 
   const container = document.createElement("div");

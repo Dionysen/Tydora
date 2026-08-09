@@ -78,7 +78,8 @@ export async function buildExportArtifact(format: ExportFormat, ctx: ExportConte
 
     const css = collectDocumentCSS();
     const bg = getComputedStyle(container).backgroundColor || "#ffffff";
-    const htmlDoc = buildHtmlDoc(raw, css, format === "docx" ? "white" : ctx.themeName, ctx.title);
+    // docx 导出时 forceLightTheme 已确保底层 DOM 为浅色背景，预览 HTML 可沿用用户所选主题
+    const htmlDoc = buildHtmlDoc(raw, css, ctx.themeName, ctx.title);
 
     switch (format) {
       case "html":
@@ -89,6 +90,8 @@ export async function buildExportArtifact(format: ExportFormat, ctx: ExportConte
       case "docx": {
         // 先把 mermaid SVG 栅格化为图片，再生成真正的 .docx 二进制
         await rasterizeMermaidSvgsForDocx(raw);
+        // 移除导出 header（icon + 名称），Word 文档不需要应用标识
+        raw.querySelector(".export-app-header")?.remove();
         const bytes = await exportDocxBytes(raw);
         return { content: bytes, previewHtml: htmlDoc };
       }

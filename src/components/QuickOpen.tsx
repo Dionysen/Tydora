@@ -4,10 +4,12 @@ import { VaultInfo } from "../Sidebar";
 
 interface QuickOpenProps {
   vault: VaultInfo | null;
+  vaults: VaultInfo[];  // 所有已打开的知识库
   recentFiles: string[];
   currentFilePath: string | null;
   files?: FileItem[];  // Optional: external file list
   onSelect: (path: string) => void;
+  onSelectVault: (vaultPath: string) => void;  // 选中知识库在新窗口打开
   onClose: () => void;
 }
 
@@ -86,7 +88,7 @@ function getFileName(path: string): string {
   return path.split(sep).pop() || path;
 }
 
-export default function QuickOpen({ vault, recentFiles, currentFilePath, files: externalFiles, onSelect, onClose }: QuickOpenProps) {
+export default function QuickOpen({ vault, vaults, recentFiles, currentFilePath, files: externalFiles, onSelect, onSelectVault, onClose }: QuickOpenProps) {
   const [query, setQuery] = useState("");
   const [allFiles, setAllFiles] = useState<FileItem[] | null>(null);
   const [filteredFiles, setFilteredFiles] = useState<FileItem[]>([]);
@@ -170,6 +172,19 @@ export default function QuickOpen({ vault, recentFiles, currentFilePath, files: 
     setSelectedIndex(0);
   }, [searchMode, allFiles, query, recentFileItems, externalFiles, useExternalFiles]);
 
+  // 匹配知识库名称
+  const matchedVaults = useMemo(() => {
+    if (!searchMode) return [];
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return vaults
+      .filter((v) => v.name.toLowerCase().includes(q))
+      .map((v) => ({ name: v.name, path: v.path }));
+  }, [searchMode, query, vaults]);
+
+  // 综合项目数（文件 + 知识库），用于键盘导航边界
+  const totalItems = filteredFiles.length + matchedVaults.length;
+
   // 滚动选中项到可见区域
   useEffect(() => {
     if (!listRef.current) return;
@@ -178,7 +193,7 @@ export default function QuickOpen({ vault, recentFiles, currentFilePath, files: 
     if (selected) {
       selected.scrollIntoView({ block: "nearest" });
     }
-  }, [selectedIndex, filteredFiles]);
+  }, [selectedIndex, filteredFiles, matchedVaults]);
 
   // 键盘事件处理
   const handleKeyDown = useCallback(
@@ -186,7 +201,7 @@ export default function QuickOpen({ vault, recentFiles, currentFilePath, files: 
       // Ctrl+J 向下选择（Vim 风格）
       if ((e.ctrlKey || e.metaKey) && e.key === "j") {
         e.preventDefault();
-        setSelectedIndex((i) => Math.min(i + 1, filteredFiles.length - 1));
+        setSelectedIndex((i) => Math.min(i + 1, totalItems - 1));
         return;
       }
       // Ctrl+K 向上选择（Vim 风格）
@@ -199,7 +214,7 @@ export default function QuickOpen({ vault, recentFiles, currentFilePath, files: 
       switch (e.key) {
         case "ArrowDown":
           e.preventDefault();
-          setSelectedIndex((i) => Math.min(i + 1, filteredFiles.length - 1));
+          setSelectedIndex((i) => Math.min(i + 1, totalItems - 1));
           break;
         case "ArrowUp":
           e.preventDefault();
@@ -207,8 +222,14 @@ export default function QuickOpen({ vault, recentFiles, currentFilePath, files: 
           break;
         case "Enter":
           e.preventDefault();
-          if (filteredFiles[selectedIndex]) {
-            onSelect(filteredFiles[selectedIndex].path);
+          if (selectedIndex < filteredFiles.length) {
+            // 文件项
+            const file = filteredFiles[selectedIndex];
+            if (file) onSelect(file.path);
+          } else {
+            // 知识库项
+            const vault = matchedVaults[selectedIndex - filteredFiles.length];
+            if (vault) onSelectVault(vault.path);
           }
           break;
         case "Escape":
@@ -217,7 +238,7 @@ export default function QuickOpen({ vault, recentFiles, currentFilePath, files: 
           break;
       }
     },
-    [filteredFiles, selectedIndex, onSelect, onClose],
+    [filteredFiles, matchedVaults, totalItems, selectedIndex, onSelect, onSelectVault, onClose],
   );
 
   // 聚焦输入框
@@ -264,8 +285,8 @@ export default function QuickOpen({ vault, recentFiles, currentFilePath, files: 
             </div>
           )}
 
-          {!loading && searchMode && filteredFiles.length === 0 && (
-            <div className="quick-open-empty">未找到匹配的文件</div>
+          {!loading && searchMode && filteredFiles.length === 0 && matchedVaults.length === 0 && (
+            <div className="quick-open-empty">未找到匹配的文件或知识库</div>
           )}
 
           {!loading && filteredFiles.length > 0 && (
@@ -291,6 +312,31 @@ export default function QuickOpen({ vault, recentFiles, currentFilePath, files: 
               ))}
             </>
           )}
+
+          {!loading && matchedVaults.length > 0 && (
+            <>
+              <div className="quick-open-section-label">知识库</div>
+              {matchedVaults.map((vault, vi) => {
+                const idx = filteredFiles.length + vi;
+                return (
+                  <div
+                    key={`vault-${vault.path}`}
+                    className={`quick-open-item${idx === selectedIndex ? " selected" : ""}`}
+                    onClick={() => onSelectVault(vault.path)}
+                    onMouseEnter={() => setSelectedIndex(idx)}
+                  >
+                    <span className="quick-open-item-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
+                    <span className="quick-open-item-name">
+                      {highlightMatch(vault.name, query)}
+                    </span>
+                    <span className="quick-open-item-path">
+                      {highlightMatch(vault.path, query)}
+                    </span>
+                  </div>
+                );
+              })}
+            </>
+          )}
         </div>
 
         <div className="quick-open-footer">
@@ -300,7 +346,7 @@ export default function QuickOpen({ vault, recentFiles, currentFilePath, files: 
             <kbd>Esc</kbd> 关闭
           </span>
           <span className="quick-open-count">
-            {searchMode ? `${filteredFiles.length} 个结果` : `${filteredFiles.length} 个最近文件`}
+            {searchMode ? `${totalItems} 个结果` : `${filteredFiles.length} 个最近文件`}
           </span>
         </div>
       </div>

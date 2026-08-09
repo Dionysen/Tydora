@@ -7,7 +7,6 @@ import {
   Packer,
   Paragraph,
   TextRun,
-  HeadingLevel,
   Table,
   TableRow,
   TableCell,
@@ -18,6 +17,7 @@ import {
   ImageRun,
   ExternalHyperlink,
   UnderlineType,
+  LevelFormat,
 } from "docx";
 
 /* ------------------------------------------------------------------ */
@@ -45,13 +45,9 @@ interface RunStyle {
 
 const HEADING_TAGS = ["h1", "h2", "h3", "h4", "h5", "h6"];
 
-const HEADING_LEVEL = {
-  h1: HeadingLevel.HEADING_1,
-  h2: HeadingLevel.HEADING_2,
-  h3: HeadingLevel.HEADING_3,
-  h4: HeadingLevel.HEADING_4,
-  h5: HeadingLevel.HEADING_5,
-  h6: HeadingLevel.HEADING_6,
+// 使用 Word 大纲级别（outlineLevel）替代 HeadingLevel，避免 Word 内置蓝色标题样式
+const HEADING_OUTLINE_LEVEL: Record<string, number> = {
+  h1: 1, h2: 2, h3: 3, h4: 4, h5: 5, h6: 6,
 };
 
 const HEADING_SIZE: Record<string, number> = {
@@ -66,6 +62,26 @@ const HEADING_SIZE: Record<string, number> = {
 // 字体大小以半点（half-point）为单位
 const BODY_SIZE = 22;  // 11pt
 const CODE_SIZE = 18;  // 9pt
+
+// A4 内容区可用宽度（DXA 单位，1 DXA = 1/20 点 = 1/1440 英寸）
+// A4 = 210mm = 11906 DXA，左右边距各 1800 DXA
+const CONTENT_WIDTH = 11906 - 1800 - 1800; // 8306 DXA
+
+// 中文字体：同时指定西文 + 东亚字体，确保中英文混排时各自正确
+const DEFAULT_FONT = "DengXian";          // 等线（中文正文）
+const HEADING_FONT = "Microsoft YaHei";  // 微软雅黑（标题）
+const CODE_FONT = "Consolas";             // 等宽英文
+
+// 显式文本颜色（Word 不设 color 时可能被内置样式覆盖）
+const HEADING_COLOR = "111827"; // 接近黑色的深灰，标题用
+const BODY_COLOR = "1F2937";    // 正文深灰
+const CODE_BG = "F6F8FA";       // 代码背景
+const TABLE_HEADER_BG = "F3F4F6"; // 表头背景
+
+// docx 原生列表编号引用 ID（整个文档共享）
+const NUM_UL = "tydora-ul"; // 无序列表
+const NUM_OL = "tydora-ol"; // 有序列表
+const NUM_TASK = "tydora-task"; // 任务列表（无标记）
 
 /**
  * 将 data: URL 解码为二进制 Uint8Array
@@ -123,8 +139,9 @@ function parseInlines(node: Node, base: RunStyle = {}): (TextRun | ExternalHyper
     if (tag === "u") next.underline = { type: UnderlineType.SINGLE };
     if (tag === "mark") next.highlight = "yellow";
     if (tag === "code") {
-      next.font = "Consolas";
+      next.font = CODE_FONT;
       next.size = CODE_SIZE;
+      next.color = BODY_COLOR;
     }
     if (tag === "sup") next.superScript = true;
     if (tag === "sub") next.subScript = true;
@@ -156,19 +173,27 @@ function parseInlines(node: Node, base: RunStyle = {}): (TextRun | ExternalHyper
 /*  块级元素转换                                                        */
 /* ------------------------------------------------------------------ */
 
-/** 标题 h1-h6 → Heading Paragraph */
+/** 标题 h1-h6 → 粗体大号 Paragraph（不用 Word 内置 HeadingLevel，避免自带蓝色主题色） */
 function heading(el: HTMLElement): Paragraph {
   const tag = el.tagName.toLowerCase();
+  const size = HEADING_SIZE[tag] || BODY_SIZE;
+  const isTopLevel = tag === "h1" || tag === "h2";
   return new Paragraph({
-    heading: HEADING_LEVEL[tag as keyof typeof HEADING_LEVEL] || HeadingLevel.HEADING_1,
-    children: parseInlines(el, { bold: true, size: HEADING_SIZE[tag] || BODY_SIZE }),
-    spacing: { before: 240, after: 120 },
+    children: parseInlines(el, {
+      bold: true,
+      font: HEADING_FONT,
+      size,
+      color: HEADING_COLOR,
+    }),
+    spacing: { before: isTopLevel ? 360 : 240, after: 120 },
+    // 保留大纲级别，使 Word 导航窗格仍能看到标题层级
+    outlineLevel: HEADING_OUTLINE_LEVEL[tag] || 0,
   });
 }
 
 /** 普通段落 <p> → Paragraph */
 function paragraph(el: HTMLElement, extra: Record<string, unknown> = {}): Paragraph {
-  const children = parseInlines(el, { size: BODY_SIZE });
+  const children = parseInlines(el, { size: BODY_SIZE, font: DEFAULT_FONT, color: BODY_COLOR });
   if (children.length === 0) {
     return new Paragraph({ spacing: { after: 60 }, ...extra } as any);
   }
@@ -183,11 +208,11 @@ function blockquote(el: HTMLElement): Block[] {
     if (tag === "p") {
       return [
         new Paragraph({
-          children: parseInlines(childEl),
+          children: parseInlines(childEl, { size: BODY_SIZE, font: DEFAULT_FONT, color: BODY_COLOR }),
           indent: { left: 720 },
           spacing: { after: 60 },
           border: { left: { style: BorderStyle.SINGLE, size: 3, color: "CCCCCC" } },
-          shading: { type: ShadingType.SOLID, fill: "F5F5F5" },
+          shading: { type: ShadingType.CLEAR, fill: "F5F5F5" },
         }),
       ];
     }
@@ -202,19 +227,22 @@ function codeBlock(el: HTMLElement): Paragraph {
   const lines = text.split("\n");
   const children: TextRun[] = [];
   lines.forEach((line, idx) => {
+    if (idx > 0) {
+      children.push(new TextRun({ break: 1 }));
+    }
     children.push(
       new TextRun({
-        text: line,
-        font: "Consolas",
+        text: line || " ",
+        font: CODE_FONT,
         size: CODE_SIZE,
-        break: idx > 0 ? 1 : 0,
+        color: BODY_COLOR,
       }),
     );
   });
   return new Paragraph({
     children,
     spacing: { after: 60 },
-    shading: { type: ShadingType.SOLID, fill: "F0F0F0" },
+    shading: { type: ShadingType.CLEAR, fill: CODE_BG },
     indent: { left: 360 },
   });
 }
@@ -227,16 +255,14 @@ function horizontalRule(): Paragraph {
   });
 }
 
-/** 有序/无序/任务列表 */
+/** 有序/无序/任务列表 — 使用 docx 原生编号定义，非 Unicode 前缀 */
 function list(el: HTMLElement, ordered: boolean): Block[] {
   const blocks: Block[] = [];
   const isTask = el.getAttribute("data-type") === "taskList";
-  let idx = 0;
 
   for (const li of Array.from(el.children)) {
     if (li.tagName.toLowerCase() !== "li") continue;
     const liEl = li as HTMLElement;
-    idx++;
 
     // 任务列表的内容在 <div><p> 中
     let textEl = liEl;
@@ -246,24 +272,30 @@ function list(el: HTMLElement, ordered: boolean): Block[] {
     }
 
     const checked = liEl.getAttribute("data-checked") === "true";
-    let prefix: string;
+
+    // 任务列表：使用 ☑/☐ 作为前缀文本（无编号）
+    const prefixRuns: TextRun[] = [];
     if (isTask) {
-      prefix = checked ? "\u2611 " : "\u2610 "; // ☑ / ☐
-    } else if (ordered) {
-      prefix = `${idx}. `;
-    } else {
-      prefix = "\u2022 "; // •
+      prefixRuns.push(new TextRun({ text: checked ? "\u2611 " : "\u2610 ", size: BODY_SIZE, font: "Segoe UI Symbol", color: BODY_COLOR }));
     }
 
-    const prefixRun = new TextRun({ text: prefix });
-    const bodyRuns = parseInlines(textEl);
-    blocks.push(
-      new Paragraph({
-        children: [prefixRun, ...bodyRuns],
-        indent: { left: 360, hanging: 180 },
-        spacing: { after: 40 },
-      }),
-    );
+    const bodyRuns = parseInlines(textEl, { size: BODY_SIZE, font: DEFAULT_FONT, color: BODY_COLOR });
+    const children = [...prefixRuns, ...bodyRuns];
+
+    const paraOpts: Record<string, unknown> = {
+      children,
+      spacing: { after: 40 },
+    };
+
+    if (isTask) {
+      // 任务列表不使用编号，手动缩进
+      paraOpts.indent = { left: 360, hanging: 180 };
+    } else {
+      // 普通有序/无序列表使用 docx 原生编号
+      paraOpts.numbering = { reference: ordered ? NUM_OL : NUM_UL, level: 0 };
+    }
+
+    blocks.push(new Paragraph(paraOpts as any));
   }
   return blocks;
 }
@@ -271,6 +303,11 @@ function list(el: HTMLElement, ordered: boolean): Block[] {
 /** 表格 <table> → Table */
 function buildTable(el: HTMLElement): Table {
   const rows: TableRow[] = [];
+
+  // 计算列数（取第一行 td/th 的数量）
+  const firstRow = el.querySelector("tr");
+  const colCount = firstRow ? firstRow.querySelectorAll("td, th").length : 0;
+  const cellWidthDxa = colCount > 0 ? Math.floor(CONTENT_WIDTH / colCount) : CONTENT_WIDTH;
 
   el.querySelectorAll("tr").forEach(tr => {
     const cells: TableCell[] = [];
@@ -283,11 +320,14 @@ function buildTable(el: HTMLElement): Table {
               children: parseInlines(td as HTMLElement, {
                 bold: isHeader,
                 size: BODY_SIZE,
+                font: DEFAULT_FONT,
+                color: BODY_COLOR,
               }),
             }),
           ],
+          width: { size: cellWidthDxa, type: WidthType.DXA },
           shading: isHeader
-            ? { type: ShadingType.SOLID, fill: "E8E8E8" }
+            ? { type: ShadingType.CLEAR, fill: TABLE_HEADER_BG }
             : undefined,
         }),
       );
@@ -299,51 +339,147 @@ function buildTable(el: HTMLElement): Table {
 
   return new Table({
     rows,
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    width: { size: CONTENT_WIDTH, type: WidthType.DXA },
   });
 }
 
 /** 标注块 Callout → 彩色边框 + 背景的 Paragraph */
 function callout(el: HTMLElement): Block[] {
+  // 从 class（callout-note）或 data-callout-type 提取类型
   const type =
     el.getAttribute("data-callout-type") ||
     (el.className?.match(/callout-(\w+)/) || [])[1] ||
-    "";
-  const fills: Record<string, string> = {
-    info: "E3F2FD",
-    warning: "FFF3E0",
-    danger: "FFEBEE",
-    success: "E8F5E9",
-    tip: "F3E5F5",
-    note: "FFFDE7",
-  };
-  const borders: Record<string, string> = {
-    danger: "EF9A9A",
-    warning: "FFCC80",
-    info: "90CAF9",
-    success: "A5D6A7",
-    tip: "CE93D8",
-    note: "FFF176",
-  };
-  const fill = fills[type] || "F5F5F5";
-  const borderColor = borders[type] || "90CAF9";
+    "note";
 
-  return Array.from(el.children).flatMap(child => {
+  // 颜色映射：匹配编辑器 theme.css 中的实际配色
+  // fill = rgba(borderColor, 0.08) 在白色背景上的近似 solid 色值
+  // titleColor 从 .callout-title-{type} 获取
+  const colors: Record<string, { fill: string; border: string; titleColor: string }> = {
+    note:      { fill: "EBF3FC", border: "0969DA", titleColor: "0969DA" },
+    abstract:  { fill: "EBF3FC", border: "0969DA", titleColor: "0969DA" },
+    info:      { fill: "EBF3FC", border: "0969DA", titleColor: "0969DA" },
+    faq:       { fill: "EBF3FC", border: "0969DA", titleColor: "0969DA" },
+    tip:       { fill: "EDF5EF", border: "1A7F37", titleColor: "1A7F37" },
+    success:   { fill: "EDF5EF", border: "1A7F37", titleColor: "1A7F37" },
+    important: { fill: "F5F1FC", border: "8250DF", titleColor: "8250DF" },
+    question:  { fill: "F5F1FC", border: "8250DF", titleColor: "8250DF" },
+    example:   { fill: "F5F1FC", border: "8250DF", titleColor: "8250DF" },
+    warning:   { fill: "FAF5EB", border: "BF8700", titleColor: "BF8700" },
+    caution:   { fill: "FBEDEE", border: "CF222E", titleColor: "CF222E" },
+    failure:   { fill: "FBEDEE", border: "CF222E", titleColor: "CF222E" },
+    danger:    { fill: "FBEDEE", border: "CF222E", titleColor: "CF222E" },
+    bug:       { fill: "FBEDEE", border: "CF222E", titleColor: "CF222E" },
+    quote:     { fill: "F3F3F3", border: "9D9D9D", titleColor: "9D9D9D" },
+  };
+
+  const { fill, border, titleColor } = colors[type] || colors.note;
+
+  const blocks: Block[] = [];
+  // 标记是否已输出标题行，用于控制后续段落间距
+  let hasTitle = false;
+
+  for (const child of Array.from(el.children)) {
     const childEl = child as HTMLElement;
     const tag = childEl.tagName?.toLowerCase();
+
+    // ── 标题 widget <span class="callout-title"> → 粗体标题行 ──
+    if (tag === "span" && childEl.classList.contains("callout-title")) {
+      hasTitle = true;
+      const rawTitle = childEl.textContent?.trim() || "";
+      // 去掉 ::after 伪元素残留的折叠指示符 ▾ / ▸
+      const cleanTitle = rawTitle.replace(/[\s]*[▾▸]$/, "").trim();
+      if (cleanTitle) {
+        blocks.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: cleanTitle,
+                bold: true,
+                font: HEADING_FONT,
+                size: 24, // 12pt
+                color: titleColor,
+              }),
+            ],
+            shading: { type: ShadingType.CLEAR, fill },
+            border: { left: { style: BorderStyle.SINGLE, size: 6, color: border } },
+            indent: { left: 360 },
+            spacing: { after: 0 },
+          }),
+        );
+      }
+      continue;
+    }
+
+    // ── 普通段落 <p>：跳过 .callout-title-marker ──
     if (tag === "p") {
-      return [
+      const pClone = childEl.cloneNode(true) as HTMLElement;
+      // 移除隐藏的 [!TYPE] 标记文本
+      pClone.querySelectorAll(".callout-title-marker").forEach((el) => el.remove());
+      const children = parseInlines(pClone, { size: BODY_SIZE, font: DEFAULT_FONT, color: BODY_COLOR });
+      if (children.length === 0) continue;
+      blocks.push(
         new Paragraph({
-          children: parseInlines(childEl),
-          shading: { type: ShadingType.SOLID, fill },
-          border: { left: { style: BorderStyle.SINGLE, size: 6, color: borderColor } },
+          children,
+          shading: { type: ShadingType.CLEAR, fill },
+          border: { left: { style: BorderStyle.SINGLE, size: 6, color: border } },
           indent: { left: 360 },
+          spacing: { after: 40, before: hasTitle ? 0 : 0 },
+        }),
+      );
+      continue;
+    }
+
+    // ── 有序/无序列表：逐项渲染为带 callout 样式的段落 ──
+    if (tag === "ul" || tag === "ol") {
+      const ordered = tag === "ol";
+      let idx = 0;
+      for (const li of Array.from(childEl.children)) {
+        if ((li as HTMLElement).tagName?.toLowerCase() !== "li") continue;
+        idx++;
+        const liEl = li as HTMLElement;
+        const bodyRuns = parseInlines(liEl, { size: BODY_SIZE, font: DEFAULT_FONT, color: BODY_COLOR });
+        if (bodyRuns.length === 0) continue;
+        blocks.push(
+          new Paragraph({
+            children: bodyRuns,
+            numbering: { reference: ordered ? NUM_OL : NUM_UL, level: 0 },
+            shading: { type: ShadingType.CLEAR, fill },
+            border: { left: { style: BorderStyle.SINGLE, size: 6, color: border } },
+            indent: { left: 720 },
+            spacing: { after: 40 },
+          }),
+        );
+      }
+      continue;
+    }
+
+    // ── 代码块 <pre>：带 callout 背景 ──
+    if (tag === "pre") {
+      const code = childEl.querySelector("code") || childEl;
+      const text = code.textContent || "";
+      const lines = text.split("\n");
+      const runs: TextRun[] = [];
+      lines.forEach((line, i) => {
+        if (i > 0) runs.push(new TextRun({ break: 1 }));
+        runs.push(new TextRun({ text: line || " ", font: CODE_FONT, size: CODE_SIZE, color: BODY_COLOR }));
+      });
+      blocks.push(
+        new Paragraph({
+          children: runs,
+          shading: { type: ShadingType.CLEAR, fill },
+          border: { left: { style: BorderStyle.SINGLE, size: 6, color: border } },
+          indent: { left: 720 },
           spacing: { after: 40 },
         }),
-      ];
+      );
+      continue;
     }
-    return elementToBlocks(childEl);
-  });
+
+    // ── 其他元素递归处理（保留原有行为） ──
+    blocks.push(...elementToBlocks(childEl));
+  }
+
+  return blocks;
 }
 
 /** 图片 → ImageRun Paragraph */
@@ -411,7 +547,13 @@ function elementToBlocks(el: Element): Block[] {
 
   if (HEADING_TAGS.includes(tag)) return [heading(el as HTMLElement)];
   if (tag === "p") return [paragraph(el as HTMLElement)];
-  if (tag === "blockquote") return blockquote(el as HTMLElement);
+  if (tag === "blockquote") {
+    const bqCls = (el as HTMLElement).className || "";
+    if (bqCls.includes("callout") || el.getAttribute("data-type") === "callout") {
+      return callout(el as HTMLElement);
+    }
+    return blockquote(el as HTMLElement);
+  }
   if (tag === "pre") return [codeBlock(el as HTMLElement)];
   if (tag === "ul") return list(el as HTMLElement, false);
   if (tag === "ol") return list(el as HTMLElement, true);
@@ -426,6 +568,9 @@ function elementToBlocks(el: Element): Block[] {
   if (tag === "div") {
     const dataType = el.getAttribute("data-type") || "";
     const cls = (el as HTMLElement).className || "";
+
+    // frontmatter：元数据块，不导出到文档正文中
+    if (dataType === "frontmatter") return [];
 
     // mermaid 图表节点：提取栅格化后的 <img> 作为独立图片块
     if (dataType === "mermaid" || cls.includes("mermaid-node")) {
@@ -463,9 +608,80 @@ export async function exportDocxBytes(raw: HTMLElement): Promise<Uint8Array> {
   );
 
   const doc = new Document({
+    numbering: {
+      config: [
+        {
+          reference: NUM_UL,
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.BULLET,
+              text: "\u2022",
+              alignment: AlignmentType.LEFT,
+              style: {
+                paragraph: {
+                  indent: { left: 720, hanging: 360 },
+                },
+              },
+            },
+          ],
+        },
+        {
+          reference: NUM_OL,
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.DECIMAL,
+              text: "%1.",
+              alignment: AlignmentType.LEFT,
+              style: {
+                paragraph: {
+                  indent: { left: 720, hanging: 360 },
+                },
+              },
+            },
+          ],
+        },
+        {
+          reference: NUM_TASK,
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.NONE, // 无编号，仅提供缩进
+              text: "",
+              alignment: AlignmentType.LEFT,
+              style: {
+                paragraph: {
+                  indent: { left: 720, hanging: 360 },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: DEFAULT_FONT,
+            size: BODY_SIZE,
+          },
+        },
+      },
+    },
     sections: [
       {
-        properties: {},
+        properties: {
+          page: {
+            margin: {
+              top: 1440,    // 1 inch ≈ 2.54cm
+              bottom: 1440,
+              left: 1800,   // 1.25 inch ≈ 3.17cm
+              right: 1800,
+            },
+          },
+        },
         children: blocks,
       },
     ],

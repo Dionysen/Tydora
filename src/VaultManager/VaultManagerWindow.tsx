@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
 import { mkdir, exists } from "@tauri-apps/plugin-fs";
 import { emit } from "@tauri-apps/api/event";
@@ -148,7 +149,9 @@ export default function VaultManagerWindow() {
 
   const handleSelectVault = useCallback(async (index: number) => {
     setActiveIndex(index);
-    await invoke("open_vault_in_new_window", { vaultPath: vaults[index].path });
+    const win = getCurrentWindow();
+    const [size, scale] = await Promise.all([win.innerSize(), win.scaleFactor()]);
+    await invoke("open_vault_in_new_window", { vaultPath: vaults[index].path, width: size.width / scale, height: size.height / scale });
   }, [vaults]);
 
   const handleRename = useCallback((index: number) => {

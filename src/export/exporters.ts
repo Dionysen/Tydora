@@ -65,6 +65,23 @@ export function buildHtmlDoc(
   title: string,
   options?: { exportShadow?: boolean },
 ): string {
+  // 安全清理：移除所有 <script> 标签和内联事件处理器，避免在 iframe srcDoc /
+  // 导出的 HTML 中触发 "Unexpected end of input" 及 "Blocked script execution" 等错误。
+  raw.querySelectorAll("script").forEach((el) => el.remove());
+  const allEls = raw.querySelectorAll("*");
+  for (const el of Array.from(allEls)) {
+    for (const attr of Array.from(el.attributes)) {
+      // 内联事件处理器（onclick / onerror / onload 等）
+      if (attr.name.startsWith("on")) {
+        (el as HTMLElement).removeAttribute(attr.name);
+      }
+      // javascript: 协议 URL
+      if (attr.name === "href" && attr.value.trim().toLowerCase().startsWith("javascript:")) {
+        (el as HTMLElement).removeAttribute("href");
+      }
+    }
+  }
+
   const shadowCss = options?.exportShadow
     ? `
 <style>

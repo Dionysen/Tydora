@@ -449,7 +449,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   // 根据 initialVaultPath 设置活动仓库
   useEffect(() => {
     if (initialVaultPath && vaults.length > 0) {
-      const index = vaults.findIndex(v => v.path === initialVaultPath);
+      // 标准化路径：去除尾部斜杠，保证跨窗口路径比对可靠
+      const normalize = (p: string) => p.replace(/[\\/]+$/, "");
+      const target = normalize(initialVaultPath);
+      const index = vaults.findIndex(v => normalize(v.path) === target);
       if (index >= 0 && index !== activeVaultIndex) {
         setActiveVaultIndex(index);
       }
@@ -1650,6 +1653,19 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         setGraphViewOpen(true);
       }
     }},
+    { id: "open-vault", label: "知识库", category: "视图", aliases: ["knowledge base", "vault", "仓库", "仓库管理"], action: () => invoke("open_vault_manager_window") },
+    // 已打开的知识仓库——输入仓库名称即可在新窗口打开
+    ...vaults.map((vault) => ({
+      id: `open-vault-window-${vault.path}`,
+      label: `在新窗口打开「${vault.name}」知识库`,
+      category: "视图",
+      aliases: [vault.name],
+      action: async () => {
+        const win = getCurrentWindow();
+        const [size, scale] = await Promise.all([win.innerSize(), win.scaleFactor()]);
+        invoke("open_vault_in_new_window", { vaultPath: vault.path, width: size.width / scale, height: size.height / scale });
+      },
+    })),
     { id: "publish", label: "发布为网站", category: "工具", action: () => setPublishOpen(true) },
 
     // 编辑模式
@@ -1702,7 +1718,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "settings-image", label: "图像设置", category: "设置", aliases: ["图像", "image", "图片"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "image"); invoke("open_settings_window"); } },
     { id: "settings-canvas", label: "白板设置", category: "设置", aliases: ["白板", "canvas", "画布"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "canvas"); invoke("open_settings_window"); } },
     { id: "settings-about", label: "关于", category: "设置", aliases: ["about", "版本"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "about"); invoke("open_settings_window"); } },
-  ], [handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, handleMinimize, handleToggleMaximize, handleClose, setViewMode, viewMode]);
+  ], [handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, handleMinimize, handleToggleMaximize, handleClose, setViewMode, viewMode, vaults]);
 
   return (
     <div className="app">
@@ -2158,11 +2174,18 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       {quickOpenOpen && (
         <QuickOpen
           vault={activeVaultIndex >= 0 ? vaults[activeVaultIndex] : null}
+          vaults={vaults}
           recentFiles={activeVaultIndex >= 0 ? recentFiles[vaults[activeVaultIndex].path] || [] : []}
           currentFilePath={fileName}
           onSelect={(path) => {
             setQuickOpenOpen(false);
             handleSelectFile(path);
+          }}
+          onSelectVault={async (vaultPath) => {
+            setQuickOpenOpen(false);
+            const win = getCurrentWindow();
+            const [size, scale] = await Promise.all([win.innerSize(), win.scaleFactor()]);
+            invoke("open_vault_in_new_window", { vaultPath, width: size.width / scale, height: size.height / scale });
           }}
           onClose={() => setQuickOpenOpen(false)}
         />

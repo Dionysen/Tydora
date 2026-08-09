@@ -363,7 +363,7 @@ async fn close_all_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
 
 /// 在新窗口中打开仓库
 #[tauri::command]
-async fn open_vault_in_new_window(app: tauri::AppHandle, vault_path: String) -> Result<(), String> {
+async fn open_vault_in_new_window(app: tauri::AppHandle, vault_path: String, width: f64, height: f64) -> Result<(), String> {
     // 先关闭所有编辑器窗口
     let windows = app.webview_windows();
     for (label, window) in windows {
@@ -398,7 +398,7 @@ async fn open_vault_in_new_window(app: tauri::AppHandle, vault_path: String) -> 
         tauri::WebviewUrl::App(url.into()),
     )
     .title(&title)
-    .inner_size(1200.0, 800.0)
+    .inner_size(width, height)
     .min_inner_size(600.0, 400.0)
     .center()
     .decorations(false)

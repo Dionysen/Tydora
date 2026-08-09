@@ -1836,6 +1836,7 @@ export default function Sidebar({
       {activeTab === "files" && (
         activeVault ? (
           <FileTree
+            key={activeVault.path}
             rootPath={activeVault.path}
             activePath={currentFilePath}
             onSelect={handleSelectFile}
