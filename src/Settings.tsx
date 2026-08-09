@@ -1889,7 +1889,7 @@ function AboutSettingsContent() {
       <div className="settings-about-header">
         <img src={appIcon} alt="Tydora" className="settings-about-icon" />
         <h2 className="settings-about-title">Tydora</h2>
-        <p className="settings-about-subtitle">一个现代化的 Markdown 编辑器</p>
+        <p className="settings-about-subtitle">一个现代的桌面 Markdown 编辑器，为思考与知识管理而生。<br />轻量、快速、美观。</p>
       </div>
 
       <div className="settings-item">

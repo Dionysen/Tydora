@@ -296,6 +296,7 @@ export default function VaultManagerWindow() {
         <img src={appIcon} alt="Tydora" className="vault-manager-icon" />
         <h1 className="vault-manager-title">Tydora</h1>
         <p className="vault-manager-version">{version ? `版本 v${version}` : ""}</p>
+        <p className="vault-manager-subtitle">一个现代的桌面 Markdown 编辑器，为思考与知识管理而生。<br />轻量、快速、美观。</p>
 
         <div className="vault-manager-actions">
           <div className="vault-manager-action">
