@@ -2232,9 +2232,17 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                         <polyline points="21 15 16 10 5 21" />
                       </svg>
                     )}
+                    {fmt === "wechat" && (
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M8 10.9c3.2 0 5.8-2.3 5.8-5.2S11.2.5 8 .5 2.2 2.8 2.2 5.7c0 1.5.8 2.9 1.9 3.8l-.5 1.6 1.9-1c.7.2 1.5.4 2.3.4" />
+                        <path d="M15.5 13.5c4 0 7.3-2.9 7.3-6.5S19.5.5 15.5.5 8.2 3.4 8.2 7c0 1.9.8 3.5 2.3 4.7l-.7 2.1 2.5-1.4c1 .4 2 .5 3.1.5Z" />
+                        <line x1="12" y1="18.5" x2="12" y2="23.5" />
+                        <polyline points="9 21 12 23.5 15 21" />
+                      </svg>
+                    )}
                   </span>
                   <span className="export-formatpicker-option-label">{EXPORT_FORMATS[fmt].label}</span>
-                  <span className="export-formatpicker-option-ext">.{EXPORT_FORMATS[fmt].ext}</span>
+                  <span className="export-formatpicker-option-ext">{fmt === "wechat" ? "复制" : `.${EXPORT_FORMATS[fmt].ext}`}</span>
                 </button>
               ))}
             </div>

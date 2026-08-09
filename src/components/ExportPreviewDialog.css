@@ -116,7 +116,8 @@
   white-space: nowrap;
 }
 
-.export-preview-success {
+.export-preview-success,
+.export-preview-copied {
   color: #2da44e;
   font-size: 13px;
   white-space: nowrap;

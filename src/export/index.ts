@@ -11,12 +11,13 @@ import {
 } from "./dom";
 import {
   buildHtmlDoc,
+  buildWechatHtml,
   exportPdfBytes,
   renderToPng,
 } from "./exporters";
 import { exportDocxBytes } from "./docx";
 
-export type ExportFormat = "pdf" | "html" | "docx" | "png";
+export type ExportFormat = "pdf" | "html" | "docx" | "png" | "wechat";
 
 interface FormatMeta {
   ext: string;
@@ -29,6 +30,7 @@ export const EXPORT_FORMATS: Record<ExportFormat, FormatMeta> = {
   png: { ext: "png", label: "图片", filters: [{ name: "PNG 图片", extensions: ["png"] }] },
   html: { ext: "html", label: "HTML", filters: [{ name: "HTML 文档", extensions: ["html", "htm"] }] },
   docx: { ext: "docx", label: "Word", filters: [{ name: "Word 文档", extensions: ["docx"] }] },
+  wechat: { ext: "html", label: "公众号", filters: [] },
 };
 
 export interface ExportContext {
@@ -101,18 +103,26 @@ export async function buildExportArtifact(format: ExportFormat, ctx: ExportConte
         const dataUrl = await renderToPng(container, bg);
         return { content: dataUrlToUint8(dataUrl), previewPng: dataUrl };
       }
+      case "wechat": {
+        const wechatHtml = buildWechatHtml(raw, css, ctx.themeName, ctx.title);
+        return { content: wechatHtml, previewHtml: wechatHtml };
+      }
     }
   } finally {
     cleanup();
   }
 }
 
-/** 弹出保存对话框并写入文件；用户取消则返回 null */
+/** 弹出保存对话框并写入文件；用户取消则返回 null。公众号格式不写入文件。 */
 export async function saveExportArtifact(
   format: ExportFormat,
   content: string | Uint8Array,
   title: string,
 ): Promise<string | null> {
+  if (format === "wechat") {
+    // 公众号格式不写入文件，由 ExportPreviewDialog 处理复制到剪贴板
+    return null;
+  }
   const meta = EXPORT_FORMATS[format];
   const defaultPath = `${sanitizeFileName(title)}.${meta.ext}`;
   const filePath = await save({ defaultPath, filters: meta.filters });

@@ -260,6 +260,7 @@ function buildPdfPreviewHtml(baseHtml: string): string {
 export function ExportPreviewDialog({ format, artifact, title, onClose, onSaveSuccess }: ExportPreviewDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const meta = EXPORT_FORMATS[format];
 
@@ -307,6 +308,42 @@ export function ExportPreviewDialog({ format, artifact, title, onClose, onSaveSu
     }
   };
 
+  /** 公众号格式：将 HTML 内容写入剪贴板，支持粘贴到公众号编辑器 */
+  const handleCopyWechat = async () => {
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const htmlContent = typeof artifact.content === "string" ? artifact.content : new TextDecoder().decode(artifact.content);
+      const blob = new Blob([htmlContent], { type: "text/html" });
+      const clipboardItem = new ClipboardItem({ "text/html": blob });
+      await navigator.clipboard.write([clipboardItem]);
+      setCopied(true);
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (e) {
+      // 降级：如果 ClipboardItem 不可用，尝试读取并用 execCommand
+      try {
+        const htmlContent = typeof artifact.content === "string" ? artifact.content : new TextDecoder().decode(artifact.content);
+        const textContent = htmlContent.replace(/<[^>]+>/g, "");
+        const blob = new Blob([htmlContent], { type: "text/html" });
+        const clipboardItem = new ClipboardItem({ "text/html": blob, "text/plain": new Blob([textContent], { type: "text/plain" }) });
+        await navigator.clipboard.write([clipboardItem]);
+        setCopied(true);
+        setTimeout(() => {
+          onClose();
+        }, 1500);
+      } catch (e2) {
+        setError(e instanceof Error ? e.message : "复制失败，请重试");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const isWechat = format === "wechat";
+
   return (
     <div className="export-preview-overlay">
       <div ref={dialogRef} className="export-preview-dialog">
@@ -314,9 +351,16 @@ export function ExportPreviewDialog({ format, artifact, title, onClose, onSaveSu
           <span className="export-preview-title">导出预览 · {meta.label}</span>
           <div className="export-preview-header-actions">
             {error && <span className="export-preview-error">导出失败：{error}</span>}
-            <button className="export-preview-btn export-preview-btn-confirm" onClick={handleConfirm} disabled={saving}>
-              {saving ? "导出中…" : `导出为 ${meta.label}`}
-            </button>
+            {copied && <span className="export-preview-copied">✅ 已复制到剪贴板，可粘贴到公众号编辑器</span>}
+            {isWechat ? (
+              <button className="export-preview-btn export-preview-btn-confirm" onClick={handleCopyWechat} disabled={saving}>
+                {copied ? "已复制 ✓" : saving ? "复制中…" : "复制到剪贴板"}
+              </button>
+            ) : (
+              <button className="export-preview-btn export-preview-btn-confirm" onClick={handleConfirm} disabled={saving}>
+                {saving ? "导出中…" : `导出为 ${meta.label}`}
+              </button>
+            )}
             <button className="export-preview-close" onClick={onClose} disabled={saving} title="关闭">
               ✕
             </button>

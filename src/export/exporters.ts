@@ -1,9 +1,60 @@
 // 各格式的具体导出实现：返回字符串或二进制，由调用方负责保存
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
+import hljs from "highlight.js";
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** 从 documentElement 读取当前代码主题的 CSS 变量，构建 hljs-* → 颜色 映射 */
+function getHljsColorMap(): Record<string, string> {
+  const rootStyles = getComputedStyle(document.documentElement);
+  const map: Record<string, string> = {};
+  const hljsClasses = [
+    "keyword", "string", "comment", "number", "built_in", "function",
+    "title", "literal", "type", "params", "meta", "regexp",
+    "selector-tag", "selector-id", "selector-class", "selector-pseudo",
+    "attribute", "variable", "symbol", "bullet", "addition", "deletion",
+    "section", "link", "template-tag", "template-variable", "operator",
+    "name", "quote",
+  ];
+  for (const cls of hljsClasses) {
+    const val = rootStyles.getPropertyValue(`--hljs-${cls}`).trim();
+    if (val) map[cls] = val;
+  }
+  if (Object.keys(map).length === 0) {
+    // Fallback: GitHub Light 默认颜色
+    Object.assign(map, {
+      keyword: "#d73a49", string: "#032f62", comment: "#6a737d",
+      number: "#005cc5", built_in: "#e36209", title: "#6f42c1",
+      function: "#6f42c1", literal: "#005cc5", type: "#005cc5",
+      params: "#24292e", meta: "#6a737d", regexp: "#032f62",
+      "selector-tag": "#22863a", "selector-id": "#6f42c1",
+      "selector-class": "#6f42c1", "selector-pseudo": "#6f42c1",
+      attribute: "#6f42c1", variable: "#e36209", symbol: "#005cc5",
+      bullet: "#005cc5", addition: "#22863a", deletion: "#b31d28",
+      section: "#005cc5", link: "#032f62", operator: "#d73a49",
+      name: "#22863a", quote: "#6a737d",
+    });
+  }
+  return map;
+}
+
+/** 给元素内所有 hljs-* span 设置内联颜色 */
+function applyHljsColors(el: Element, map: Record<string, string>): void {
+  const spans = el.querySelectorAll("[class*='hljs-']");
+  for (const span of Array.from(spans)) {
+    for (const cls of Array.from(span.classList)) {
+      if (cls.startsWith("hljs-")) {
+        const key = cls.replace("hljs-", "");
+        const color = map[key];
+        if (color) {
+          (span as HTMLElement).style.color = color;
+        }
+      }
+    }
+  }
 }
 
 /** 构建自包含的 HTML 文档字符串 */
@@ -694,4 +745,295 @@ export async function exportPdfBytes(raw: HTMLElement, backgroundColor: string):
 
   const buf = pdf.output("arraybuffer");
   return new Uint8Array(buf);
+}
+
+/**
+ * 构建微信公众号兼容 HTML。
+ * 微信编辑器会过滤 <style> / <link> / JS，只保留内联样式。
+ * 此函数将 CSS 类转换为 computed style，生成可直接粘贴到公众号编辑器的 HTML。
+ */
+export function buildWechatHtml(
+  raw: HTMLElement,
+  css: string,
+  themeName: string,
+  title: string,
+): string {
+  // 先构建完整 HTML 文档，再从中提取 body 内容并内联样式
+  const fullHtml = buildHtmlDoc(raw, css, themeName, title);
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(fullHtml, "text/html");
+
+  // 创建一个临时容器，注入样式并计算 inline styles
+  const container = document.createElement("div");
+  container.style.position = "fixed";
+  container.style.left = "-9999px";
+  container.style.top = "0";
+  container.style.width = "677px";
+  container.innerHTML = doc.body.innerHTML;
+  document.body.appendChild(container);
+
+  try {
+    // 注入原始 CSS 到临时容器中，以便 getComputedStyle 生效
+    const styleEl = document.createElement("style");
+    styleEl.textContent = css + `
+      .export-page { max-width: 677px; margin: 0; padding: 0; box-shadow: none; border-radius: 0; }
+    `;
+    container.appendChild(styleEl);
+
+    // 递归遍历所有元素，将 computed style 内联
+    const walkAndInline = (el: Element) => {
+      if (el.nodeType !== Node.ELEMENT_NODE) return;
+
+      const computed = window.getComputedStyle(el);
+      const importantProps: string[] = [];
+
+      // 文本样式
+      const color = computed.color;
+      if (color && color !== "rgb(0, 0, 0)") importantProps.push(`color:${color}`);
+      const bg = computed.backgroundColor;
+      if (bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent") {
+        importantProps.push(`background-color:${bg}`);
+      }
+      const fontSize = computed.fontSize;
+      if (fontSize && fontSize !== "16px") importantProps.push(`font-size:${fontSize}`);
+      const fontWeight = computed.fontWeight;
+      if (fontWeight && fontWeight !== "400") importantProps.push(`font-weight:${fontWeight}`);
+      const fontStyle = computed.fontStyle;
+      if (fontStyle && fontStyle !== "normal") importantProps.push(`font-style:${fontStyle}`);
+      const textDecoration = computed.textDecorationLine;
+      if (textDecoration && textDecoration !== "none") importantProps.push(`text-decoration:${textDecoration}`);
+      const textAlign = computed.textAlign;
+      if (textAlign && textAlign !== "start" && textAlign !== "left") importantProps.push(`text-align:${textAlign}`);
+
+      // 间距与边框
+      const padLeft = computed.paddingLeft;
+      if (padLeft && padLeft !== "0px") importantProps.push(`padding-left:${padLeft}`);
+      const padRight = computed.paddingRight;
+      if (padRight && padRight !== "0px") importantProps.push(`padding-right:${padRight}`);
+      const padTop = computed.paddingTop;
+      if (padTop && padTop !== "0px") importantProps.push(`padding-top:${padTop}`);
+      const padBottom = computed.paddingBottom;
+      if (padBottom && padBottom !== "0px") importantProps.push(`padding-bottom:${padBottom}`);
+      const marginTop = computed.marginTop;
+      if (marginTop && marginTop !== "0px") importantProps.push(`margin-top:${marginTop}`);
+      const marginBottom = computed.marginBottom;
+      if (marginBottom && marginBottom !== "0px") importantProps.push(`margin-bottom:${marginBottom}`);
+
+      const borderLeftWidth = computed.borderLeftWidth;
+      const borderLeftStyle = computed.borderLeftStyle;
+      if (borderLeftWidth && borderLeftWidth !== "0px" && borderLeftStyle !== "none") {
+        const borderLeftColor = computed.borderLeftColor;
+        importantProps.push(`border-left:${borderLeftWidth} ${borderLeftStyle} ${borderLeftColor}`);
+      }
+
+      const borderRadius = computed.borderRadius;
+      if (borderRadius && borderRadius !== "0px") importantProps.push(`border-radius:${borderRadius}`);
+
+      // 表格
+      if (el.tagName === "TABLE") {
+        importantProps.push(`border-collapse:collapse`);
+        importantProps.push(`width:100%`);
+      }
+      if (el.tagName === "TH" || el.tagName === "TD") {
+        const border = computed.border;
+        if (border && border !== "0px none rgb(0, 0, 0)") {
+          importantProps.push(`border:${border}`);
+        }
+        importantProps.push(`padding:0.5em 0.75em`);
+        if (el.tagName === "TH") {
+          importantProps.push(`font-weight:600`);
+        }
+      }
+
+      // 代码：使用支持中文的字体栈，避免 monospace 让中文字符被等宽拉宽
+      if (el.tagName === "CODE" && el.parentElement?.tagName !== "PRE") {
+        importantProps.push("font-family:'Microsoft YaHei','PingFang SC','Hiragino Sans GB','Source Han Sans CN',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif");
+        importantProps.push("font-size:0.9em");
+        importantProps.push("background-color:rgba(0,0,0,0.06)");
+        importantProps.push("padding:0.15em 0.4em");
+        importantProps.push("border-radius:4px");
+      }
+
+      // 代码块：使用支持中文的字体栈，避免 monospace 让中文字符被等宽拉宽
+      if (el.tagName === "PRE") {
+        importantProps.push(`border-radius:6px`);
+        importantProps.push("font-family:'Microsoft YaHei','PingFang SC','Hiragino Sans GB','Source Han Sans CN',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif");
+        importantProps.push("font-size:0.9em");
+        importantProps.push("line-height:1.7");
+        importantProps.push("overflow-x:auto");
+      }
+
+      // 图片：限制最大宽度
+      if (el.tagName === "IMG") {
+        importantProps.push("max-width:100%");
+        importantProps.push("height:auto");
+      }
+
+      // 应用内联样式
+      if (importantProps.length > 0) {
+        (el as HTMLElement).style.cssText = importantProps.join(";") + ";" + (el as HTMLElement).style.cssText;
+      }
+
+      // 递归处理子元素
+      for (const child of Array.from(el.children)) {
+        walkAndInline(child);
+      }
+    };
+
+    walkAndInline(container);
+
+    // 清理：移除所有内联 SVG 图标（公众号编辑器不支持 SVG，且这些是编辑器的 UI 图标）
+    const svgs = container.querySelectorAll("svg");
+    for (const svg of svgs) {
+      svg.remove();
+    }
+
+    // 清理：移除 Callout 块的原始 markdown 标记 [!TYPE] / [!TYPE]+ / [!TYPE]-
+    // 这些标记在编辑器中通过 CSS visibility:hidden 隐藏，但公众号导出时 <style> 会被过滤，导致显示
+    // 渲染后的标题 widget（.callout-title）已保留，无需这些占位标记
+    const calloutMarkers = container.querySelectorAll(".callout-title-marker");
+    for (const marker of calloutMarkers) {
+      marker.remove();
+    }
+
+    // 清理：移除 Callout 标题 widget 后的第一个空段落
+    // 原因：markdown 源文 "> [!TIP]\n>\n> content" 会产生两个段落，第一段仅包含 [!TIP] 标记，
+    // 移除标记后该段落变为空 <p>，渲染时占一行高度，造成"标题与内容之间多余空行"
+    // 仅移除紧邻标题 widget 的第一个空段落，保留其他段落间的空行（用户可能有意留白）
+    const calloutTitlePs = container.querySelectorAll(".callout > p");
+    for (const p of Array.from(calloutTitlePs)) {
+      const prev = p.previousElementSibling;
+      if (prev && prev.classList.contains("callout-title") && !p.textContent?.trim()) {
+        p.remove();
+      }
+    }
+
+    // 把 <pre> 块转换为 <blockquote> + 多个 <p>（每行一个段落）
+    // 原因：公众号编辑器会把 <pre> 转成普通段落，\n 变空格，导致代码块无法换行
+    // 公众号只保留 <blockquote> 和 <table> 的背景色与边框，但 <blockquote> 默认会带左侧边框，这里需要清除
+    const hljsColorMap = getHljsColorMap();
+    const preBlocks = Array.from(container.querySelectorAll("pre"));
+    for (const pre of preBlocks) {
+      const codeEl = pre.querySelector("code");
+      // 收集 pre 的样式（背景、边框、内边距等）
+      const preStyle = (pre as HTMLElement).getAttribute("style") || "";
+      // white-space:pre-wrap 保留缩进空格，同时允许长行自动换行
+      const codeP = "font-family:'Microsoft YaHei','PingFang SC','Hiragino Sans GB','Source Han Sans CN',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:0.85em;line-height:1.7;margin:0;padding:0;white-space:pre-wrap;word-break:break-all;overflow-wrap:break-word;";
+
+      // 按行拆分，保留语法高亮 span 结构
+      let lineHtmls: string[] = [];
+      const codeText = codeEl?.textContent || pre.textContent || "";
+
+      if (codeText.trim()) {
+        // 检测编程语言：优先从 code 元素的 language-* class 获取
+        let lang = "";
+        if (codeEl) {
+          const langClass = Array.from(codeEl.classList).find((c) => c.startsWith("language-"));
+          lang = langClass ? langClass.replace("language-", "") : "";
+        }
+
+        // 使用 highlight.js 重新高亮，生成带 <span class="hljs-*"> 的 HTML
+        let highlightedHtml: string;
+        try {
+          let result;
+          if (lang) {
+            result = hljs.highlight(codeText, { language: lang });
+            // 如果高亮结果几乎没有 token（语言不支持），回退到自动检测
+            if (result.value.indexOf('<span class="hljs-') === -1) {
+              result = hljs.highlightAuto(codeText);
+            }
+          } else {
+            result = hljs.highlightAuto(codeText);
+          }
+          highlightedHtml = result.value;
+        } catch {
+          // 高亮失败时回退到纯文本（转义 HTML）
+          highlightedHtml = escapeHtml(codeText);
+        }
+
+        // 为 hljs span 设置内联颜色（公众号编辑器会过滤 <style>）
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = highlightedHtml;
+        applyHljsColors(tempDiv, hljsColorMap);
+
+        // 按行拆分为 <p> 元素，保留 <span> 高亮结构
+        const marker = "__WECHAT_LB__";
+        const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT);
+        const textNodes: Text[] = [];
+        let node: Text | null;
+        while ((node = walker.nextNode() as Text | null)) {
+          textNodes.push(node);
+        }
+        for (const tn of textNodes) {
+          tn.textContent = tn.textContent!.replace(/\n/g, marker);
+        }
+
+        lineHtmls = tempDiv.innerHTML.split(marker);
+      }
+
+      // 去掉首尾空行
+      while (lineHtmls.length > 0 && lineHtmls[0].trim() === "") lineHtmls.shift();
+      while (lineHtmls.length > 0 && lineHtmls[lineHtmls.length - 1].trim() === "") lineHtmls.pop();
+
+      const blockquote = document.createElement("blockquote");
+      // 显式覆盖公众号默认 blockquote 样式：清掉左侧边框，统一背景和圆角
+      blockquote.setAttribute("style", `${preStyle}margin:1em 0;padding:0.8em 1em;border-radius:6px;border-left:0;background-color:rgba(0,0,0,0.04);`);
+      for (const line of lineHtmls) {
+        const p = document.createElement("p");
+        p.setAttribute("style", codeP);
+        if (line.trim() === "") {
+          // 空行用零宽空格占位，避免被合并
+          p.innerHTML = "\u200B";
+        } else {
+          // 使用 innerHTML 保留语法高亮的 span 标签和内联颜色
+          p.innerHTML = line;
+        }
+        blockquote.appendChild(p);
+      }
+      pre.replaceWith(blockquote);
+    }
+
+    // 处理 TaskList（GFM 任务列表）：[ ] / [x] -> ☐ / ☑
+    const taskItems = Array.from(container.querySelectorAll("li.task-list-item, li[class*='task']"));
+    for (const li of taskItems) {
+      const text = li.textContent || "";
+      if (/^\s*\[\s\]\s*/.test(text)) {
+        li.innerHTML = li.innerHTML.replace(/^\s*\[\s\]\s*/, "☐ ");
+      } else if (/^\s*\[x\]\s*/i.test(text)) {
+        li.innerHTML = li.innerHTML.replace(/^\s*\[x\]\s*/i, "☑ ");
+      }
+    }
+
+    // 处理隐藏的 input checkbox（GFM 任务列表的另一种实现）
+    const checkboxes = Array.from(container.querySelectorAll('input[type="checkbox"]'));
+    for (const cb of checkboxes) {
+      const isChecked = (cb as HTMLInputElement).checked;
+      const symbol = isChecked ? "☑" : "☐";
+      const textNode = document.createTextNode(symbol + " ");
+      cb.replaceWith(textNode);
+    }
+
+    // 提取 .export-page 的内容（去除外部 wrapper）
+    const exportPage = container.querySelector(".export-page");
+    const innerHtml = exportPage ? exportPage.innerHTML : container.innerHTML;
+
+    // 清理：移除所有 <style> 标签（公众号过滤器会剔除它们）
+    const clean = innerHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
+
+    // 构建可直接粘贴的 HTML
+    return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${escapeHtml(title)}</title>
+</head>
+<body style="max-width:677px;margin:0 auto;padding:20px 0;font-size:16px;color:#3f3f3f;line-height:1.8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Helvetica Neue',Helvetica,Arial,sans-serif;">
+${clean}
+</body>
+</html>`;
+  } finally {
+    container.remove();
+  }
 }
