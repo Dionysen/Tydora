@@ -1000,7 +1000,6 @@ function ThemeSettingsContent({
           <code
             dangerouslySetInnerHTML={{
               __html: hljs.highlight(`function greet(name) {
-  console.log("Hello, " + name);
   return 42;
 }`, { language: "javascript" }).value,
             }}

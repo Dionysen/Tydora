@@ -92,7 +92,6 @@ export async function publishVault(
       outDir,
       config: JSON.stringify(config),
     });
-    console.log("发布完成:", result);
     onProgress?.({ total: 1, current: 1, currentFile: "", phase: "done" });
   } catch (e: any) {
     console.error("发布失败:", e);
