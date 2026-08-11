@@ -2277,10 +2277,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
               >
                 <span className="export-formatpicker-option-icon">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M8 10.9c3.2 0 5.8-2.3 5.8-5.2S11.2.5 8 .5 2.2 2.8 2.2 5.7c0 1.5.8 2.9 1.9 3.8l-.5 1.6 1.9-1c.7.2 1.5.4 2.3.4" />
-                    <path d="M15.5 13.5c4 0 7.3-2.9 7.3-6.5S19.5.5 15.5.5 8.2 3.4 8.2 7c0 1.9.8 3.5 2.3 4.7l-.7 2.1 2.5-1.4c1 .4 2 .5 3.1.5Z" />
-                    <line x1="12" y1="18.5" x2="12" y2="23.5" />
-                    <polyline points="9 21 12 23.5 15 21" />
+                    <path d="M8.5 19c3.9 0 7-2.5 7-5.5S12.4 8 8.5 8s-7 2.5-7 5.5c0 1.6.8 3 2.1 4l-.6 1.7 2.1-1.1c1 .4 2.1.6 3.3.6" />
+                    <path d="M15.5 14c3.5 0 6.3-2.2 6.3-5S19 4 15.5 4 9.2 6.2 9.2 9c0 1.5.7 2.8 1.9 3.7l-.6 1.8 2-1c.9.3 1.9.5 2.9.5Z" />
                   </svg>
                 </span>
                 <span className="export-formatpicker-option-label">{t("app.export.wechat")}</span>
@@ -2329,10 +2327,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                     )}
                     {fmt === "wechat" && (
                       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M8 10.9c3.2 0 5.8-2.3 5.8-5.2S11.2.5 8 .5 2.2 2.8 2.2 5.7c0 1.5.8 2.9 1.9 3.8l-.5 1.6 1.9-1c.7.2 1.5.4 2.3.4" />
-                        <path d="M15.5 13.5c4 0 7.3-2.9 7.3-6.5S19.5.5 15.5.5 8.2 3.4 8.2 7c0 1.9.8 3.5 2.3 4.7l-.7 2.1 2.5-1.4c1 .4 2 .5 3.1.5Z" />
-                        <line x1="12" y1="18.5" x2="12" y2="23.5" />
-                        <polyline points="9 21 12 23.5 15 21" />
+                        <path d="M8.5 19c3.9 0 7-2.5 7-5.5S12.4 8 8.5 8s-7 2.5-7 5.5c0 1.6.8 3 2.1 4l-.6 1.7 2.1-1.1c1 .4 2.1.6 3.3.6" />
+                        <path d="M15.5 14c3.5 0 6.3-2.2 6.3-5S19 4 15.5 4 9.2 6.2 9.2 9c0 1.5.7 2.8 1.9 3.7l-.6 1.8 2-1c.9.3 1.9.5 2.9.5Z" />
                       </svg>
                     )}
                   </span>

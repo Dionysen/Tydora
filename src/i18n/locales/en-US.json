@@ -193,7 +193,9 @@
       "colorFreezeLevelDesc": "Starting from which level to use a fixed color.",
       "noFreeze": "No freeze",
       "expandLevel": "Level {{level}}",
-      "exportAsImage": "Export as Image"
+      "exportAsImage": "Export as Image",
+      "copyAsImage": "Copy Image",
+      "copyAsImageSuccess": "Copied"
     },
     "graph": {
       "openInNewWindow": "Open in New Window",
@@ -360,9 +362,9 @@
       "markdown": "Markdown",
       "wechat": "WeChat",
       "pdf": "PDF",
-      "image": "Image",
+      "png": "Image",
       "html": "HTML",
-      "word": "Word",
+      "docx": "Word",
       "exportFailed": "Export preview failed: ",
       "copyFailed": "Copy failed, please try again",
       "openFileFailed": "Failed to open file:"
@@ -731,6 +733,20 @@
     "stopPreviewFailed": "Failed to stop preview:",
     "previewFailed": "Preview failed:",
     "openFolderFailed": "Failed to open folder:"
+  },
+  "mindmapWindow": {
+    "title": "Mind Map",
+    "placeholderTitle": "Mind Map",
+    "waitingForContent": "Waiting for content...",
+    "fitView": "Fit View",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "expandLevel": "Expand Level",
+    "all": "All",
+    "level": "Level {{level}}",
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "close": "Close"
   },
   "vaultManager": {
     "title": "Tydora",

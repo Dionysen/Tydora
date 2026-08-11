@@ -193,7 +193,9 @@
       "colorFreezeLevelDesc": "从第几级开始使用固定颜色。",
       "noFreeze": "不冻结",
       "expandLevel": "第{{level}}级",
-      "exportAsImage": "导出为图片"
+      "exportAsImage": "导出为图片",
+      "copyAsImage": "复制图片",
+      "copyAsImageSuccess": "已复制"
     },
     "graph": {
       "openInNewWindow": "在新窗口中打开",
@@ -360,9 +362,9 @@
       "markdown": "Markdown",
       "wechat": "公众号",
       "pdf": "PDF",
-      "image": "图片",
+      "png": "图片",
       "html": "HTML",
-      "word": "Word",
+      "docx": "Word",
       "exportFailed": "导出预览失败：",
       "copyFailed": "复制失败，请重试",
       "openFileFailed": "打开文件失败:"
@@ -731,6 +733,20 @@
     "stopPreviewFailed": "停止预览失败:",
     "previewFailed": "预览失败:",
     "openFolderFailed": "打开文件夹失败:"
+  },
+  "mindmapWindow": {
+    "title": "思维导图",
+    "placeholderTitle": "思维导图",
+    "waitingForContent": "等待内容加载...",
+    "fitView": "适配视图",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "expandLevel": "展开层级",
+    "all": "全部",
+    "level": "{{level}} 级",
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "close": "关闭"
   },
   "vaultManager": {
     "title": "Tydora",

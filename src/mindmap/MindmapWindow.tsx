@@ -25,13 +25,14 @@ export default function MindmapWindow() {
   const { t } = useTranslation();
   const [content, setContent] = useState(() => {
     try {
-      return localStorage.getItem(MINDMAP_CONTENT_KEY) || "# 思维导图\n\n等待内容加载...";
+      return localStorage.getItem(MINDMAP_CONTENT_KEY) || `# ${t("mindmapWindow.placeholderTitle")}\n\n${t("mindmapWindow.waitingForContent")}`;
     } catch {
-      return "# 思维导图\n\n等待内容加载...";
+      return `# ${t("mindmapWindow.placeholderTitle")}\n\n${t("mindmapWindow.waitingForContent")}`;
     }
   });
 
   const [expandLevel, setExpandLevel] = useState(getInitialExpandLevel);
+  const [copyFeedback, setCopyFeedback] = useState(false);
   const mindmapViewRef = useRef<MindmapViewHandle>(null);
 
   // Listen for real-time updates from main window
@@ -154,6 +155,20 @@ export default function MindmapWindow() {
     window.dispatchEvent(new CustomEvent("mindmap-export"));
   }, []);
 
+  const handleCopyImage = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("mindmap-copy-image"));
+  }, []);
+
+  // Listen for copy success to show brief feedback
+  useEffect(() => {
+    const handler = () => {
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 1500);
+    };
+    window.addEventListener("mindmap-copy-success", handler);
+    return () => window.removeEventListener("mindmap-copy-success", handler);
+  }, []);
+
   const handleFit = useCallback(() => mindmapViewRef.current?.fit(), []);
   const handleZoomIn = useCallback(() => mindmapViewRef.current?.zoomIn(), []);
   const handleZoomOut = useCallback(() => mindmapViewRef.current?.zoomOut(), []);
@@ -179,7 +194,7 @@ export default function MindmapWindow() {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
             <path d="M20 4a1 1 0 0 1 0 2h-2.7a7.4 7.4 0 0 0-7.2 6H20a1 1 0 0 1 0 2h-9.9a7.4 7.4 0 0 0 7.2 6H20a1 1 0 0 1 0 2h-2.7a9.4 9.4 0 0 1-9.2-8H4a1 1 0 0 1 0-2h4.1a9.4 9.4 0 0 1 9.2-8H20z" />
           </svg>
-          思维导图
+          {t("mindmapWindow.title")}
         </span>
         <div className="mindmap-window-controls">
           <button className="mindmap-window-btn" onClick={handleExportImage} title={t("settings.mindmap.exportAsImage")}>
@@ -189,20 +204,26 @@ export default function MindmapWindow() {
               <line x1="12" y1="3" x2="12" y2="15" />
             </svg>
           </button>
+          <button className="mindmap-window-btn" onClick={handleCopyImage} title={copyFeedback ? (t("settings.mindmap.copyAsImageSuccess") ?? "") : (t("settings.mindmap.copyAsImage") ?? "")}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+          </button>
           <div className="mindmap-window-separator" />
           <div className="mindmap-window-toolbar">
-            <button className="mindmap-toolbar-btn" onClick={handleFit} title="适配视图">
+            <button className="mindmap-toolbar-btn" onClick={handleFit} title={t("mindmapWindow.fitView")}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
               </svg>
             </button>
-            <button className="mindmap-toolbar-btn" onClick={handleZoomIn} title="放大">
+            <button className="mindmap-toolbar-btn" onClick={handleZoomIn} title={t("mindmapWindow.zoomIn")}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" />
                 <path d="M21 21l-4.35-4.35M11 8v6M8 11h6" />
               </svg>
             </button>
-            <button className="mindmap-toolbar-btn" onClick={handleZoomOut} title="缩小">
+            <button className="mindmap-toolbar-btn" onClick={handleZoomOut} title={t("mindmapWindow.zoomOut")}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" />
                 <path d="M21 21l-4.35-4.35M8 11h6" />
@@ -213,29 +234,29 @@ export default function MindmapWindow() {
               className="mindmap-toolbar-select"
               value={expandLevel}
               onChange={handleExpandLevelChange}
-              title="展开层级"
+              title={t("mindmapWindow.expandLevel")}
             >
-              <option value={-1}>全部</option>
-              <option value={1}>1 级</option>
-              <option value={2}>2 级</option>
-              <option value={3}>3 级</option>
-              <option value={4}>4 级</option>
-              <option value={5}>5 级</option>
-              <option value={6}>6 级</option>
+              <option value={-1}>{t("mindmapWindow.all")}</option>
+              <option value={1}>{t("mindmapWindow.level", { level: 1 })}</option>
+              <option value={2}>{t("mindmapWindow.level", { level: 2 })}</option>
+              <option value={3}>{t("mindmapWindow.level", { level: 3 })}</option>
+              <option value={4}>{t("mindmapWindow.level", { level: 4 })}</option>
+              <option value={5}>{t("mindmapWindow.level", { level: 5 })}</option>
+              <option value={6}>{t("mindmapWindow.level", { level: 6 })}</option>
             </select>
           </div>
           <div className="mindmap-window-separator" />
-          <button className="mindmap-window-btn" onClick={handleMinimize} title="最小化">
+          <button className="mindmap-window-btn" onClick={handleMinimize} title={t("mindmapWindow.minimize")}>
             <svg width="10" height="10" viewBox="0 0 10 10">
               <line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" strokeWidth="1.2" />
             </svg>
           </button>
-          <button className="mindmap-window-btn" onClick={handleToggleMaximize} title="最大化">
+          <button className="mindmap-window-btn" onClick={handleToggleMaximize} title={t("mindmapWindow.maximize")}>
             <svg width="10" height="10" viewBox="0 0 10 10">
               <rect x="1" y="1" width="8" height="8" rx="0.5" fill="none" stroke="currentColor" strokeWidth="1.2" />
             </svg>
           </button>
-          <button className="mindmap-window-btn mindmap-window-close" onClick={handleClose} title="关闭">
+          <button className="mindmap-window-btn mindmap-window-close" onClick={handleClose} title={t("mindmapWindow.close")}>
             <svg width="10" height="10" viewBox="0 0 10 10">
               <line x1="1.5" y1="1.5" x2="8.5" y2="8.5" stroke="currentColor" strokeWidth="1.2" />
               <line x1="8.5" y1="1.5" x2="1.5" y2="8.5" stroke="currentColor" strokeWidth="1.2" />

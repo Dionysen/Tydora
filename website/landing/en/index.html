@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tydora — Let Your Ideas Flow</title>
+    <meta name="description" content="A free, open-source Markdown editor with dual-mode editing, bidirectional links, mind maps, and whiteboard canvas — built for deep knowledge work." />
+    <meta name="keywords" content="Markdown editor, note-taking, knowledge management, PKM, bidirectional links, whiteboard, mind map, Tauri, open source" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Tydora" />
+    <meta property="og:title" content="Tydora — Let Your Ideas Flow" />
+    <meta property="og:description" content="A free, open-source markdown editor with dual-mode editing, bidirectional links, mind maps, and whiteboard canvas." />
+    <meta property="og:image" content="./icon.png" />
+    <meta property="og:url" content="https://tydora.com/" />
+
+    <meta name="twitter:title" content="Tydora — Let Your Ideas Flow" />
+    <meta name="twitter:description" content="A free, open-source markdown editor with dual-mode editing, bidirectional links, mind maps, and whiteboard canvas — built for deep knowledge work." />
+    <meta name="twitter:image" content="./icon.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <style>
+        /* ===== reset ===== */
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+        body{font-family:system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";line-height:1.6;color:#1e1e2e;background:#fafafa}
+        img,svg,video{display:block;max-width:100%;height:auto}
+        a{color:inherit;text-decoration:none}
+        ul{list-style:none}
+
+        /* ===== variables ===== */
+        :root{
+            --c-accent:#6c5ce7;
+            --c-accent-dim:#5a4bd1;
+            --c-bg:#fafafa;
+            --c-surface:#fff;
+            --c-text:#1e1e2e;
+            --c-text-dim:#5a5a6e;
+            --c-border:#e4e4ec;
+            --c-shadow:0 4px 24px rgba(0,0,0,.06);
+            --radius:12px;
+            --radius-sm:8px;
+            --max-w:1280px;
+            --h-nav:64px;
+        }
+
+        /* ===== nav ===== */
+        .nav{position:sticky;top:0;z-index:100;height:var(--h-nav);background:rgba(250,250,250,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--c-border)}
+        .nav-inner{max-width:var(--max-w);margin:0 auto;padding:0 24px;height:100%;display:flex;align-items:center;gap:32px}
+        .nav-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.2rem}
+        .nav-logo img{width:28px;height:28px}
+        .nav-links{display:flex;gap:24px;margin-left:auto;font-size:.92rem;color:var(--c-text-dim)}
+        .nav-links a:hover{color:var(--c-text)}
+        .nav-right{display:flex;align-items:center;gap:14px}
+        .nav-lang{display:flex;align-items:center;gap:4px;font-size:.85rem;color:var(--c-text-dim);padding-left:12px;border-left:1px solid var(--c-border)}
+        .nav-lang a{padding:4px 8px;border-radius:var(--radius-sm);transition:background .2s}
+        .nav-lang a:hover{background:var(--c-border)}
+        .nav-lang a.active{color:var(--c-accent);font-weight:600;background:rgba(108,92,231,.08)}
+        .nav-toggle{display:none;background:none;border:none;cursor:pointer;padding:8px}
+        .nav-toggle svg{width:24px;height:24px;color:var(--c-text)}
+        .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;border-radius:var(--radius-sm);font-size:.92rem;font-weight:600;transition:all .2s;cursor:pointer;border:none}
+        .btn-primary{background:var(--c-accent);color:#fff}
+        .btn-primary:hover{background:var(--c-accent-dim);transform:translateY(-1px);box-shadow:0 6px 20px rgba(108,92,231,.3)}
+        .btn-outline{border:2px solid var(--c-border);color:var(--c-text);background:transparent}
+        .btn-outline:hover{border-color:var(--c-accent);color:var(--c-accent)}
+
+        /* ===== hero ===== */
+        .hero{max-width:var(--max-w);margin:0 auto;padding:72px 24px 48px;text-align:center}
+        .hero-badge{display:inline-block;padding:5px 16px;background:rgba(108,92,231,.08);color:var(--c-accent);border-radius:99px;font-size:.82rem;font-weight:600;margin-bottom:24px}
+        .hero h1{font-size:clamp(2.4rem,6vw,3.6rem);font-weight:800;line-height:1.15;margin-bottom:16px}
+        .hero h1 span{background:linear-gradient(135deg,#6c5ce7,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .hero p{max-width:640px;margin:0 auto 32px;font-size:1.15rem;color:var(--c-text-dim);line-height:1.7}
+        .hero-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+        .hero-version{display:block;margin-top:12px;font-size:.82rem;color:var(--c-text-dim);opacity:.7}
+
+        /* ===== screenshot ===== */
+        .screenshot{max-width:var(--max-w);margin:0 auto 80px;padding:0 24px}
+        .screenshot img{border-radius:var(--radius);box-shadow:0 8px 40px rgba(0,0,0,.08);border:1px solid var(--c-border)}
+
+        /* ===== section ===== */
+        .section{padding:80px 24px}
+        .section-head{text-align:center;margin-bottom:56px}
+        .section-head h2{font-size:2rem;font-weight:700;margin-bottom:12px}
+        .section-head p{font-size:1.05rem;color:var(--c-text-dim);max-width:560px;margin:0 auto}
+        .section-inner{max-width:var(--max-w);margin:0 auto}
+
+        /* ===== feature cards ===== */
+        .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+        .card{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);padding:32px 28px;transition:all .25s}
+        .card:hover{transform:translateY(-3px);box-shadow:var(--c-shadow);border-color:transparent}
+        .card-icon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(108,92,231,.08);border-radius:var(--radius-sm);margin-bottom:18px;font-size:1.3rem}
+        .card h3{font-size:1.1rem;font-weight:700;margin-bottom:8px}
+        .card p{font-size:.92rem;color:var(--c-text-dim);line-height:1.65}
+
+        /* ===== showcase rows ===== */
+        .showcase-grid{display:flex;flex-direction:column;gap:72px}
+        .showcase-row{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+        .showcase-row.reverse{direction:rtl}
+        .showcase-row.reverse>*{direction:ltr}
+        .showcase-text h3{font-size:1.6rem;font-weight:700;margin-bottom:12px}
+        .showcase-text p{font-size:1rem;color:var(--c-text-dim);line-height:1.7;margin-bottom:16px}
+        .showcase-text .tag-list{display:flex;gap:8px;flex-wrap:wrap}
+        .tag{display:inline-block;padding:3px 12px;border-radius:99px;font-size:.78rem;font-weight:600;background:rgba(108,92,231,.06);color:var(--c-accent)}
+        .showcase-img{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.04)}
+        .showcase-img img{width:100%;height:auto;display:block}
+
+        /* ===== horizontal-scroll gallery ===== */
+        .h-scroll-wrap{position:relative;overflow:hidden;border-radius:var(--radius);border:1px solid var(--c-border);background:var(--c-surface);box-shadow:var(--c-shadow)}
+        .h-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+        .h-track::-webkit-scrollbar{display:none}
+        .h-card{flex:0 0 auto;width:420px;padding:28px 24px;border-right:1px solid var(--c-border);scroll-snap-align:start}
+        .h-card:last-child{border-right:none}
+        .h-card h4{font-size:1rem;font-weight:700;margin-bottom:6px}
+        .h-card p{font-size:.88rem;color:var(--c-text-dim);line-height:1.6}
+
+        /* ===== cta ===== */
+        .cta{padding:80px 24px 100px;text-align:center}
+        .cta h2{font-size:2.2rem;font-weight:700;margin-bottom:12px}
+        .cta p{font-size:1.08rem;color:var(--c-text-dim);margin-bottom:32px}
+        .cta .btn-primary{padding:14px 36px;font-size:1rem;border-radius:var(--radius-sm)}
+
+        /* ===== footer ===== */
+        .footer{border-top:1px solid var(--c-border);padding:40px 24px;color:var(--c-text-dim);font-size:.85rem}
+        .footer-inner{max-width:var(--max-w);margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+        .footer-links{display:flex;gap:20px}
+        .footer-links a:hover{color:var(--c-text)}
+
+        /* ===== publish section ===== */
+        .publish-section{background:linear-gradient(135deg,rgba(108,92,231,.04) 0%,rgba(167,139,250,.02) 100%);border-top:1px solid var(--c-border);border-bottom:1px solid var(--c-border);padding:80px 24px;text-align:center}
+        .publish-section .section-inner{display:flex;flex-direction:column;align-items:center;gap:48px}
+        .publish-hero{max-width:640px}
+        .publish-hero h2{font-size:2rem;font-weight:700;margin-bottom:12px}
+        .publish-hero p{font-size:1.05rem;color:var(--c-text-dim);line-height:1.7}
+        .publish-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;max-width:800px}
+        .publish-step{text-align:center}
+        .publish-step-num{width:40px;height:40px;border-radius:99px;background:var(--c-accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;margin-bottom:12px}
+        .publish-step h4{font-size:1rem;margin-bottom:4px}
+        .publish-step p{font-size:.85rem;color:var(--c-text-dim)}
+
+        /* ===== responsive ===== */
+        @media(max-width:768px){
+            .showcase-row{grid-template-columns:1fr;gap:24px}
+            .showcase-row.reverse{direction:ltr}
+            .hero{padding:48px 20px 32px}
+            .cards{grid-template-columns:1fr}
+            .h-card{width:300px}
+            .nav-links{display:none}
+            .nav-toggle{display:block}
+            .nav-right{margin-left:auto}
+            .nav-links.active{
+                display:flex;
+                flex-direction:column;
+                position:absolute;
+                top:var(--h-nav);
+                left:0;right:0;
+                background:rgba(250,250,250,.98);
+                backdrop-filter:blur(12px);
+                -webkit-backdrop-filter:blur(12px);
+                padding:16px 24px;
+                gap:12px;
+                border-bottom:1px solid var(--c-border);
+                box-shadow:0 12px 40px rgba(0,0,0,.06);
+            }
+            .nav-links.active a{padding:8px 12px;border-radius:var(--radius-sm)}
+            .nav-links.active a:hover{background:var(--c-border)}
+            .nav-inner{padding:0 16px;gap:16px}
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="." class="nav-logo">
+                <img src="../icon.png" alt="Tydora" />
+                Tydora
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="/en/index/" target="_blank">Docs</a>
+                <a href="#features">Features</a>
+                <a href="#showcase">Showcase</a>
+                <a href="#publish">Publish</a>
+            </div>
+            <div class="nav-right">
+                <div class="nav-lang">
+                    <a href="../">中文</a>
+                    <a href="." class="active">EN</a>
+                </div>
+                <a href="https://github.com/zuorn/Tydora/releases" class="btn btn-primary" target="_blank" rel="noopener">
+                    Download
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle" aria-label="Menu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-badge">✨ Open Source &amp; Free Forever</div>
+        <h1>Let Your <span>Ideas</span> Flow</h1>
+        <p>
+            Tydora is a modern desktop Markdown editor combining WYSIWYG editing,
+            bidirectional links, mind maps, and an infinite canvas — empowering deep
+            thinking and effortless expression.
+        </p>
+        <div class="hero-actions">
+            <a href="https://github.com/zuorn/Tydora/releases" class="btn btn-primary" target="_blank" rel="noopener">
+                Download for Free
+            </a>
+            <a href="/en/index/" class="btn btn-outline" target="_blank">
+                Browse Docs →
+            </a>
+            <a href="https://github.com/zuorn/Tydora" class="btn btn-outline" target="_blank" rel="noopener">
+                GitHub
+            </a>
+        </div>
+        <span class="hero-version" id="latest-version">Windows · macOS · Linux</span>
+    </section>
+
+    <section class="screenshot">
+        <img src="../zjm.png" alt="Tydora editor screenshot" />
+    </section>
+
+    <!-- Features -->
+    <section class="section" id="features">
+        <div class="section-inner">
+            <div class="section-head">
+                <h2>Everything You Need</h2>
+                <p>From editing and linking to visualization and publishing — all in one app.</p>
+            </div>
+            <div class="cards">
+                <div class="card">
+                    <div class="card-icon">✏️</div>
+                    <h3>Dual-Mode Editing</h3>
+                    <p>
+                        Seamlessly switch between WYSIWYG (TipTap) and Source Mode (CodeMirror 6).
+                        See what you get, or get your hands dirty with raw Markdown.
+                    </p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🔗</div>
+                    <h3>Bidirectional Links</h3>
+                    <p>
+                        Obsidian-flavored <code>[[wikilinks]]</code> with backlink panels,
+                        auto-completion, hover previews, and real-time reference tracking.
+                    </p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🗺️</div>
+                    <h3>Knowledge Graph</h3>
+                    <p>
+                        D3-powered force-directed graph visualizing how your notes
+                        connect. Click any node to navigate instantly.
+                    </p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🧠</div>
+                    <h3>Mind Map</h3>
+                    <p>
+                        Auto-generated interactive mind maps from your Markdown headings.
+                        Pan, zoom, and explore your document structure visually.
+                    </p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🎨</div>
+                    <h3>Infinite Canvas</h3>
+                    <p>
+                        A freeform whiteboard canvas. Drop text cards, notes, media,
+                        URLs — arrange ideas spatially beyond linear documents.
+                    </p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🎭</div>
+                    <h3>Rich Theming</h3>
+                    <p>
+                        8 built-in themes + custom CSS import +
+                        11 syntax-highlight color schemes. Make it truly yours.
+                    </p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">📤</div>
+                    <h3>One-Click Publish</h3>
+                    <p>
+                        Turn your vault into a static website in one click. Built-in preview
+                        server — share your knowledge with the world.
+                    </p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🪟</div>
+                    <h3>Multi-Window</h3>
+                    <p>
+                        Settings, graph, mind map, and canvas each open in independent
+                        windows. Perfect for multi-monitor workflows.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Showcase -->
+    <section class="section" id="showcase" style="background:#fff">
+        <div class="section-inner">
+            <div class="section-head">
+                <h2>See It in Action</h2>
+                <p>Every feature is polished for real-world note-taking and knowledge work.</p>
+            </div>
+            <div class="showcase-grid">
+                <div class="showcase-row">
+                    <div class="showcase-text">
+                        <h3>Dual Editors, One Flow</h3>
+                        <p>
+                            Craft content in the rich WYSIWYG editor, then inspect the
+                            raw Markdown in Source Mode — instant live sync between
+                            the two views.
+                        </p>
+                        <div class="tag-list">
+                            <span class="tag">WYSIWYG</span>
+                            <span class="tag">Source Mode</span>
+                            <span class="tag">Live Sync</span>
+                        </div>
+                    </div>
+                    <div class="showcase-img">
+                        <img src="../showcases/01-ir.png" alt="Dual-mode editor" loading="lazy" />
+                    </div>
+                </div>
+
+                <div class="showcase-row reverse">
+                    <div class="showcase-text">
+                        <h3>Wikilinks That Just Work</h3>
+                        <p>
+                            Type <code>[[</code> to trigger smart autocomplete. Hover
+                            over any link to preview its content without leaving the
+                            current page. Backlinks panel shows every document
+                            referencing the current one.
+                        </p>
+                        <div class="tag-list">
+                            <span class="tag">Wikilinks</span>
+                            <span class="tag">Backlinks</span>
+                            <span class="tag">Auto-Complete</span>
+                            <span class="tag">Hover Preview</span>
+                        </div>
+                    </div>
+                    <div class="showcase-img">
+                        <img src="../showcases/02-wikilink.png" alt="Bidirectional link system" loading="lazy" />
+                    </div>
+                </div>
+
+                <div class="showcase-row">
+                    <div class="showcase-text">
+                        <h3>Tab Manager &amp; Splits</h3>
+                        <p>
+                            Work on multiple documents in tabs. Drag to split panels
+                            horizontally or vertically — ideal for reference-heavy
+                            writing sessions.
+                        </p>
+                        <div class="tag-list">
+                            <span class="tag">Tabs</span>
+                            <span class="tag">Split Panels</span>
+                            <span class="tag">Drag &amp; Drop</span>
+                        </div>
+                    </div>
+                    <div class="showcase-img">
+                        <img src="../showcases/03-tabs.png" alt="Tab and split panel management" loading="lazy" />
+                    </div>
+                </div>
+
+                <div class="showcase-row reverse">
+                    <div class="showcase-text">
+                        <h3>Customize Your Look</h3>
+                        <p>
+                            8 hand-crafted themes covering light, dark, and sepia modes.
+                            Import custom CSS to fine-tune every detail. 11 code
+                            highlighting schemes for developers.
+                        </p>
+                        <div class="tag-list">
+                            <span class="tag">Light / Dark</span>
+                            <span class="tag">Custom CSS</span>
+                            <span class="tag">Code Themes</span>
+                        </div>
+                    </div>
+                    <div class="showcase-img">
+                        <img src="../showcases/04-theme.png" alt="Theme system" loading="lazy" />
+                    </div>
+                </div>
+
+                <div class="showcase-row">
+                    <div class="showcase-text">
+                        <h3>Table Editor &amp; Web Preview</h3>
+                        <p>
+                            Insert and edit Markdown tables visually. Embed web
+                            content and preview it inline — keeping context
+                            without tab switching.
+                        </p>
+                        <div class="tag-list">
+                            <span class="tag">Table Editor</span>
+                            <span class="tag">Web Preview</span>
+                            <span class="tag">Image Paste</span>
+                        </div>
+                    </div>
+                    <div class="showcase-img">
+                        <img src="../showcases/05-html.png" alt="Table and web preview features" loading="lazy" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Visualization -->
+    <section class="section">
+        <div class="section-inner">
+            <div class="section-head">
+                <h2>Visualize Your Knowledge</h2>
+                <p>Three tools that turn your notes from flat text into living, interconnected maps.</p>
+            </div>
+            <div class="showcase-grid">
+                <div class="showcase-row">
+                    <div class="showcase-text">
+                        <h3>Knowledge Graph</h3>
+                        <p>
+                            A force-directed graph rendering every note as a node
+                            and every link as an edge. Filter by depth, highlight
+                            connections, and jump to any note with a click.
+                        </p>
+                        <div class="tag-list">
+                            <span class="tag">D3 Force Layout</span>
+                            <span class="tag">Interactive</span>
+                            <span class="tag">Depth Filter</span>
+                        </div>
+                    </div>
+                    <div class="showcase-img">
+                        <img src="../showcases/06-graph.png" alt="Knowledge graph" loading="lazy" />
+                    </div>
+                </div>
+
+                <div class="showcase-row reverse">
+                    <div class="showcase-text">
+                        <h3>Mind Map</h3>
+                        <p>
+                            Automatically generated from your document's heading
+                            hierarchy. Zoom, pan, collapse branches — visual
+                            navigation for long-form writing.
+                        </p>
+                        <div class="tag-list">
+                            <span class="tag">Auto-generate</span>
+                            <span class="tag">Zoomable</span>
+                            <span class="tag">Collapsible</span>
+                        </div>
+                    </div>
+                    <div class="showcase-img">
+                        <img src="../showcases/07-mindmap.png" alt="Mind map" loading="lazy" />
+                    </div>
+                </div>
+
+                <div class="showcase-row">
+                    <div class="showcase-text">
+                        <h3>Infinite Canvas</h3>
+                        <p>
+                            A spatial whiteboard beyond linear notes. Place text,
+                            notes, media, and URL cards anywhere. Group related
+                            ideas visually.
+                        </p>
+                        <div class="tag-list">
+                            <span class="tag">React Flow</span>
+                            <span class="tag">Multi-node Types</span>
+                            <span class="tag">Drag &amp; Drop</span>
+                        </div>
+                    </div>
+                    <div class="showcase-img">
+                        <img src="../showcases/08-canvas.png" alt="Infinite canvas" loading="lazy" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Publish -->
+    <section class="publish-section" id="publish">
+        <div class="section-inner">
+            <div class="publish-hero">
+                <h2>One-Click Publish Your Vault</h2>
+                <p>
+                    Turn your local Markdown vault into a fast, responsive static
+                    website. Share your knowledge with the world — no server,
+                    no configuration, no hassle.
+                </p>
+            </div>
+            <div class="publish-steps">
+                <div class="publish-step">
+                    <div class="publish-step-num">1</div>
+                    <h4>Write Locally</h4>
+                    <p>Create and organize notes in your vault as usual.</p>
+                </div>
+                <div class="publish-step">
+                    <div class="publish-step-num">2</div>
+                    <h4>One Click Publish</h4>
+                    <p>Hit publish — Tydora generates a static site automatically.</p>
+                </div>
+                <div class="publish-step">
+                    <div class="publish-step-num">3</div>
+                    <h4>Live Preview</h4>
+                    <p>Built-in local server lets you preview before going live.</p>
+                </div>
+                <div class="publish-step">
+                    <div class="publish-step-num">4</div>
+                    <h4>Deploy Anywhere</h4>
+                    <p>Static HTML/CSS/JS — host on GitHub Pages, Vercel, or any CDN.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta">
+        <h2>Ready to build your second brain?</h2>
+        <p>Free, open-source, cross-platform. No account required.</p>
+        <div class="hero-actions">
+            <a href="https://github.com/zuorn/Tydora/releases" class="btn btn-primary" target="_blank" rel="noopener">
+                Download Now
+            </a>
+            <a href="/en/index/" class="btn btn-outline" target="_blank">
+                Read the Docs →
+            </a>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <span>&copy; 2025 Tydora. Open source under Apache 2.0.</span>
+            <div class="footer-links">
+                <a href="/en/index/" target="_blank">Docs</a>
+                <a href="/en/Quick-Start/" target="_blank">Quick Start</a>
+                <a href="https://github.com/zuorn/Tydora" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://github.com/zuorn/Tydora/releases" target="_blank" rel="noopener">Releases</a>
+            </div>
+        </div>
+    </footer>
+    <script>
+      const navToggle = document.getElementById('navToggle');
+      const navLinks = document.getElementById('navLinks');
+      navToggle.addEventListener('click', () => {
+        navLinks.classList.toggle('active');
+      });
+      document.querySelectorAll('.nav-links a').forEach(link => {
+        link.addEventListener('click', () => {
+          navLinks.classList.remove('active');
+        });
+      });
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+          const targetId = this.getAttribute('href');
+          if (targetId === '#') return;
+          const target = document.querySelector(targetId);
+          if (target) {
+            e.preventDefault();
+            const navH = 56;
+            const top = target.getBoundingClientRect().top + window.pageYOffset - navH - 20;
+            window.scrollTo({ top, behavior: 'smooth' });
+          }
+        });
+      });
+    </script>
+</body>
+</html>

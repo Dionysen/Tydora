@@ -93,6 +93,23 @@ export default function CommandPalette({ isOpen, onClose, commands }: CommandPal
   const [recentIds, setRecentIds] = useState<string[]>(() => loadRecentCommands());
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const isKeyboardNavRef = useRef(false);
+  const keyboardNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 标记键盘导航激活，短暂忽略鼠标 hover
+  const markKeyboardNav = useCallback(() => {
+    isKeyboardNavRef.current = true;
+    if (keyboardNavTimerRef.current) clearTimeout(keyboardNavTimerRef.current);
+    keyboardNavTimerRef.current = setTimeout(() => {
+      isKeyboardNavRef.current = false;
+    }, 200);
+  }, []);
+
+  // 鼠标 hover 设置选中项（仅在非键盘导航时生效）
+  const handleItemMouseEnter = useCallback((idx: number) => {
+    if (isKeyboardNavRef.current) return;
+    setSelectedIndex(idx);
+  }, []);
 
   // 最近使用的命令
   const recentCommands = useMemo(() => {
@@ -175,16 +192,24 @@ export default function CommandPalette({ isOpen, onClose, commands }: CommandPal
     if (selected) selected.scrollIntoView({ block: "nearest" });
   }, [selectedIndex, filteredCommands, recentCommands, allGroupedCommands]);
 
+  // 可见项总数（用于键盘导航边界）
+  const visibleItemCount = useMemo(() => {
+    if (isSearchMode) return filteredCommands.length;
+    return recentCommands.length + Object.values(allGroupedCommands).flat().length;
+  }, [isSearchMode, filteredCommands.length, recentCommands.length, allGroupedCommands]);
+
   // 键盘事件处理
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "j") {
         e.preventDefault();
-        setSelectedIndex((i) => Math.min(i + 1, commands.length - 1));
+        markKeyboardNav();
+        setSelectedIndex((i) => Math.min(i + 1, visibleItemCount - 1));
         return;
       }
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
+        markKeyboardNav();
         setSelectedIndex((i) => Math.max(i - 1, 0));
         return;
       }
@@ -192,10 +217,12 @@ export default function CommandPalette({ isOpen, onClose, commands }: CommandPal
       switch (e.key) {
         case "ArrowDown":
           e.preventDefault();
-          setSelectedIndex((i) => Math.min(i + 1, commands.length - 1));
+          markKeyboardNav();
+          setSelectedIndex((i) => Math.min(i + 1, visibleItemCount - 1));
           break;
         case "ArrowUp":
           e.preventDefault();
+          markKeyboardNav();
           setSelectedIndex((i) => Math.max(i - 1, 0));
           break;
         case "Enter":
@@ -223,15 +250,16 @@ export default function CommandPalette({ isOpen, onClose, commands }: CommandPal
           break;
         case "Tab":
           e.preventDefault();
+          markKeyboardNav();
           if (e.shiftKey) {
             setSelectedIndex((i) => Math.max(i - 1, 0));
           } else {
-            setSelectedIndex((i) => Math.min(i + 1, commands.length - 1));
+            setSelectedIndex((i) => Math.min(i + 1, visibleItemCount - 1));
           }
           break;
       }
     },
-    [filteredCommands, selectedIndex, onClose, executeCommand, isSearchMode, recentCommands, allGroupedCommands, commands.length]
+    [filteredCommands, selectedIndex, onClose, executeCommand, isSearchMode, recentCommands, allGroupedCommands, visibleItemCount, markKeyboardNav]
   );
 
   if (!isOpen) return null;
@@ -245,8 +273,11 @@ export default function CommandPalette({ isOpen, onClose, commands }: CommandPal
       <div
         key={cmd.id}
         className={`command-palette-item${currentIndex === selectedIndex ? " selected" : ""}`}
-        onClick={() => executeCommand(cmd)}
-        onMouseEnter={() => setSelectedIndex(currentIndex)}
+        onClick={() => {
+          executeCommand(cmd);
+          inputRef.current?.focus();
+        }}
+        onMouseEnter={() => handleItemMouseEnter(currentIndex)}
       >
         <span className="command-palette-item-label">
           {query ? highlightMatch(cmd.label, query) : cmd.label}

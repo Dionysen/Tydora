@@ -1,0 +1,132 @@
+{
+  "nodes": [
+    {
+      "id": "node-1786179290090-x8wtus",
+      "type": "file",
+      "x": -75,
+      "y": 630,
+      "width": 580,
+      "height": 365,
+      "file": "index.md"
+    },
+    {
+      "id": "node-1786179311710-k2hq7t",
+      "type": "file",
+      "x": 630,
+      "y": 630,
+      "width": 595,
+      "height": 365,
+      "file": "05-Navigation-Search/01-Quick-Open.md"
+    },
+    {
+      "id": "node-1786179348688-shod9g",
+      "type": "file",
+      "x": 780,
+      "y": 1125,
+      "width": 625,
+      "height": 380,
+      "file": "02-Editor/02-Markdown-Syntax.md"
+    },
+    {
+      "id": "node-1786179401835-njrtkv",
+      "type": "file",
+      "x": -525,
+      "y": 1125,
+      "width": 580,
+      "height": 380,
+      "file": "03-Knowledge-Management/01-Wiki-Links.md"
+    },
+    {
+      "id": "node-1786179425804-560wu1",
+      "type": "file",
+      "x": 120,
+      "y": 1125,
+      "width": 595,
+      "height": 380,
+      "file": "03-Knowledge-Management/04-Knowledge-Graph.md"
+    },
+    {
+      "id": "node-1786179439619-s3ys44",
+      "type": "file",
+      "x": 480,
+      "y": 1575,
+      "width": 625,
+      "height": 425,
+      "file": "08-Advanced-Features/03-Whiteboard-Canvas.md"
+    },
+    {
+      "id": "node-1786179456858-lkxrwd",
+      "type": "file",
+      "x": -255,
+      "y": 1575,
+      "width": 595,
+      "height": 425,
+      "file": "08-Advanced-Features/01-Publish-Website.md"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1786179481814-z9w5f4",
+      "fromNode": "node-1786179290090-x8wtus",
+      "fromSide": "right",
+      "fromEnd": "none",
+      "toNode": "node-1786179311710-k2hq7t",
+      "toSide": "left",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "edge-1786179542035-043e06",
+      "fromNode": "node-1786179290090-x8wtus",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "node-1786179401835-njrtkv",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "edge-1786179568801-yx2l7m",
+      "fromNode": "node-1786179401835-njrtkv",
+      "fromSide": "right",
+      "fromEnd": "none",
+      "toNode": "node-1786179425804-560wu1",
+      "toSide": "left",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "edge-1786179740518-0yctyj",
+      "fromNode": "node-1786179290090-x8wtus",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "node-1786179425804-560wu1",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "edge-1786179743948-9krug3",
+      "fromNode": "node-1786179290090-x8wtus",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "node-1786179348688-shod9g",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "edge-1786179753968-2jimpt",
+      "fromNode": "node-1786179290090-x8wtus",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "node-1786179456858-lkxrwd",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "edge-1786179757893-8280de",
+      "fromNode": "node-1786179290090-x8wtus",
+      "fromSide": "bottom",
+      "fromEnd": "none",
+      "toNode": "node-1786179439619-s3ys44",
+      "toSide": "top",
+      "toEnd": "arrow"
+    }
+  ]
+}

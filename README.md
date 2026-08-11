@@ -1,6 +1,6 @@
 # Tydora
 
-> 一个现代的桌面 Markdown 编辑器
+> A modern desktop Markdown editor
 
 [![GitHub Stars](https://img.shields.io/github/stars/zuorn/Tydora?style=flat-square)](https://github.com/zuorn/Tydora)
 [![Release](https://img.shields.io/github/v/release/zuorn/Tydora?style=flat-square)](https://github.com/zuorn/Tydora/releases)
@@ -9,95 +9,106 @@
 [![Tauri](https://img.shields.io/badge/Tauri-v2-blue?style=flat-square)](https://v2.tauri.app/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square)](https://react.dev/)
 
+[中文](README_ZH.md) | English
+
 <br />
 
-![zjm.png](./website/zjm.png)
+<table>
+  <tr>
+    <td align="center" width="50%"><img src="website/images/en/01.png" alt="Screenshot 1" width="100%" /></td>
+    <td align="center" width="50%"><img src="website/images/en/02.png" alt="Screenshot 2" width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center" width="50%"><img src="website/images/en/03.png" alt="Screenshot 3" width="100%" /></td>
+    <td align="center" width="50%"><img src="website/images/en/04.png" alt="Screenshot 4" width="100%" /></td>
+  </tr>
+</table>
 
-## 核心特性
+## Core Features
 
-- **双模式编辑** —— WYSIWYG 即时渲染模式（TipTap）与源码模式（CodeMirror 6）无缝切换
-- **WikiLink 双向链接** —— Obsidian 风格的 `[[双向链接]]`，支持反向链接面板和自动补全
-- **知识图谱** —— 基于 D3.js 的力导向图，可视化文档间的链接关系
-- **思维导图** —— 从 Markdown 标题层级自动生成交互式思维导图
-- **白板画布** —— 支持文本、笔记、媒体、URL 等多种节点类型的无限画布
-- **丰富主题** —— 8 种内置主题 + 自定义 CSS 主题导入 + 11 种代码高亮配色
-- **一键发布** —— 将 Vault 发布为静态网站，内置预览服务器
-- **多窗口架构** —— 设置、图谱、思维导图、画布等独立窗口，支持多显示器
+- **Dual-Mode Editing** — Seamlessly switch between WYSIWYG (TipTap) and Source mode (CodeMirror 6)
+- **WikiLink Bidirectional Links** — Obsidian-style `[[backlinks]]` with backlink panel and autocomplete
+- **Knowledge Graph** — D3.js force-directed graph visualizing relationships between documents
+- **Mind Map** — Auto-generated interactive mind map from Markdown heading hierarchy
+- **Infinite Canvas** — Whiteboard canvas supporting text, notes, media, URL, and more node types
+- **Rich Theming** — 8 built-in themes + custom CSS import + 11 code highlighting color schemes
+- **One-Click Publish** — Publish your vault as a static website with a built-in preview server
+- **Multi-Window Architecture** — Settings, graph, mind map, and canvas in independent windows with multi-monitor support
 
-## 技术栈
+## Tech Stack
 
-| 层级  | 技术                                                          |
-| --- | ----------------------------------------------------------- |
-| 前端  | React 19 + TypeScript + Vite 6                              |
-| 编辑器 | TipTap 3.x (WYSIWYG) + CodeMirror 6 (源码)                    |
-| 后端  | Rust (Tauri v2)                                             |
-| 可视化 | D3.js (图谱) + markmap (思维导图) + React Flow (画布)               |
-| 插件  | tauri-plugin-fs / dialog / window-state / updater / process |
+| Layer      | Technology                                                    |
+| ---------- | ------------------------------------------------------------- |
+| Frontend   | React 19 + TypeScript + Vite 6                                |
+| Editor     | TipTap 3.x (WYSIWYG) + CodeMirror 6 (Source)                  |
+| Backend    | Rust (Tauri v2)                                               |
+| Visual     | D3.js (Graph) + markmap (Mind Map) + React Flow (Canvas)      |
+| Plugins    | tauri-plugin-fs / dialog / window-state / updater / process   |
 
-## 快速开始
+## Quick Start
 
-### 环境要求
+### Prerequisites
 
 - [Node.js](https://nodejs.org/) >= 18
 - [Rust](https://www.rust-lang.org/tools/install) >= 1.75
-- Tauri v2 系统依赖（参考 [Tauri Prerequisites](https://v2.tauri.app/start/prerequisites/)）
+- Tauri v2 system dependencies (see [Tauri Prerequisites](https://v2.tauri.app/start/prerequisites/))
 
-### 安装与运行
+### Install & Run
 
 ```bash
-# 克隆仓库
+# Clone the repository
 git clone https://github.com/zuorn/Tydora.git
 cd Tydora
 
-# 安装依赖
+# Install dependencies
 npm install
 
-# 启动开发模式
+# Start development mode
 npm run tauri
 ```
 
-### 构建
+### Build
 
 ```bash
-# 构建生产版本
+# Build for production
 npm run tauri build
 ```
 
-构建产物位于 `src-tauri/target/release/bundle/`。
+Build artifacts are located in `src-tauri/target/release/bundle/`.
 
-## 项目结构
+## Project Structure
 
 ```
 Tydora/
-├── src/                        # 前端源码
-│   ├── App.tsx                 # 主组件，状态管理
-│   ├── Editor/                 # 编辑器模块
-│   │   ├── TipTapEditor.tsx    # WYSIWYG 编辑器
-│   │   └── SourceEditor.tsx    # 源码编辑器
-│   ├── wikilink/               # WikiLink 双向链接系统
-│   ├── graph/                  # 知识图谱
-│   ├── mindmap/                # 思维导图
-│   ├── Canvas/                 # 白板画布
-│   ├── components/             # 共享 UI 组件
-│   ├── publish/                # 发布系统
-│   └── themes/                 # 主题系统
-├── src-tauri/                  # Rust 后端
+├── src/                        # Frontend source
+│   ├── App.tsx                 # Main component & state management
+│   ├── Editor/                 # Editor module
+│   │   ├── TipTapEditor.tsx    # WYSIWYG editor
+│   │   └── SourceEditor.tsx    # Source code editor
+│   ├── wikilink/               # WikiLink bidirectional link system
+│   ├── graph/                  # Knowledge graph
+│   ├── mindmap/                # Mind map
+│   ├── Canvas/                 # Infinite canvas
+│   ├── components/             # Shared UI components
+│   ├── publish/                # Publishing system
+│   └── themes/                 # Theme system
+├── src-tauri/                  # Rust backend
 │   └── src/
-│       ├── lib.rs              # Tauri 命令与插件
-│       └── commands/           # 模块化命令
-├── docs/                       # 项目文档
-└── website/                    # MkDocs 文档站点
+│       ├── lib.rs              # Tauri commands & plugins
+│       └── commands/           # Modular commands
+├── docs/                       # Project documentation
+└── website/                    # MkDocs documentation site
 ```
 
-## 相关文档
+## Documentation
 
-- [技术架构文档](docs/technical-architecture.md)
-- [产品设计文档](docs/product-design.md)
+- [Technical Architecture](docs/technical-architecture.md) (Chinese)
+- [Product Design](docs/product-design.md) (Chinese)
 
-## 贡献
+## Contributing
 
-欢迎提交 Issue 和 Pull Request！请先阅读项目文档了解架构设计。
+Issues and pull requests are welcome! Please read the project documentation to understand the architecture first.
 
-## 许可证
+## License
 
-本项目使用 [Apache License 2.0](LICENSE) 许可证。
+This project is licensed under the [Apache License 2.0](LICENSE).

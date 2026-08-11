@@ -103,6 +103,23 @@ export default function QuickOpen({ vault, vaults, recentFiles, currentFilePath,
   const [searchMode, setSearchMode] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const isKeyboardNavRef = useRef(false);
+  const keyboardNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 标记键盘导航激活，短暂忽略鼠标 hover
+  const markKeyboardNav = useCallback(() => {
+    isKeyboardNavRef.current = true;
+    if (keyboardNavTimerRef.current) clearTimeout(keyboardNavTimerRef.current);
+    keyboardNavTimerRef.current = setTimeout(() => {
+      isKeyboardNavRef.current = false;
+    }, 200);
+  }, []);
+
+  // 鼠标 hover 设置选中项（仅在非键盘导航时生效）
+  const handleItemMouseEnter = useCallback((idx: number) => {
+    if (isKeyboardNavRef.current) return;
+    setSelectedIndex(idx);
+  }, []);
 
   // 将最近访问文件路径转换为 FileItem 格式（使用 useMemo 避免每次渲染创建新数组），并排除当前打开的文件
   const recentFileItems = useMemo(() => recentFiles
@@ -207,12 +224,14 @@ export default function QuickOpen({ vault, vaults, recentFiles, currentFilePath,
       // Ctrl+J 向下选择（Vim 风格）
       if ((e.ctrlKey || e.metaKey) && e.key === "j") {
         e.preventDefault();
+        markKeyboardNav();
         setSelectedIndex((i) => Math.min(i + 1, totalItems - 1));
         return;
       }
       // Ctrl+K 向上选择（Vim 风格）
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
+        markKeyboardNav();
         setSelectedIndex((i) => Math.max(i - 1, 0));
         return;
       }
@@ -220,10 +239,12 @@ export default function QuickOpen({ vault, vaults, recentFiles, currentFilePath,
       switch (e.key) {
         case "ArrowDown":
           e.preventDefault();
+          markKeyboardNav();
           setSelectedIndex((i) => Math.min(i + 1, totalItems - 1));
           break;
         case "ArrowUp":
           e.preventDefault();
+          markKeyboardNav();
           setSelectedIndex((i) => Math.max(i - 1, 0));
           break;
         case "Enter":
@@ -304,8 +325,11 @@ export default function QuickOpen({ vault, vaults, recentFiles, currentFilePath,
                 <div
                   key={file.path}
                   className={`quick-open-item${idx === selectedIndex ? " selected" : ""}`}
-                  onClick={() => onSelect(file.path)}
-                  onMouseEnter={() => setSelectedIndex(idx)}
+                  onClick={() => {
+                    onSelect(file.path);
+                    inputRef.current?.focus();
+                  }}
+                  onMouseEnter={() => handleItemMouseEnter(idx)}
                 >
                   <span className="quick-open-item-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
                   <span className="quick-open-item-name">
@@ -328,8 +352,11 @@ export default function QuickOpen({ vault, vaults, recentFiles, currentFilePath,
                   <div
                     key={`vault-${vault.path}`}
                     className={`quick-open-item${idx === selectedIndex ? " selected" : ""}`}
-                    onClick={() => onSelectVault(vault.path)}
-                    onMouseEnter={() => setSelectedIndex(idx)}
+                    onClick={() => {
+                      onSelectVault(vault.path);
+                      inputRef.current?.focus();
+                    }}
+                    onMouseEnter={() => handleItemMouseEnter(idx)}
                   >
                     <span className="quick-open-item-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
                     <span className="quick-open-item-name">

@@ -59,6 +59,7 @@
     "dialog:allow-confirm",
     "window-state:default",
     "updater:default",
-    "process:default"
+    "process:default",
+    "clipboard-manager:default"
   ]
 }

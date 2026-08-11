@@ -5,6 +5,8 @@ tags: [导航]
 
 # Tydora 帮助文档
 
+> **语言：** **中文** | [English](en/)
+
 欢迎来到 **Tydora 帮助文档**。
 
 Tydora 是一款基于 Tauri v2 + React 19 构建的现代化桌面 Markdown 编辑器，集成了即时渲染（WYSIWYG）与源码双模式编辑、WikiLink 双向链接、知识图谱、思维导图、白板画布等能力，帮助你像搭建「数字花园」一样管理知识。
