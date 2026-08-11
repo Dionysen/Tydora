@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -41,6 +42,7 @@ function saveVaults(vaults: VaultInfo[], activeIndex: number) {
 type ViewMode = "home" | "create";
 
 export default function VaultManagerWindow() {
+  const { t } = useTranslation();
   const [vaults, setVaults] = useState<VaultInfo[]>(loadVaults);
   const [activeIndex, setActiveIndex] = useState<number>(loadActiveIndex);
   const [version, setVersion] = useState("");
@@ -82,13 +84,13 @@ export default function VaultManagerWindow() {
       const selected = await open({
         directory: true,
         multiple: false,
-        title: "选择仓库存放位置",
+        title: t("vaultManager.selectLocation"),
       });
       if (selected) {
         setNewVaultLocation(selected);
       }
     } catch (err) {
-      console.error("选择位置失败:", err);
+      console.error(t("vaultManager.selectLocationFailed"), err);
     }
   }, []);
 
@@ -101,7 +103,7 @@ export default function VaultManagerWindow() {
       // Check if directory already exists
       const dirExists = await exists(vaultPath);
       if (dirExists) {
-        alert("该位置已存在同名文件夹");
+        alert(t("vaultManager.directoryExists"));
         return;
       }
 
@@ -121,7 +123,7 @@ export default function VaultManagerWindow() {
       setViewMode("home");
     } catch (err) {
       console.error("创建仓库失败:", err);
-      alert("创建仓库失败: " + err);
+      alert(t("vaultManager.createFailed") + err);
     }
   }, [newVaultName, newVaultLocation, vaults, notifyChange]);
 
@@ -130,7 +132,7 @@ export default function VaultManagerWindow() {
       const selected = await open({
         directory: true,
         multiple: false,
-        title: "选择本地文件夹作为仓库",
+        title: t("vaultManager.openLocal.dialogTitle"),
       });
       if (selected) {
         const name = selected.split(/[/\\]/).pop() || selected;
@@ -143,7 +145,7 @@ export default function VaultManagerWindow() {
         await notifyChange(newVaults, newIndex);
       }
     } catch (err) {
-      console.error("打开仓库失败:", err);
+      console.error(t("vaultManager.openFailed"), err);
     }
   }, [vaults, notifyChange]);
 
@@ -176,7 +178,7 @@ export default function VaultManagerWindow() {
       const dest = await open({
         directory: true,
         multiple: false,
-        title: "选择目标文件夹（将创建新文件夹）",
+        title: t("vaultManager.moveTargetTitle"),
       });
       if (!dest) {
         setMovingIndex(-1);
@@ -195,7 +197,7 @@ export default function VaultManagerWindow() {
       setMovingIndex(-1);
       await notifyChange(newVaults, activeIndex);
     } catch (err) {
-      console.error("移动仓库失败:", err);
+      console.error(t("vaultManager.moveFailed"), err);
       setMovingIndex(-1);
     }
   }, [vaults, activeIndex, notifyChange]);
@@ -205,14 +207,14 @@ export default function VaultManagerWindow() {
     try {
       await invoke("open_directory", { dirPath: path });
     } catch (err) {
-      console.error("打开文件夹失败:", err);
+      console.error(t("vaultManager.openFolderFailed"), err);
     }
   }, []);
 
   const handleRemove = useCallback(async (index: number) => {
     setMenuOpenIndex(-1);
     const vaultName = vaults[index]?.name || "";
-    const confirmed = confirm(`确定要从列表中移除仓库 "${vaultName}" 吗？\n此操作不会删除本地文件。`);
+    const confirmed = confirm(t("vaultManager.removeConfirm", { name: vaultName }));
     if (!confirmed) return;
 
     const newVaults = vaults.filter((_, i) => i !== index);
@@ -252,31 +254,31 @@ export default function VaultManagerWindow() {
               <path d="M19 12H5" />
               <path d="M12 19l-7-7 7-7" />
             </svg>
-            返回
+            {t("vaultManager.back")}
           </button>
 
           <div className="vault-manager-form">
             <div className="vault-manager-form-group">
-              <label className="vault-manager-form-label">仓库名称</label>
+              <label className="vault-manager-form-label">{t("vaultManager.form.nameLabel")}</label>
               <div className="vault-manager-form-row">
-                <span className="vault-manager-form-hint">给新仓库起一个名字</span>
+                <span className="vault-manager-form-hint">{t("vaultManager.form.nameHint")}</span>
                 <input
                   className="vault-manager-form-input"
                   value={newVaultName}
                   onChange={(e) => setNewVaultName(e.target.value)}
-                  placeholder="仓库名称"
+                  placeholder={t("vaultManager.form.namePlaceholder")}
                 />
               </div>
             </div>
 
             <div className="vault-manager-form-group">
-              <label className="vault-manager-form-label">仓库位置</label>
+              <label className="vault-manager-form-label">{t("vaultManager.form.locationLabel")}</label>
               <div className="vault-manager-form-row">
                 <span className="vault-manager-form-hint">
-                  {newVaultLocation || "指定新仓库的存放位置。"}
+                  {newVaultLocation || t("vaultManager.form.locationHint")}
                 </span>
                 <button className="vault-manager-form-btn" onClick={handleBrowseLocation}>
-                  浏览
+                  {t("vaultManager.form.browse")}
                 </button>
               </div>
             </div>
@@ -287,7 +289,7 @@ export default function VaultManagerWindow() {
             onClick={handleCreateVault}
             disabled={!newVaultName.trim() || !newVaultLocation}
           >
-            创建
+            {t("vaultManager.create")}
           </button>
         </div>
       );
@@ -298,27 +300,31 @@ export default function VaultManagerWindow() {
       <div className="vault-manager-content">
         <img src={appIcon} alt="Tydora" className="vault-manager-icon" />
         <h1 className="vault-manager-title">Tydora</h1>
-        <p className="vault-manager-version">{version ? `版本 v${version}` : ""}</p>
-        <p className="vault-manager-subtitle">一个现代的桌面 Markdown 编辑器，为思考与知识管理而生。<br />轻量、快速、美观。</p>
+        <p className="vault-manager-version">{version ? t("vaultManager.version", { version }) : ""}</p>
+        <p className="vault-manager-subtitle">
+          {t("vaultManager.subtitle").split("\n").map((line, i) => (
+            <span key={i}>{i > 0 && <br />}{line}</span>
+          ))}
+        </p>
 
         <div className="vault-manager-actions">
           <div className="vault-manager-action">
             <div className="vault-manager-action-info">
-              <div className="vault-manager-action-title">新建仓库</div>
-              <div className="vault-manager-action-desc">在指定位置创建一个新的仓库。</div>
+              <div className="vault-manager-action-title">{t("vaultManager.createNew.title")}</div>
+              <div className="vault-manager-action-desc">{t("vaultManager.createNew.desc")}</div>
             </div>
             <button className="vault-manager-btn vault-manager-btn-primary" onClick={() => setViewMode("create")}>
-              创建
+              {t("vaultManager.create")}
             </button>
           </div>
 
           <div className="vault-manager-action">
             <div className="vault-manager-action-info">
-              <div className="vault-manager-action-title">打开本地仓库</div>
-              <div className="vault-manager-action-desc">将一个本地文件夹作为仓库打开。</div>
+              <div className="vault-manager-action-title">{t("vaultManager.openLocal.title")}</div>
+              <div className="vault-manager-action-desc">{t("vaultManager.openLocal.desc")}</div>
             </div>
             <button className="vault-manager-btn" onClick={handleOpenVault}>
-              打开
+              {t("vaultManager.open")}
             </button>
           </div>
         </div>
@@ -363,14 +369,14 @@ export default function VaultManagerWindow() {
                       <div className="vault-manager-item-name">{vault.name}</div>
                       <div className="vault-manager-item-path">{vault.path}</div>
                     </div>
-                    {movingIndex === i && <span className="vault-manager-moving">移动中...</span>}
+                    {movingIndex === i && <span className="vault-manager-moving">{t("vaultManager.moving")}</span>}
                   </div>
                 )}
                 {renamingIndex !== i && (
                   <div className="vault-manager-item-actions">
                     <button
                       className="vault-manager-more-btn"
-                      title="更多操作"
+                      title={t("vaultManager.moreActions")}
                       onClick={(e) => {
                         e.stopPropagation();
                         setMenuOpenIndex(menuOpenIndex === i ? -1 : i);
@@ -385,17 +391,17 @@ export default function VaultManagerWindow() {
                     {menuOpenIndex === i && (
                       <div className="vault-manager-menu">
                         <div className="vault-manager-menu-item" onClick={() => handleRename(i)}>
-                          重命名
+                          {t("vaultManager.rename")}
                         </div>
                         <div className="vault-manager-menu-item" onClick={() => handleMove(i)}>
-                          移动
+                          {t("vaultManager.move")}
                         </div>
                         <div className="vault-manager-menu-item" onClick={() => handleShowInExplorer(vault.path)}>
-                          在资源管理器中显示
+                          {t("vaultManager.showInExplorer")}
                         </div>
                         <div className="vault-manager-menu-divider" />
                         <div className="vault-manager-menu-item vault-manager-menu-danger" onClick={() => handleRemove(i)}>
-                          移除
+                          {t("vaultManager.remove")}
                         </div>
                       </div>
                     )}
@@ -411,12 +417,12 @@ export default function VaultManagerWindow() {
           <div data-tauri-drag-region className="vault-manager-titlebar vault-manager-titlebar-main">
             <div className="vault-manager-titlebar-drag" data-tauri-drag-region />
             <div className="vault-manager-window-controls">
-              <button className="vault-manager-window-btn" onClick={handleMinimize} title="最小化">
+              <button className="vault-manager-window-btn" onClick={handleMinimize} title={t("vaultManager.minimize")}>
                 <svg width="10" height="10" viewBox="0 0 10 10">
                   <line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" strokeWidth="1.2" />
                 </svg>
               </button>
-              <button className="vault-manager-window-btn vault-manager-window-close" onClick={handleClose} title="关闭">
+              <button className="vault-manager-window-btn vault-manager-window-close" onClick={handleClose} title={t("vaultManager.close")}>
                 <svg width="10" height="10" viewBox="0 0 10 10">
                   <line x1="1.5" y1="1.5" x2="8.5" y2="8.5" stroke="currentColor" strokeWidth="1.2" />
                   <line x1="8.5" y1="1.5" x2="1.5" y2="8.5" stroke="currentColor" strokeWidth="1.2" />

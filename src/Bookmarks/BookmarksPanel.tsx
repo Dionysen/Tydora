@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useLayoutEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import type { BookmarkGroup } from "./BookmarksService";
 import * as BookmarksService from "./BookmarksService";
@@ -29,6 +30,7 @@ export function BookmarksPanel({
   onSelectFile,
   onNewWindow,
 }: BookmarksPanelProps) {
+  const { t } = useTranslation();
   const [groups, setGroups] = useState<PanelBookmarkGroup[]>([]);
   const [ctxMenu, setCtxMenu] = useState<ContextMenuState | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
@@ -92,17 +94,17 @@ export function BookmarksPanel({
 
   const handleCopyPath = useCallback((path: string) => {
     navigator.clipboard.writeText(path).then(() => {
-      showToast("路径已复制到剪贴板");
+      showToast(t("toast.pathCopied"));
     }).catch(() => {});
   }, []);
 
   const handleEditTitle = useCallback((bookmarkId: string, currentTitle: string) => {
-    const newTitle = prompt("修改标题（留空则显示原文件名）：", currentTitle);
+    const newTitle = prompt(t("bookmarks.editTitlePrompt"), currentTitle);
     if (newTitle !== null && vaultPath) {
       BookmarksService.updateBookmark(vaultPath, bookmarkId, { title: newTitle });
       loadGroups();
     }
-  }, [vaultPath, loadGroups]);
+  }, [vaultPath, loadGroups, t]);
 
   const handleDeleteGroup = useCallback(
     (groupId: string) => {
@@ -204,7 +206,7 @@ export function BookmarksPanel({
   if (!vaultPath) {
     return (
       <div className="bookmarks-panel">
-        <div className="bookmarks-empty">尚未打开仓库</div>
+        <div className="bookmarks-empty">{t("bookmarks.panel.noVault")}</div>
       </div>
     );
   }
@@ -212,8 +214,8 @@ export function BookmarksPanel({
   if (groups.length === 0 && groups.every((g) => g.bookmarks.length === 0)) {
     return (
       <div className="bookmarks-panel">
-        <div className="bookmarks-empty">暂无书签</div>
-        <div className="bookmarks-empty-hint">右键文件或文件夹可添加书签</div>
+        <div className="bookmarks-empty">{t("bookmarks.panel.empty")}</div>
+        <div className="bookmarks-empty-hint">{t("bookmarks.panel.emptyHint")}</div>
       </div>
     );
   }
@@ -222,8 +224,8 @@ export function BookmarksPanel({
   if (allBookmarksEmpty) {
     return (
       <div className="bookmarks-panel">
-        <div className="bookmarks-empty">暂无书签</div>
-        <div className="bookmarks-empty-hint">右键文件或文件夹可添加书签</div>
+        <div className="bookmarks-empty">{t("bookmarks.panel.empty")}</div>
+        <div className="bookmarks-empty-hint">{t("bookmarks.panel.emptyHint")}</div>
       </div>
     );
   }
@@ -306,7 +308,7 @@ export function BookmarksPanel({
                   );
                 })}
                 {group.bookmarks.length === 0 && (
-                  <div className="bookmarks-empty-small">拖拽书签到此分组</div>
+                  <div className="bookmarks-empty-small">{t("bookmarks.panel.dropHere")}</div>
                 )}
               </div>
             )}
@@ -397,15 +399,15 @@ function BookmarkContextMenu({
 
   if (type === "bookmark" && bookmark) {
     items.push(
-      { label: "在新窗口打开", onClick: () => { onNewWindow(bookmark.path); onClose(); } },
-      { label: "修改标题", onClick: () => { onEditTitle(bookmarkId!, bookmark.title); onClose(); } },
-      { label: "取消收藏", onClick: () => { onDeleteBookmark(bookmarkId!); onClose(); }, danger: true, separator: true },
-      { label: "复制路径", onClick: () => { onCopyPath(bookmark.path); onClose(); } },
+      { label: t("bookmarks.contextMenu.openInNewWindow"), onClick: () => { onNewWindow(bookmark.path); onClose(); } },
+      { label: t("bookmarks.contextMenu.editTitle"), onClick: () => { onEditTitle(bookmarkId!, bookmark.title); onClose(); } },
+      { label: t("bookmarks.contextMenu.unfavorite"), onClick: () => { onDeleteBookmark(bookmarkId!); onClose(); }, danger: true, separator: true },
+      { label: t("bookmarks.contextMenu.copyPath"), onClick: () => { onCopyPath(bookmark.path); onClose(); } },
     );
   } else if (type === "group" && group) {
     items.push(
-      { label: "重命名", onClick: () => { onRenameGroup(groupId!, group.name); onClose(); } },
-      { label: "删除分组", onClick: () => { onDeleteGroup(groupId!); onClose(); }, danger: true },
+      { label: t("bookmarks.contextMenu.rename"), onClick: () => { onRenameGroup(groupId!, group.name); onClose(); } },
+      { label: t("bookmarks.contextMenu.deleteGroup"), onClick: () => { onDeleteGroup(groupId!); onClose(); }, danger: true },
     );
   }
 

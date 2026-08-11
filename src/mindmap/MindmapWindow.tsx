@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { LogicalSize, LogicalPosition } from "@tauri-apps/api/dpi";
 import { availableMonitors } from "@tauri-apps/api/window";
@@ -21,6 +22,7 @@ function getInitialExpandLevel(): number {
 }
 
 export default function MindmapWindow() {
+  const { t } = useTranslation();
   const [content, setContent] = useState(() => {
     try {
       return localStorage.getItem(MINDMAP_CONTENT_KEY) || "# 思维导图\n\n等待内容加载...";
@@ -180,7 +182,7 @@ export default function MindmapWindow() {
           思维导图
         </span>
         <div className="mindmap-window-controls">
-          <button className="mindmap-window-btn" onClick={handleExportImage} title="导出为图片">
+          <button className="mindmap-window-btn" onClick={handleExportImage} title={t("settings.mindmap.exportAsImage")}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="17 8 12 3 7 8" />

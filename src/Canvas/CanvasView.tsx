@@ -1,4 +1,5 @@
 import { useCallback, useRef, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ReactFlow,
   Controls,
@@ -68,6 +69,7 @@ interface CanvasViewProps {
 }
 
 export default function CanvasView({ onNodeClick }: CanvasViewProps) {
+  const { t } = useTranslation();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition, getNodes, getViewport, fitView } = useReactFlow();
   const [canvasSettings] = useState(loadCanvasSettings);
@@ -580,7 +582,7 @@ export default function CanvasView({ onNodeClick }: CanvasViewProps) {
       });
     } catch (err) {
       console.error('Failed to save pasted image:', err);
-      alert('保存图片失败: ' + (err as Error).message);
+      alert(t('canvas.saveImageFailed') + ': ' + (err as Error).message);
     }
   }, [addNode, getViewport, vaultPath]);
 

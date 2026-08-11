@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useReactFlow } from '@xyflow/react';
 import { useCanvasStore } from './canvas-store';
 import NotePicker from './NotePicker';
@@ -24,6 +25,7 @@ interface ContextMenuProps {
 }
 
 interface MenuItem {
+  id?: string;
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
@@ -83,6 +85,7 @@ const Icons = {
 };
 
 export default function CanvasContextMenu({ x, y, onClose }: ContextMenuProps) {
+  const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
   const addNode = useCanvasStore((s) => s.addNode);
@@ -168,7 +171,7 @@ export default function CanvasContextMenu({ x, y, onClose }: ContextMenuProps) {
   }, [handleLinkSubmit, onClose]);
 
   const handleAddGroup = useCallback(() => {
-    addNode('group', getFlowPosition(), { label: '分组' });
+    addNode('group', getFlowPosition(), { label: t("canvas.contextMenu.addGroup") });
     onClose();
   }, [addNode, getFlowPosition, onClose]);
 
@@ -204,14 +207,14 @@ export default function CanvasContextMenu({ x, y, onClose }: ContextMenuProps) {
   }, [onClose]);
 
   const menuItems: MenuItem[] = [
-    { icon: Icons.Card, label: '添加卡片', onClick: handleAddCard },
-    { icon: Icons.Note, label: '添加笔记', onClick: handleAddNote },
-    { icon: Icons.Media, label: '添加媒体文件', onClick: handleAddMedia },
-    { icon: Icons.Link, label: '添加链接', onClick: handleAddLink },
-    { icon: Icons.Group, label: '添加分组', onClick: handleAddGroup },
+    { id: 'addCard', icon: Icons.Card, label: t("canvas.contextMenu.addCard"), onClick: handleAddCard },
+    { id: 'addNote', icon: Icons.Note, label: t("canvas.contextMenu.addNote"), onClick: handleAddNote },
+    { id: 'addMedia', icon: Icons.Media, label: t("canvas.contextMenu.addMedia"), onClick: handleAddMedia },
+    { id: 'addLink', icon: Icons.Link, label: t("canvas.contextMenu.addLink"), onClick: handleAddLink },
+    { id: 'addGroup', icon: Icons.Group, label: t("canvas.contextMenu.addGroup"), onClick: handleAddGroup },
     { icon: null, label: '', onClick: () => {}, divider: true },
-    { icon: Icons.Undo, label: '撤销', onClick: handleUndo },
-    { icon: Icons.Redo, label: '重做', onClick: handleRedo },
+    { id: 'undo', icon: Icons.Undo, label: t("canvas.contextMenu.undo"), onClick: handleUndo },
+    { id: 'redo', icon: Icons.Redo, label: t("canvas.contextMenu.redo"), onClick: handleRedo },
   ];
 
   return (
@@ -230,7 +233,7 @@ export default function CanvasContextMenu({ x, y, onClose }: ContextMenuProps) {
               className="canvas-context-menu-item"
               onClick={item.onClick}
               onMouseDown={(e) => e.stopPropagation()}
-              disabled={item.label === '撤销' && !canUndo()}
+              disabled={item.id === 'undo' && !canUndo()}
             >
               {item.icon}
               <span>{item.label}</span>
@@ -264,7 +267,7 @@ export default function CanvasContextMenu({ x, y, onClose }: ContextMenuProps) {
             ref={linkInputRef}
             className="canvas-link-input"
             type="text"
-            placeholder="输入 URL..."
+            placeholder={t("canvas.contextMenu.enterUrl")}
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
             onKeyDown={handleLinkKeyDown}

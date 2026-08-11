@@ -5,6 +5,7 @@ import { availableMonitors } from "@tauri-apps/api/window";
 import { clampWindowToMonitor } from "./services/windowState";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useTranslation } from "react-i18next";
 import { useTheme, type ThemeName } from "./themes";
 import { loadImageSettings, saveImageSettings, type ImageSettings, type StorageMode, type FilenameFormat } from "./services";
 import { checkForUpdate, downloadAndInstall, relaunchApp, type UpdateInfo } from "./services";
@@ -15,6 +16,8 @@ import { getCustomThemeCss } from "./themes/CustomThemeManager";
 import { CODE_THEMES, type CustomCodeTheme } from "./themes";
 import hljs from "highlight.js";
 import appIcon from "./assets/icon.png";
+import { useLanguage } from "./i18n/LanguageContext";
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "./i18n";
 import "./Settings.css";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -228,13 +231,36 @@ function GeneralSettingsContent({
   settings: GeneralSettings;
   onChange: (s: GeneralSettings) => void;
 }) {
+  const { t } = useTranslation();
+  const { language, setLanguage } = useLanguage();
+
   return (
     <div className="canvas-settings-page">
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">预览区域宽度</span>
-            <span className="canvas-settings-row-desc">编辑器内容区域的最大宽度。</span>
+            <span className="canvas-settings-row-title">{t("settings.appearance.language")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.languageDesc")}</span>
+          </div>
+          <select
+            className="settings-select"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
+          >
+            {SUPPORTED_LANGUAGES.map((lang) => (
+              <option key={lang.code} value={lang.code}>
+                {lang.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="canvas-settings-card">
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.previewMaxWidth")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.previewMaxWidthDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -251,14 +277,14 @@ function GeneralSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">编辑器字体</span>
+            <span className="canvas-settings-row-title">{t("settings.appearance.editorFont")}</span>
           </div>
           <select
             className="settings-select"
             value={settings.editorFont}
             onChange={(e) => onChange({ ...settings, editorFont: e.target.value })}
           >
-            <option value="system-ui, -apple-system, sans-serif">系统默认</option>
+            <option value="system-ui, -apple-system, sans-serif">{t("settings.appearance.systemDefault")}</option>
             <option value="'LXGW WenKai', system-ui, sans-serif">霞鹜文楷</option>
             <option value="'LXGW XinXiHei', system-ui, sans-serif">霞鹜新晰黑</option>
             <option value="'Inter', system-ui, sans-serif">Inter</option>
@@ -270,7 +296,7 @@ function GeneralSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">字体大小</span>
+            <span className="canvas-settings-row-title">{t("settings.appearance.fontSize")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -286,8 +312,8 @@ function GeneralSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">行间距</span>
-            <span className="canvas-settings-row-desc">编辑器正文的行间距。</span>
+            <span className="canvas-settings-row-title">{t("settings.appearance.lineHeight")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.lineHeightDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -307,8 +333,8 @@ function GeneralSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">打字机模式</span>
-            <span className="canvas-settings-row-desc">始终将光标所在行保持在视口中央。</span>
+            <span className="canvas-settings-row-title">{t("settings.appearance.typewriterMode")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.typewriterModeDesc")}</span>
           </div>
           <label className="settings-switch">
             <input
@@ -321,8 +347,8 @@ function GeneralSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">显示行号</span>
-            <span className="canvas-settings-row-desc">在 IR 模式下编辑器右侧显示行号。</span>
+            <span className="canvas-settings-row-title">{t("settings.appearance.showLineNumbers")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.showLineNumbersDesc")}</span>
           </div>
           <label className="settings-switch">
             <input
@@ -338,8 +364,8 @@ function GeneralSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">自动保存</span>
-            <span className="canvas-settings-row-desc">编辑时自动保存文件。</span>
+            <span className="canvas-settings-row-title">{t("settings.appearance.autoSave")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.autoSaveDesc")}</span>
           </div>
           <label className="settings-switch">
             <input
@@ -355,8 +381,8 @@ function GeneralSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">展开侧栏时隐藏顶部栏</span>
-            <span className="canvas-settings-row-desc">开启后，侧栏展开时顶部栏也会自动隐藏，鼠标悬停顶部边缘可临时显示。</span>
+            <span className="canvas-settings-row-title">{t("settings.appearance.autoHideTopbar")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.autoHideTopbarDesc")}</span>
           </div>
           <label className="settings-switch">
             <input
@@ -369,8 +395,8 @@ function GeneralSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">折叠侧栏时隐藏顶部栏</span>
-            <span className="canvas-settings-row-desc">开启后，折叠侧栏时顶部栏也会自动隐藏。关闭后，折叠侧栏时顶部栏保持可见。</span>
+            <span className="canvas-settings-row-title">{t("settings.appearance.autoHideTopbarOnCollapse")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.autoHideTopbarOnCollapseDesc")}</span>
           </div>
           <label className="settings-switch">
             <input
@@ -393,13 +419,14 @@ function MindmapSettingsContent({
   settings: MindmapSettings;
   onChange: (s: MindmapSettings) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="canvas-settings-page">
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">最大节点宽度</span>
-            <span className="canvas-settings-row-desc">节点文字超过此宽度时自动换行。</span>
+            <span className="canvas-settings-row-title">{t("settings.mindmap.maxNodeWidth")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.mindmap.maxNodeWidthDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -416,8 +443,8 @@ function MindmapSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">水平间距</span>
-            <span className="canvas-settings-row-desc">同级节点之间的水平距离。</span>
+            <span className="canvas-settings-row-title">{t("settings.mindmap.horizontalSpacing")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.mindmap.horizontalSpacingDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -434,8 +461,8 @@ function MindmapSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">垂直间距</span>
-            <span className="canvas-settings-row-desc">父子节点之间的垂直距离。</span>
+            <span className="canvas-settings-row-title">{t("settings.mindmap.verticalSpacing")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.mindmap.verticalSpacingDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -451,8 +478,8 @@ function MindmapSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">连线宽度</span>
-            <span className="canvas-settings-row-desc">节点之间连线的粗细。</span>
+            <span className="canvas-settings-row-title">{t("settings.mindmap.edgeWidth")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.mindmap.edgeWidthDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -472,8 +499,8 @@ function MindmapSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">初始展开层级</span>
-            <span className="canvas-settings-row-desc">打开思维导图时默认展开到第几级。</span>
+            <span className="canvas-settings-row-title">{t("settings.mindmap.initialExpandLevel")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.mindmap.initialExpandLevelDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -484,13 +511,13 @@ function MindmapSettingsContent({
               value={settings.initialExpandLevel}
               onChange={(e) => onChange({ ...settings, initialExpandLevel: Number(e.target.value) })}
             />
-            <span className="canvas-settings-unit">{settings.initialExpandLevel === -1 ? "全部" : `第${settings.initialExpandLevel}级`}</span>
+            <span className="canvas-settings-unit">{settings.initialExpandLevel === -1 ? t("settings.mindmap.all") : t("settings.mindmap.expandLevel", { level: settings.initialExpandLevel })}</span>
           </div>
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">动画时长</span>
-            <span className="canvas-settings-row-desc">展开/折叠节点的动画时间。</span>
+            <span className="canvas-settings-row-title">{t("settings.mindmap.animationDuration")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.mindmap.animationDurationDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -507,8 +534,8 @@ function MindmapSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">颜色冻结层级</span>
-            <span className="canvas-settings-row-desc">从第几级开始使用固定颜色。</span>
+            <span className="canvas-settings-row-title">{t("settings.mindmap.colorFreezeLevel")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.mindmap.colorFreezeLevelDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -534,13 +561,14 @@ function GraphSettingsContent({
   settings: GraphSettings;
   onChange: (s: GraphSettings) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="canvas-settings-page">
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">在新窗口中打开</span>
-            <span className="canvas-settings-row-desc">开启后，Ctrl+G 和工具栏按钮将在独立窗口中打开关系图谱。</span>
+            <span className="canvas-settings-row-title">{t("settings.graph.openInNewWindow")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.graph.openInNewWindowDesc")}</span>
           </div>
           <label className="settings-switch">
             <input type="checkbox" checked={settings.openInNewWindow} onChange={(e) => onChange({ ...settings, openInNewWindow: e.target.checked })} />
@@ -551,8 +579,8 @@ function GraphSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">最大节点大小</span>
-            <span className="canvas-settings-row-desc">图谱中节点的最大尺寸。</span>
+            <span className="canvas-settings-row-title">{t("settings.graph.maxNodeSize")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.graph.maxNodeSizeDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -568,8 +596,8 @@ function GraphSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">标签字号</span>
-            <span className="canvas-settings-row-desc">节点标签的文字大小。</span>
+            <span className="canvas-settings-row-title">{t("settings.graph.labelFontSize")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.graph.labelFontSizeDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -585,8 +613,8 @@ function GraphSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">连线距离</span>
-            <span className="canvas-settings-row-desc">节点之间的理想距离。</span>
+            <span className="canvas-settings-row-title">{t("settings.graph.edgeDistance")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.graph.edgeDistanceDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -603,8 +631,8 @@ function GraphSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">斥力强度</span>
-            <span className="canvas-settings-row-desc">节点之间的排斥力，负值越大间距越大。</span>
+            <span className="canvas-settings-row-title">{t("settings.graph.repulsion")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.graph.repulsionDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -621,8 +649,8 @@ function GraphSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">边线透明度</span>
-            <span className="canvas-settings-row-desc">连线的可见程度。</span>
+            <span className="canvas-settings-row-title">{t("settings.graph.edgeOpacity")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.graph.edgeOpacityDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -649,6 +677,7 @@ function ThemeSettingsContent({
   theme: ThemeName;
   setTheme: (t: ThemeName) => void;
 }) {
+  const { t } = useTranslation();
   const { customThemes, importTheme, deleteTheme, updateThemeVariables, codeTheme, setCodeTheme, customCodeThemes, importCodeTheme, deleteCodeTheme } = useTheme();
   const [importing, setImporting] = useState(false);
   const [editingTheme, setEditingTheme] = useState<ThemeManifest | null>(null);
@@ -662,7 +691,7 @@ function ThemeSettingsContent({
   const [codeThemeDialog, setCodeThemeDialog] = useState<{ open: boolean; filePath: string }>({ open: false, filePath: "" });
 
   const builtinThemes: { value: ThemeName; label: string; colors: string[] }[] = [
-    { value: "white", label: "白色", colors: ["#ffffff", "#2563eb", "#1e293b", "#d1d9e6"] },
+    { value: "white", label: t("settings.theme.white"), colors: ["#ffffff", "#2563eb", "#1e293b", "#d1d9e6"] },
     { value: "mint", label: "Mint", colors: ["#ffffff", "#4eb289", "#1e293b", "#a5cfc0"] },
     { value: "mint-dark", label: "Mint Dark", colors: ["#272729", "#4eb289", "#cccccc", "#39393a"] },
     { value: "claude-code", label: "Claude Code", colors: ["#faf8f5", "#c47a2a", "#1a1a1a", "#ddd6cc"] },
@@ -678,18 +707,18 @@ function ThemeSettingsContent({
       const selected = await open({
         filters: [{ name: "CSS", extensions: ["css"] }],
         multiple: false,
-        title: "选择主题文件",
+        title: t("settings.theme.selectThemeFile"),
       });
       if (!selected || typeof selected !== "string") return;
 
       // Extract filename without extension as default name
-      const fileName = selected.split(/[/\\]/).pop() || "自定义主题";
+      const fileName = selected.split(/[/\\]/).pop() || t("settings.theme.customThemeDefaultName");
       const defaultName = fileName.replace(/\.css$/i, "");
 
       setNameDialog({ open: true, filePath: selected, defaultName });
       setThemeName(defaultName);
     } catch (err) {
-      console.error("导入主题失败:", err);
+      console.error(t("settings.theme.importThemeFailed"), err);
     }
   }, []);
 
@@ -701,8 +730,8 @@ function ThemeSettingsContent({
       await importTheme(nameDialog.filePath, name);
       setNameDialog({ open: false, filePath: "", defaultName: "" });
     } catch (err) {
-      console.error("导入主题失败:", err);
-      alert(`导入失败: ${err instanceof Error ? err.message : "未知错误"}`);
+      console.error(t("settings.theme.importThemeFailed"), err);
+      alert(`${t("settings.theme.importThemeFailed")} ${err instanceof Error ? err.message : t("settings.theme.unknownError")}`);
     } finally {
       setImporting(false);
     }
@@ -727,7 +756,7 @@ function ThemeSettingsContent({
       setEditPreview(colors);
       setEditingTheme(manifest);
     } catch (err) {
-      console.error("加载主题失败:", err);
+      console.error(t("settings.theme.loadThemeFailed"), err);
     }
   }, []);
 
@@ -761,10 +790,10 @@ function ThemeSettingsContent({
     const selected = await openDialog({
       filters: [{ name: "CSS", extensions: ["css"] }],
       multiple: false,
-      title: "选择代码主题文件",
+      title: t("settings.theme.selectCodeThemeFile"),
     });
     if (!selected || typeof selected !== "string") return;
-    const fileName = selected.split(/[\\/]/).pop() || "自定义代码主题";
+    const fileName = selected.split(/[\\/]/).pop() || t("settings.theme.customCodeThemeDefaultName");
     const defaultName = fileName.replace(/\.css$/i, "");
     setCodeThemeName(defaultName);
     setCodeThemeDialog({ open: true, filePath: selected });
@@ -772,17 +801,17 @@ function ThemeSettingsContent({
 
   const handleConfirmImportCodeTheme = useCallback(async () => {
     if (!codeThemeDialog.filePath) return;
-    const name = codeThemeName.trim() || "自定义代码主题";
+    const name = codeThemeName.trim() || t("settings.theme.customCodeThemeDefaultName");
     try {
       await importCodeTheme(codeThemeDialog.filePath, name);
       setCodeThemeDialog({ open: false, filePath: "" });
     } catch (err) {
-      console.error("导入代码主题失败:", err);
+      console.error(t("settings.theme.importCodeThemeFailed"), err);
     }
   }, [codeThemeDialog, codeThemeName, importCodeTheme]);
 
   const handleDeleteCodeTheme = useCallback(async (m: CustomCodeTheme) => {
-    if (confirm(`确定要删除代码主题 "${m.name}" 吗？`)) {
+    if (confirm(t("settings.theme.deleteCodeThemeConfirm", { name: m.name }))) {
       await deleteCodeTheme(m.id);
     }
   }, [deleteCodeTheme]);
@@ -793,19 +822,19 @@ function ThemeSettingsContent({
       <div className="settings-section">
         <div className="theme-editor-header">
           <button className="theme-editor-back" onClick={handleCancelEdit}>
-            ← 返回
+            {t("settings.theme.back")}
           </button>
-          <h3 className="settings-section-title" style={{ marginTop: 0 }}>编辑主题: {editingTheme.name}</h3>
+          <h3 className="settings-section-title" style={{ marginTop: 0 }}>{t("settings.theme.editTheme", { name: editingTheme.name })}</h3>
           <div className="theme-editor-actions">
-            <button className="settings-button" onClick={handleSaveEdit}>保存</button>
-            <button className="settings-button theme-editor-cancel" onClick={handleCancelEdit}>取消</button>
+            <button className="settings-button" onClick={handleSaveEdit}>{t("settings.theme.save")}</button>
+            <button className="settings-button theme-editor-cancel" onClick={handleCancelEdit}>{t("settings.theme.cancel")}</button>
           </div>
         </div>
         <div className="theme-editor-preview" style={{ background: editPreview.bg, borderColor: editPreview.accent }}>
           <div className="theme-editor-preview-text" style={{ color: editPreview.bg === "#ffffff" || editPreview.bg.startsWith("oklch(1") ? "#1e293b" : "#ffffff" }}>
-            预览文字
+            {t("settings.theme.previewText")}
           </div>
-          <div className="theme-editor-preview-accent" style={{ background: editPreview.accent }}>强调色</div>
+          <div className="theme-editor-preview-accent" style={{ background: editPreview.accent }}>{t("settings.theme.accent")}</div>
         </div>
         <div className="theme-editor-variables">
           {editVariables.map((v, i) => (
@@ -857,7 +886,7 @@ function ThemeSettingsContent({
 
   return (
     <div className="settings-section">
-      <h3 className="settings-section-title">内置主题</h3>
+      <h3 className="settings-section-title">{t("settings.theme.builtinThemes")}</h3>
       <div className="settings-theme-grid">
         {builtinThemes.map((t) => (
           <div
@@ -900,7 +929,7 @@ function ThemeSettingsContent({
         ))}
       </div>
 
-      <h3 className="settings-section-title">自定义主题</h3>
+      <h3 className="settings-section-title">{t("settings.theme.customThemes")}</h3>
       <div className="settings-theme-grid">
         {customThemes.map((m) => {
           const themeId = `custom-${m.id}`;
@@ -928,7 +957,7 @@ function ThemeSettingsContent({
                 <div className="custom-theme-actions">
                   <button
                     className="custom-theme-edit-btn"
-                    title="编辑主题"
+                    title={t("settings.theme.edit")}
                     onClick={(e) => { e.stopPropagation(); handleStartEdit(m); }}
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -938,7 +967,7 @@ function ThemeSettingsContent({
                   </button>
                   <button
                     className="custom-theme-delete-btn"
-                    title="删除主题"
+                    title={t("settings.theme.delete")}
                     onClick={(e) => { e.stopPropagation(); handleDelete(m); }}
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -963,31 +992,31 @@ function ThemeSettingsContent({
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
           </div>
-          <span className="settings-theme-name">{importing ? "导入中..." : "导入主题"}</span>
+          <span className="settings-theme-name">{importing ? t("settings.theme.importing") : t("settings.theme.importTheme")}</span>
         </div>
       </div>
 
       {customThemes.length === 0 && (
         <p className="settings-hint" style={{ marginTop: 8 }}>
-          点击上方卡片导入 .css 格式的主题文件
+          {t("settings.theme.importThemeHint")}
         </p>
       )}
 
-      <h3 className="settings-section-title">代码主题</h3>
+      <h3 className="settings-section-title">{t("settings.theme.codeTheme")}</h3>
       <div className="settings-code-theme-row">
-        <label className="settings-item-label">代码高亮主题</label>
+        <label className="settings-item-label">{t("settings.theme.codeHighlightTheme")}</label>
         <select
           className="settings-select"
           value={codeTheme}
           onChange={(e) => setCodeTheme(e.target.value)}
         >
-          <option value="auto">跟随应用主题</option>
-          <optgroup label="浅色主题">
+          <option value="auto">{t("settings.theme.followAppTheme")}</option>
+          <optgroup label={t("settings.theme.lightTheme")}>
             {CODE_THEMES.filter((t) => !t.isDark).map((t) => (
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
           </optgroup>
-          <optgroup label="深色主题">
+          <optgroup label={t("settings.theme.darkTheme")}>
             {CODE_THEMES.filter((t) => t.isDark).map((t) => (
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
@@ -995,7 +1024,7 @@ function ThemeSettingsContent({
         </select>
       </div>
       <div className="settings-code-theme-preview">
-        <div className="settings-code-theme-preview-title">预览</div>
+        <div className="settings-code-theme-preview-title">{t("settings.theme.preview")}</div>
         <pre className="settings-code-theme-preview-code">
           <code
             dangerouslySetInnerHTML={{
@@ -1007,7 +1036,7 @@ function ThemeSettingsContent({
         </pre>
       </div>
 
-      <h3 className="settings-section-title">自定义代码主题</h3>
+      <h3 className="settings-section-title">{t("settings.theme.customCodeTheme")}</h3>
       <div className="settings-custom-code-themes">
         {customCodeThemes.map((m) => (
           <div
@@ -1018,7 +1047,7 @@ function ThemeSettingsContent({
             <span className="settings-custom-code-theme-name">{m.name}</span>
             <button
               className="settings-custom-code-theme-delete"
-              title="删除"
+              title={t("settings.theme.deleteBtn")}
               onClick={(e) => { e.stopPropagation(); handleDeleteCodeTheme(m); }}
             >
               ×
@@ -1029,7 +1058,7 @@ function ThemeSettingsContent({
           className="settings-custom-code-theme-card settings-custom-code-theme-add"
           onClick={handleImportCodeTheme}
         >
-          + 导入代码主题
+          {`+ ${t("settings.theme.importCodeTheme")}`}
         </div>
       </div>
 
@@ -1037,14 +1066,14 @@ function ThemeSettingsContent({
       {nameDialog.open && (
         <div className="theme-name-dialog-overlay" onClick={() => setNameDialog({ open: false, filePath: "", defaultName: "" })}>
           <div className="theme-name-dialog" onClick={(e) => e.stopPropagation()}>
-            <h3 className="theme-name-dialog-title">命名主题</h3>
+            <h3 className="theme-name-dialog-title">{t("settings.theme.nameTheme")}</h3>
             <input
               type="text"
               className="theme-name-dialog-input"
               value={themeName}
               onChange={(e) => setThemeName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleConfirmImport(); }}
-              placeholder="输入主题名称..."
+              placeholder={t("settings.theme.nameThemePlaceholder")}
               autoFocus
             />
             <div className="theme-name-dialog-actions">
@@ -1052,14 +1081,14 @@ function ThemeSettingsContent({
                 className="settings-button theme-name-dialog-cancel"
                 onClick={() => setNameDialog({ open: false, filePath: "", defaultName: "" })}
               >
-                取消
+                {t("settings.theme.cancel")}
               </button>
               <button
                 className="settings-button"
                 onClick={handleConfirmImport}
                 disabled={importing}
               >
-                {importing ? "导入中..." : "确认"}
+                {importing ? t("settings.theme.importing") : t("settings.theme.confirm")}
               </button>
             </div>
           </div>
@@ -1070,13 +1099,13 @@ function ThemeSettingsContent({
       {deleteConfirm && (
         <div className="theme-name-dialog-overlay" onClick={() => setDeleteConfirm(null)}>
           <div className="theme-name-dialog" onClick={(e) => e.stopPropagation()}>
-            <h3 className="theme-name-dialog-title">删除主题</h3>
+            <h3 className="theme-name-dialog-title">{t("settings.theme.deleteThemeTitle")}</h3>
             <p style={{ fontSize: 14, color: "var(--text-secondary)", margin: "0 0 16px" }}>
-              确定要删除主题 "{deleteConfirm.name}" 吗？此操作不可撤销。
+              {t("settings.theme.deleteThemeConfirm", { name: deleteConfirm.name })}
             </p>
             <div className="theme-name-dialog-actions">
-              <button className="settings-button theme-name-dialog-cancel" onClick={() => setDeleteConfirm(null)}>取消</button>
-              <button className="settings-button warning" onClick={handleConfirmDelete}>删除</button>
+              <button className="settings-button theme-name-dialog-cancel" onClick={() => setDeleteConfirm(null)}>{t("settings.theme.cancel")}</button>
+              <button className="settings-button warning" onClick={handleConfirmDelete}>{t("settings.theme.deleteBtn")}</button>
             </div>
           </div>
         </div>
@@ -1086,19 +1115,19 @@ function ThemeSettingsContent({
       {codeThemeDialog.open && (
         <div className="theme-name-dialog-overlay" onClick={() => setCodeThemeDialog({ open: false, filePath: "" })}>
           <div className="theme-name-dialog" onClick={(e) => e.stopPropagation()}>
-            <h3 className="theme-name-dialog-title">命名代码主题</h3>
+            <h3 className="theme-name-dialog-title">{t("settings.theme.nameCodeTheme")}</h3>
             <input
               type="text"
               className="theme-name-dialog-input"
               value={codeThemeName}
               onChange={(e) => setCodeThemeName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleConfirmImportCodeTheme(); }}
-              placeholder="输入代码主题名称..."
+              placeholder={t("settings.theme.nameCodeThemePlaceholder")}
               autoFocus
             />
             <div className="theme-name-dialog-actions">
-              <button className="settings-button theme-name-dialog-cancel" onClick={() => setCodeThemeDialog({ open: false, filePath: "" })}>取消</button>
-              <button className="settings-button" onClick={handleConfirmImportCodeTheme}>确认</button>
+              <button className="settings-button theme-name-dialog-cancel" onClick={() => setCodeThemeDialog({ open: false, filePath: "" })}>{t("settings.theme.cancel")}</button>
+              <button className="settings-button" onClick={handleConfirmImportCodeTheme}>{t("settings.theme.confirm")}</button>
             </div>
           </div>
         </div>
@@ -1120,6 +1149,7 @@ function normalizeColorToHex(value: string): string {
 }
 
 function ShortcutsSettingsContent() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [recordingSearch, setRecordingSearch] = useState(false);
   const [shortcuts, setShortcuts] = useState<ShortcutItem[]>(() => {
@@ -1146,12 +1176,79 @@ function ShortcutsSettingsContent() {
   const filteredShortcuts = shortcuts.filter((s) => {
     const query = search.toLowerCase();
     if (!query) return true;
-    if (s.label.toLowerCase().includes(query)) return true;
+    const translatedLabel = shortcutLabelMap[s.id] || s.label;
+    if (translatedLabel.toLowerCase().includes(query)) return true;
     const keysStr = s.keys.join("+").toLowerCase();
     return keysStr.includes(query);
   });
 
   // 按分组整理快捷键
+  const shortcutGroupNames: Record<string, string> = {
+    "格式": t("settings.shortcuts.format", "格式"),
+    "列表": t("settings.shortcuts.list", "列表"),
+    "标题": t("settings.shortcuts.heading", "标题"),
+    "插入": t("settings.shortcuts.insert", "插入"),
+    "表格": t("settings.shortcuts.table", "表格"),
+    "编辑": t("settings.shortcuts.edit", "编辑"),
+    "视图": t("settings.shortcuts.view", "视图"),
+    "模式": t("settings.shortcuts.mode", "模式"),
+    "系统": t("settings.shortcuts.system", "系统"),
+    "介绍": t("settings.shortcuts.intro", "介绍"),
+    "查找替换": t("settings.shortcuts.findReplace", "查找替换"),
+    "窗口": t("settings.shortcuts.window", "窗口"),
+    "其他": t("settings.shortcuts.other"),
+  };
+
+  // 快捷键标签映射（根据 ID 转换为当前语言）
+  const shortcutLabelMap: Record<string, string> = {
+    bold: t("settings.shortcuts.labels.bold"),
+    italic: t("settings.shortcuts.labels.italic"),
+    strike: t("settings.shortcuts.labels.strike"),
+    "inline-code": t("settings.shortcuts.labels.inline-code"),
+    "code-block": t("settings.shortcuts.labels.code-block"),
+    link: t("settings.shortcuts.labels.link"),
+    highlight: t("settings.shortcuts.labels.highlight"),
+    quote: t("settings.shortcuts.labels.quote"),
+    hr: t("settings.shortcuts.labels.hr"),
+    "unordered-list": t("settings.shortcuts.labels.unordered-list"),
+    "ordered-list": t("settings.shortcuts.labels.ordered-list"),
+    "check-list": t("settings.shortcuts.labels.check-list"),
+    indent: t("settings.shortcuts.labels.indent"),
+    outdent: t("settings.shortcuts.labels.outdent"),
+    "task-toggle": t("settings.shortcuts.labels.task-toggle"),
+    "heading-1": t("settings.shortcuts.labels.heading-1"),
+    "heading-2": t("settings.shortcuts.labels.heading-2"),
+    "heading-3": t("settings.shortcuts.labels.heading-3"),
+    "heading-4": t("settings.shortcuts.labels.heading-4"),
+    "heading-5": t("settings.shortcuts.labels.heading-5"),
+    "heading-6": t("settings.shortcuts.labels.heading-6"),
+    paragraph: t("settings.shortcuts.labels.paragraph"),
+    table: t("settings.shortcuts.labels.table"),
+    "insert-before": t("settings.shortcuts.labels.insert-before"),
+    "insert-after": t("settings.shortcuts.labels.insert-after"),
+    "table-row-above": t("settings.shortcuts.labels.table-row-above"),
+    "table-row-below": t("settings.shortcuts.labels.table-row-below"),
+    "table-col-left": t("settings.shortcuts.labels.table-col-left"),
+    "table-col-right": t("settings.shortcuts.labels.table-col-right"),
+    "table-row-delete": t("settings.shortcuts.labels.table-row-delete"),
+    "table-col-delete": t("settings.shortcuts.labels.table-col-delete"),
+    "table-align-left": t("settings.shortcuts.labels.table-align-left"),
+    "table-align-center": t("settings.shortcuts.labels.table-align-center"),
+    "table-align-right": t("settings.shortcuts.labels.table-align-right"),
+    undo: t("settings.shortcuts.labels.undo"),
+    redo: t("settings.shortcuts.labels.redo"),
+    "select-all": t("settings.shortcuts.labels.select-all"),
+    "toggle-sidebar": t("settings.shortcuts.labels.toggle-sidebar"),
+    fullscreen: t("settings.shortcuts.labels.fullscreen"),
+    "split-view": t("settings.shortcuts.labels.split-view"),
+    typewriter: t("settings.shortcuts.labels.typewriter"),
+    "open-mindmap": t("settings.shortcuts.labels.open-mindmap"),
+    "mode-ir": t("settings.shortcuts.labels.mode-ir"),
+    "mode-sv": t("settings.shortcuts.labels.mode-sv"),
+    escape: t("settings.shortcuts.labels.escape"),
+    "quick-open": t("settings.shortcuts.labels.quick-open"),
+    "command-palette": t("settings.shortcuts.labels.command-palette"),
+  };
   const groupedShortcuts = filteredShortcuts.reduce<Record<string, ShortcutItem[]>>((acc, shortcut) => {
     const group = shortcut.group || "其他";
     if (!acc[group]) acc[group] = [];
@@ -1243,7 +1340,7 @@ function ShortcutsSettingsContent() {
   };
 
   const resetAll = () => {
-    if (confirm("确定要重置所有快捷键为默认值吗？")) {
+    if (confirm(t("settings.shortcuts.resetConfirm"))) {
       setShortcuts([...DEFAULT_SHORTCUTS]);
     }
   };
@@ -1255,7 +1352,7 @@ function ShortcutsSettingsContent() {
           <input
             type="text"
             className="settings-search"
-            placeholder={recordingSearch ? "请按下快捷键..." : "搜索快捷键..."}
+            placeholder={recordingSearch ? t("settings.shortcuts.keyRecordingPlaceholder") : t("settings.shortcuts.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             readOnly={recordingSearch}
@@ -1270,7 +1367,7 @@ function ShortcutsSettingsContent() {
                 setRecordingSearch(true);
               }
             }}
-            title={recordingSearch ? "取消录制" : "按键录制搜索"}
+            title={recordingSearch ? t("settings.shortcuts.cancelRecording") : t("settings.shortcuts.keyRecordingSearch")}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="6" width="20" height="12" rx="2" />
@@ -1279,16 +1376,16 @@ function ShortcutsSettingsContent() {
           </button>
         </div>
         <button className="settings-reset-all-btn" onClick={resetAll}>
-          重置所有
+          {t("settings.shortcuts.resetAll")}
         </button>
       </div>
       <div className="settings-shortcuts-list">
         {Object.entries(groupedShortcuts).map(([group, items]) => (
           <div key={group} className="settings-shortcut-group">
-            <h4 className="settings-shortcut-group-title">{group}</h4>
+            <h4 className="settings-shortcut-group-title">{shortcutGroupNames[group] || group}</h4>
             {items.map((shortcut) => (
               <div key={shortcut.id} className="settings-shortcut-item">
-                <span className="settings-shortcut-label">{shortcut.label}</span>
+                <span className="settings-shortcut-label">{shortcutLabelMap[shortcut.id] || shortcut.label}</span>
                 <div className="settings-shortcut-actions">
                   <div
                     className={`settings-shortcut-keys${editingId === shortcut.id ? " editing" : ""}`}
@@ -1304,7 +1401,7 @@ function ShortcutsSettingsContent() {
                             </span>
                           ))
                         ) : (
-                          <span className="settings-shortcut-hint">按下快捷键...</span>
+                          <span className="settings-shortcut-hint">{t("settings.shortcuts.pressKeys")}</span>
                         )}
                         <button className="settings-shortcut-save" onClick={(e) => { e.stopPropagation(); saveShortcut(); }}>
                           ✓
@@ -1326,7 +1423,7 @@ function ShortcutsSettingsContent() {
                     <button
                       className="settings-shortcut-reset"
                       onClick={() => resetShortcut(shortcut.id)}
-                      title="重置为默认"
+                      title={t("settings.shortcuts.resetToDefault")}
                     >
                       ↺
                     </button>
@@ -1348,6 +1445,7 @@ function ImageSettingsContent({
   settings: ImageSettings;
   onChange: (s: ImageSettings) => void;
 }) {
+  const { t } = useTranslation();
   const handleSelectDirectory = async () => {
     const selected = await open({ directory: true, multiple: false });
     if (selected && typeof selected === "string") {
@@ -1360,17 +1458,17 @@ function ImageSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">图片存储位置</span>
-            <span className="canvas-settings-row-desc">选择图片的存储方式。</span>
+            <span className="canvas-settings-row-title">{t("settings.image.storageMode")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.image.storageModeDesc")}</span>
           </div>
           <select
             className="settings-select"
             value={settings.storageMode}
             onChange={(e) => onChange({ ...settings, storageMode: e.target.value as StorageMode })}
           >
-            <option value="vault-assets">仓库 assets 目录</option>
-            <option value="fixed-directory">固定本地目录</option>
-            <option value="image-bed">图床上传（后续支持）</option>
+            <option value="vault-assets">{t("settings.image.vaultAssets")}</option>
+            <option value="fixed-directory">{t("settings.image.fixedLocal")}</option>
+            <option value="image-bed">{t("settings.image.uploadLater")}</option>
           </select>
         </div>
       </div>
@@ -1379,8 +1477,8 @@ function ImageSettingsContent({
         <div className="canvas-settings-card">
           <div className="canvas-settings-row">
             <div className="canvas-settings-row-label">
-              <span className="canvas-settings-row-title">文件命名格式</span>
-              <span className="canvas-settings-row-desc">粘贴图片时的文件命名方式。</span>
+              <span className="canvas-settings-row-title">{t("settings.image.filenameFormat")}</span>
+              <span className="canvas-settings-row-desc">{t("settings.image.filenameFormatDesc")}</span>
             </div>
             <select
               className="settings-select"
@@ -1390,15 +1488,15 @@ function ImageSettingsContent({
                 local: { ...settings.local, filenameFormat: e.target.value as FilenameFormat },
               })}
             >
-              <option value="original">原始名称</option>
-              <option value="timestamp">时间戳</option>
-              <option value="both">原始名称 + 时间戳</option>
+              <option value="original">{t("settings.image.originalName")}</option>
+              <option value="timestamp">{t("settings.image.timestamp")}</option>
+              <option value="both">{t("settings.image.originalAndTimestamp")}</option>
             </select>
           </div>
           <div className="canvas-settings-row">
             <div className="canvas-settings-row-label">
-              <span className="canvas-settings-row-title">自动创建 assets 目录</span>
-              <span className="canvas-settings-row-desc">如果 assets 目录不存在则自动创建。</span>
+              <span className="canvas-settings-row-title">{t("settings.image.autoCreateAssets")}</span>
+              <span className="canvas-settings-row-desc">{t("settings.image.autoCreateAssetsDesc")}</span>
             </div>
             <label className="settings-switch">
               <input
@@ -1419,20 +1517,20 @@ function ImageSettingsContent({
         <div className="canvas-settings-card">
           <div className="canvas-settings-row">
             <div className="canvas-settings-row-label">
-              <span className="canvas-settings-row-title">存储路径</span>
-              <span className="canvas-settings-row-desc">选择本地目录存储图片。</span>
+              <span className="canvas-settings-row-title">{t("settings.image.storagePath")}</span>
+              <span className="canvas-settings-row-desc">{t("settings.image.storagePathDesc")}</span>
             </div>
             <div className="canvas-settings-row-control">
               <input
                 type="text"
                 className="settings-input"
                 value={settings.fixedDirectory.path}
-                placeholder="选择目录..."
+                placeholder={t("settings.image.selectDir")}
                 readOnly
                 style={{ maxWidth: 200 }}
               />
               <button className="settings-button" onClick={handleSelectDirectory}>
-                选择
+                {t("settings.image.select")}
               </button>
             </div>
           </div>
@@ -1460,8 +1558,8 @@ function ImageSettingsContent({
         <div className="canvas-settings-card">
           <div className="canvas-settings-row">
             <div className="canvas-settings-row-label">
-              <span className="canvas-settings-row-title">图床功能</span>
-              <span className="canvas-settings-row-desc">图床上传功能将在后续版本中支持，敬请期待。</span>
+              <span className="canvas-settings-row-title">{t("settings.image.uploadFeature")}</span>
+              <span className="canvas-settings-row-desc">{t("settings.image.uploadFeatureDesc")}</span>
             </div>
           </div>
         </div>
@@ -1478,6 +1576,7 @@ function EditorSettingsContent({
   settings: EditorSettings;
   onChange: (s: EditorSettings) => void;
 }) {
+  const { t } = useTranslation();
   const update = <K extends keyof EditorSettings>(key: K, value: EditorSettings[K]) =>
     onChange({ ...settings, [key]: value });
 
@@ -1486,29 +1585,29 @@ function EditorSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">默认编辑模式</span>
-            <span className="canvas-settings-row-desc">新建文件时使用的编辑模式。</span>
+            <span className="canvas-settings-row-title">{t("settings.editor.defaultMode")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.editor.defaultModeDesc")}</span>
           </div>
           <select
             className="settings-select"
             value={settings.defaultMode}
             onChange={(e) => update("defaultMode", e.target.value as EditorSettings["defaultMode"])}
           >
-            <option value="ir">即时渲染</option>
-            <option value="sv">源码</option>
+            <option value="ir">{t("settings.editor.instantRender")}</option>
+            <option value="sv">{t("settings.editor.source")}</option>
           </select>
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">字数统计类型</span>
+            <span className="canvas-settings-row-title">{t("settings.editor.wordCountType")}</span>
           </div>
           <select
             className="settings-select"
             value={settings.counterType}
             onChange={(e) => update("counterType", e.target.value as EditorSettings["counterType"])}
           >
-            <option value="markdown">Markdown（含语法符号）</option>
-            <option value="text">纯文本（仅文字）</option>
+            <option value="markdown">{t("settings.editor.markdown")}</option>
+            <option value="text">{t("settings.editor.plainText")}</option>
           </select>
         </div>
       </div>
@@ -1516,7 +1615,7 @@ function EditorSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">Callout 提示块</span>
+            <span className="canvas-settings-row-title">{t("settings.editor.callout")}</span>
             <span className="canvas-settings-row-desc">{'> [!NOTE]'}</span>
           </div>
           <label className="settings-switch">
@@ -1526,7 +1625,7 @@ function EditorSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">Mermaid 图表</span>
+            <span className="canvas-settings-row-title">{t("settings.editor.mermaid")}</span>
             <span className="canvas-settings-row-desc">flowchart / sequence / ...</span>
           </div>
           <label className="settings-switch">
@@ -1536,7 +1635,7 @@ function EditorSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">WikiLink 双向链接</span>
+            <span className="canvas-settings-row-title">{t("settings.editor.wikilink")}</span>
             <span className="canvas-settings-row-desc">[[note]]</span>
           </div>
           <label className="settings-switch">
@@ -1546,7 +1645,7 @@ function EditorSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">YAML Frontmatter</span>
+            <span className="canvas-settings-row-title">{t("settings.editor.yaml")}</span>
             <span className="canvas-settings-row-desc">--- 元数据 ---</span>
           </div>
           <label className="settings-switch">
@@ -1556,7 +1655,7 @@ function EditorSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">表格浮动工具栏</span>
+            <span className="canvas-settings-row-title">{t("settings.editor.tableToolbar")}</span>
           </div>
           <label className="settings-switch">
             <input type="checkbox" checked={settings.tableToolbar} onChange={(e) => update("tableToolbar", e.target.checked)} />
@@ -1568,7 +1667,7 @@ function EditorSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-desc">扩展功能设置修改后需重新打开文件才会完全生效。</span>
+            <span className="canvas-settings-row-desc">{t("settings.editor.restartNotice")}</span>
           </div>
         </div>
       </div>
@@ -1583,6 +1682,7 @@ function CanvasSettingsContent({
   settings: CanvasSettings;
   onChange: (s: CanvasSettings) => void;
 }) {
+  const { t } = useTranslation();
   const handleChange = (key: keyof CanvasSettings, value: any) => {
     onChange({ ...settings, [key]: value });
   };
@@ -1593,23 +1693,23 @@ function CanvasSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">新建白板文件的默认位置</span>
+            <span className="canvas-settings-row-title">{t("settings.canvas.defaultLocation")}</span>
           </div>
           <select
             className="settings-select"
             value={settings.storageLocation}
             onChange={(e) => handleChange('storageLocation', e.target.value)}
           >
-            <option value="vault-root">仓库的根目录</option>
-            <option value="current-folder">当前文件所在的文件夹</option>
-            <option value="custom-folder">指定附件文件夹</option>
+            <option value="vault-root">{t("settings.canvas.vaultRoot")}</option>
+            <option value="current-folder">{t("settings.canvas.currentFolder")}</option>
+            <option value="custom-folder">{t("settings.canvas.attachmentFolder")}</option>
           </select>
         </div>
         {settings.storageLocation === 'custom-folder' && (
           <div className="canvas-settings-row canvas-settings-row-nested">
             <div className="canvas-settings-row-label">
-              <span className="canvas-settings-row-title">附件文件夹路径</span>
-              <span className="canvas-settings-row-desc">相对于仓库根目录</span>
+              <span className="canvas-settings-row-title">{t("settings.canvas.attachmentPath")}</span>
+              <span className="canvas-settings-row-desc">{t("settings.canvas.attachmentPathDesc")}</span>
             </div>
             <input
               type="text"
@@ -1626,8 +1726,8 @@ function CanvasSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">对齐网格</span>
-            <span className="canvas-settings-row-desc">移动和缩放卡片时对齐背景网格。</span>
+            <span className="canvas-settings-row-title">{t("settings.canvas.snapToGrid")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.canvas.snapToGridDesc")}</span>
           </div>
           <label className="settings-switch">
             <input
@@ -1641,7 +1741,7 @@ function CanvasSettingsContent({
         {settings.snapToGrid && (
           <div className="canvas-settings-row canvas-settings-row-nested">
             <div className="canvas-settings-row-label">
-              <span className="canvas-settings-row-title">网格大小</span>
+              <span className="canvas-settings-row-title">{t("settings.canvas.gridSize")}</span>
             </div>
             <div className="canvas-settings-row-control">
               <input
@@ -1658,8 +1758,8 @@ function CanvasSettingsContent({
         )}
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">对齐物体</span>
-            <span className="canvas-settings-row-desc">移动和缩放卡片时对齐邻近物体。</span>
+            <span className="canvas-settings-row-title">{t("settings.canvas.snapToObjects")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.canvas.snapToObjectsDesc")}</span>
           </div>
           <label className="settings-switch">
             <input
@@ -1676,8 +1776,8 @@ function CanvasSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">隐藏卡片内容的缩放阈值</span>
-            <span className="canvas-settings-row-desc">较小的数值会提升性能但在缩放时会更快隐藏卡片内容。</span>
+            <span className="canvas-settings-row-title">{t("settings.canvas.hideContentThreshold")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.canvas.hideContentThresholdDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -1693,8 +1793,8 @@ function CanvasSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">启用小地图</span>
-            <span className="canvas-settings-row-desc">在白板角落显示小地图导航。</span>
+            <span className="canvas-settings-row-title">{t("settings.canvas.enableMinimap")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.canvas.enableMinimapDesc")}</span>
           </div>
           <label className="settings-switch">
             <input
@@ -1708,23 +1808,23 @@ function CanvasSettingsContent({
         {settings.minimapEnabled && (
           <div className="canvas-settings-row canvas-settings-row-nested">
             <div className="canvas-settings-row-label">
-              <span className="canvas-settings-row-title">小地图位置</span>
+              <span className="canvas-settings-row-title">{t("settings.canvas.minimapPosition")}</span>
             </div>
             <select
               className="settings-select"
               value={settings.minimapPosition}
               onChange={(e) => handleChange('minimapPosition', e.target.value)}
             >
-              <option value="top-left">左上角</option>
-              <option value="bottom-left">左下角</option>
-              <option value="bottom-right">右下角</option>
+              <option value="top-left">{t("settings.canvas.topLeft")}</option>
+              <option value="bottom-left">{t("settings.canvas.bottomLeft")}</option>
+              <option value="bottom-right">{t("settings.canvas.bottomRight")}</option>
             </select>
           </div>
         )}
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">最小缩放</span>
-            <span className="canvas-settings-row-desc">允许的最小缩放比例。</span>
+            <span className="canvas-settings-row-title">{t("settings.canvas.minZoom")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.canvas.minZoomDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -1740,8 +1840,8 @@ function CanvasSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">最大缩放</span>
-            <span className="canvas-settings-row-desc">允许的最大缩放比例。</span>
+            <span className="canvas-settings-row-title">{t("settings.canvas.maxZoom")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.canvas.maxZoomDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -1761,7 +1861,7 @@ function CanvasSettingsContent({
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">文本卡片</span>
+            <span className="canvas-settings-row-title">{t("settings.canvas.textCard")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -1788,7 +1888,7 @@ function CanvasSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">笔记卡片</span>
+            <span className="canvas-settings-row-title">{t("settings.canvas.noteCard")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -1815,7 +1915,7 @@ function CanvasSettingsContent({
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">多媒体卡片</span>
+            <span className="canvas-settings-row-title">{t("settings.canvas.mediaCard")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -1846,6 +1946,7 @@ function CanvasSettingsContent({
 }
 
 function AboutSettingsContent() {
+  const { t } = useTranslation();
   const [version, setVersion] = useState<string>("");
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateResult, setUpdateResult] = useState<{ available: boolean; info?: UpdateInfo } | null>(null);
@@ -1878,33 +1979,33 @@ function AboutSettingsContent() {
       });
       await relaunchApp();
     } catch (e) {
-      console.error("更新失败:", e);
+      console.error(`${t("settings.about.updateFailed")}`, e);
       setDownloading(false);
     }
-  }, [updateResult]);
+  }, [updateResult, t]);
 
   return (
     <div className="settings-section">
       <div className="settings-about-header">
         <img src={appIcon} alt="Tydora" className="settings-about-icon" />
         <h2 className="settings-about-title">Tydora</h2>
-        <p className="settings-about-subtitle">一个现代的桌面 Markdown 编辑器，为思考与知识管理而生。<br />轻量、快速、美观。</p>
+        <p className="settings-about-subtitle">{t("settings.about.description")}<br />{t("settings.about.lightweight")}</p>
       </div>
 
       <div className="settings-item">
-        <label className="settings-item-label">版本信息</label>
-        <span className="settings-about-value">{version ? `v${version}` : "加载中..."}</span>
+        <label className="settings-item-label">{t("settings.about.versionInfo")}</label>
+        <span className="settings-about-value">{version ? `v${version}` : t("settings.about.loading")}</span>
       </div>
 
       <div className="settings-item">
-        <label className="settings-item-label">检查更新</label>
+        <label className="settings-item-label">{t("settings.about.checkUpdate")}</label>
         {downloading ? (
           <span className="settings-about-value">
-            下载中...{downloadProgress.total ? ` ${Math.round(downloadProgress.downloaded / downloadProgress.total * 100)}%` : ""}
+            {t("settings.about.downloading")}{downloadProgress.total ? ` ${Math.round(downloadProgress.downloaded / downloadProgress.total * 100)}%` : ""}
           </span>
         ) : updateResult?.available && updateResult.info ? (
           <button className="settings-button" onClick={handleDownload}>
-            更新到 v{updateResult.info.version}
+            {t("settings.about.updateTo", { version: updateResult.info.version })}
           </button>
         ) : (
           <button
@@ -1912,24 +2013,24 @@ function AboutSettingsContent() {
             onClick={handleCheckUpdate}
             disabled={checkingUpdate}
           >
-            {checkingUpdate ? "检查中..." : updateResult && !updateResult.available ? "已是最新版本" : "检查更新"}
+            {checkingUpdate ? t("settings.about.checking") : updateResult && !updateResult.available ? t("settings.about.alreadyLatest") : t("settings.about.checkUpdate")}
           </button>
         )}
       </div>
 
       <div className="settings-item">
-        <label className="settings-item-label">GitHub</label>
+        <label className="settings-item-label">{t("settings.about.github")}</label>
         <span
           className="settings-link"
           style={{ cursor: "pointer" }}
           onClick={() => invoke("open_url", { url: "https://github.com/zuorn/Tydora" })}
         >
-          访问 GitHub 仓库
+          {t("settings.about.visitRepo")}
         </span>
       </div>
 
       <div className="settings-item">
-        <label className="settings-item-label">问题反馈</label>
+        <label className="settings-item-label">{t("settings.about.feedback")}</label>
         <span
           className="settings-link"
           style={{ cursor: "pointer" }}
@@ -1947,6 +2048,7 @@ function AboutSettingsContent() {
 const SETTINGS_WINDOW_STATE_KEY = "zmd-settings-window-state";
 
 export default function Settings() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
     try {
       const saved = localStorage.getItem("zmd-settings-initial-tab") as SettingsTab | null;
@@ -2117,15 +2219,15 @@ export default function Settings() {
   // Navigation groups with search terms
   const navGroups: NavGroup[] = [
     {
-      title: "通用",
+      title: t("settings.tabs.groupGeneral"),
       items: [
-        { id: "general", label: "通用", icon: (
+        { id: "general", label: t("settings.tabs.general"), icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="3" />
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
           </svg>
         ), searchTerms: ["通用", "general", "外观", "字体", "编辑设置"] },
-        { id: "theme", label: "主题", icon: (
+        { id: "theme", label: t("settings.tabs.theme"), icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="13.5" cy="6.5" r="0.5" fill="currentColor" stroke="none" />
             <circle cx="17.5" cy="10.5" r="0.5" fill="currentColor" stroke="none" />
@@ -2134,13 +2236,13 @@ export default function Settings() {
             <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
           </svg>
         ), searchTerms: ["主题", "theme", "颜色", "自定义主题", "代码主题"] },
-        { id: "shortcuts", label: "快捷键", icon: (
+        { id: "shortcuts", label: t("settings.tabs.shortcuts"), icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="2" y="4" width="20" height="16" rx="2" />
             <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10" />
           </svg>
         ), searchTerms: ["快捷键", "shortcuts", "键盘", "热键"] },
-        { id: "image", label: "图像", icon: (
+        { id: "image", label: t("settings.tabs.image"), icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
             <circle cx="8.5" cy="8.5" r="1.5" />
@@ -2150,14 +2252,14 @@ export default function Settings() {
       ]
     },
     {
-      title: "功能",
+      title: t("settings.tabs.groupFeatures"),
       items: [
-        { id: "mindmap", label: "思维导图", icon: (
+        { id: "mindmap", label: t("settings.tabs.mindmap"), icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M20 4a1 1 0 0 1 0 2h-2.7a7.4 7.4 0 0 0-7.2 6H20a1 1 0 0 1 0 2h-9.9a7.4 7.4 0 0 0 7.2 6H20a1 1 0 0 1 0 2h-2.7a9.4 9.4 0 0 1-9.2-8H4a1 1 0 0 1 0-2h4.1a9.4 9.4 0 0 1 9.2-8H20z" />
           </svg>
         ), searchTerms: ["思维导图", "mindmap", "脑图", "布局", "节点"] },
-        { id: "graph", label: "关系图谱", icon: (
+        { id: "graph", label: t("settings.tabs.graph"), icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="5" r="3" />
             <circle cx="5" cy="19" r="3" />
@@ -2167,14 +2269,14 @@ export default function Settings() {
             <line x1="7.5" y1="19" x2="16.5" y2="19" />
           </svg>
         ), searchTerms: ["关系图谱", "graph", "知识图谱", "链接图"] },
-        { id: "canvas", label: "白板", icon: (
+        { id: "canvas", label: t("settings.tabs.canvas"), icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2" />
             <path d="M3 9h18" />
             <path d="M9 21V9" />
           </svg>
         ), searchTerms: ["白板", "canvas", "画布", "卡片"] },
-        { id: "publish", label: "发布", icon: (
+        { id: "publish", label: t("settings.tabs.publish"), icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 2L11 13" />
             <path d="M22 2l-7 20-4-9-9-4 20-7z" />
@@ -2183,9 +2285,9 @@ export default function Settings() {
       ]
     },
     {
-      title: "关于",
+      title: t("settings.tabs.groupAbout"),
       items: [
-        { id: "about", label: "关于", icon: (
+        { id: "about", label: t("settings.tabs.about"), icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="16" x2="12" y2="12" />
@@ -2228,7 +2330,7 @@ export default function Settings() {
               <input
                 type="text"
                 className="settings-nav-search-input"
-                placeholder="搜索设置..."
+                placeholder={t("settings.searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -2236,7 +2338,7 @@ export default function Settings() {
                 <button
                   className="settings-nav-search-clear"
                   onClick={() => setSearchQuery('')}
-                  title="清除搜索"
+                  title={t("settings.searchClear")}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -2270,7 +2372,7 @@ export default function Settings() {
                   <path d="m21 21-4.35-4.35" />
                   <path d="M8 11h6" />
                 </svg>
-                <span>未找到匹配的设置</span>
+                <span>{t("settings.noResults")}</span>
               </div>
             )}
           </div>
@@ -2281,11 +2383,11 @@ export default function Settings() {
           {/* 内容区域顶部栏 */}
           <div className="settings-main-topbar" data-tauri-drag-region>
             <div className="settings-titlebar-controls">
-              <button
-                className="settings-titlebar-btn settings-titlebar-close"
-                onClick={handleClose}
-                title="关闭"
-              >
+<button
+  className="settings-titlebar-btn settings-titlebar-close"
+  onClick={handleClose}
+  title={t("settings.close")}
+>
                 <svg width="14" height="14" viewBox="0 0 10 10">
                   <line x1="1.5" y1="1.5" x2="8.5" y2="8.5" stroke="currentColor" strokeWidth="1.4" />
                   <line x1="8.5" y1="1.5" x2="1.5" y2="8.5" stroke="currentColor" strokeWidth="1.4" />

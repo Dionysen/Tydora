@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo, Component } from "react";
+import { useTranslation } from "react-i18next";
 import { getCurrentWindow, availableMonitors } from "@tauri-apps/api/window";
 import { LogicalSize, LogicalPosition } from "@tauri-apps/api/dpi";
 import { clampWindowToMonitor } from "./services/windowState";
@@ -100,6 +101,7 @@ function isMarkdownFile(fileName: string): boolean {
 
 function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string | null; initialVaultPath?: string | null }) {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const [content, setContent] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [modified, setModified] = useState(false);
@@ -539,8 +541,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         pushContentToEditor(text);
       })
       .catch((e) => {
-        console.error("打开文件失败:", e);
-        const errText = `> 打开文件失败: ${String(e)}\n\n路径: ${initialFilePath}`;
+        console.error(t("app.error.openFileFailed"), e);
+        const errText = `> Failed to open file: ${String(e)}\n\nPath: ${initialFilePath}`;
         setContent(errText);
         setFileName(initialFilePath);
         pushContentToEditor(errText);
@@ -582,7 +584,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                pushContentToEditor(text);
             })
             .catch((e) => {
-              console.error("通过事件打开文件失败:", e);
+              console.error(t("app.error.openFileFailedEvent"), e);
               const errText = `> 打开文件失败: ${String(e)}\n\n路径: ${filePath}`;
               setContent(errText);
               setFileName(filePath);
@@ -590,7 +592,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
             });
         });
       } catch (e) {
-        console.error("监听 open-file 事件失败:", e);
+        console.error(t("app.error.listenEventFailed"), e);
       }
     })();
     return () => { unlisten?.(); };
@@ -692,7 +694,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       });
       await relaunchApp();
     } catch (e) {
-      console.error("更新失败:", e);
+      console.error(t("settings.about.updateFailed"), e);
       setUpdateDownloading(false);
     }
   }, [updateInfo]);
@@ -777,7 +779,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         try { localStorage.setItem("zmd-link-index", LinkIndexService.serialize()); } catch {}
       }
     } catch (e) {
-      console.error("保存失败:", e);
+      console.error(t("app.error.saveFailed"), e);
     }
   }, []);
 
@@ -827,7 +829,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           try { localStorage.setItem("zmd-link-index", LinkIndexService.serialize()); } catch {}
         }
       } catch (e) {
-        console.error("自动保存失败:", e);
+        console.error(t("app.error.autoSaveFailed"), e);
       }
     }, 1000);
     return () => clearTimeout(timer);
@@ -1006,7 +1008,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         });
       }
     } catch (e) {
-      console.error("打开文件失败:", e);
+      console.error(t("app.error.openFileFailed"), e);
     }
   }, [activeVaultIndex, vaults]);
 
@@ -1061,7 +1063,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       try {
         await writeTextFile(fileName, content);
       } catch (e) {
-        console.error("自动保存失败:", e);
+        console.error(t("app.error.autoSaveFailed"), e);
       }
     }
     if (pendingFilePath) {
@@ -1126,7 +1128,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         height,
       });
     } catch (err) {
-      console.error("打开新窗口失败:", err);
+      console.error(t("app.error.openNewWindowFailed"), err);
     }
   }, []);
 
@@ -1141,7 +1143,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     const oldName = fileName.split(/[/\\]/).pop() || '';
     const ext = oldName.includes('.') ? `.${oldName.split('.').pop()}` : '.md';
     const baseName = ext === '.md' ? oldName.replace(/\.md$/, '') : oldName.slice(0, oldName.lastIndexOf('.'));
-    const newBaseName = window.prompt('输入新文件名', baseName);
+    const newBaseName = window.prompt(t("app.rename.prompt"), baseName);
     if (!newBaseName || newBaseName === baseName) return;
     const parentDir = fileName.replace(/[/\\][^/\\]*$/, '');
     const newPath = `${parentDir}/${newBaseName}${ext}`;
@@ -1155,7 +1157,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       setTreeRefreshKey(k => k + 1);
       handleSelectFile(newPath);
     } catch (err) {
-      console.error('重命名失败:', err);
+      console.error(t("app.error.renameFailed"), err);
     }
     setMoreMenuOpen(false);
   }, [fileName, handleSelectFile, vaults, activeVaultIndex]);
@@ -1180,7 +1182,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     try {
       await invoke("open_file_location", { filePath: fileName });
     } catch (err) {
-      console.error('打开文件位置失败:', err);
+      console.error(t("app.error.openLocationFailed"), err);
     }
     setMoreMenuOpen(false);
   }, [fileName]);
@@ -1625,7 +1627,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       setExportPreview({ format, artifact });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      alert("导出预览失败：" + msg);
+      alert(t("app.export.exportFailed") + msg);
     } finally {
       setExporting(false);
     }
@@ -1647,43 +1649,43 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         setShowExportFormatPicker(false);
       }, 600);
     } catch {
-      alert("复制失败，请重试");
+      alert(t("app.export.copyFailed"));
     }
   }, []);
 
   // ── 命令面板命令列表 ──
   const commands = useMemo(() => [
     // 文件操作
-    { id: "save", label: "保存文件", category: "文件", shortcut: "Ctrl+S", action: handleSave },
-    { id: "open", label: "打开文件", category: "文件", shortcut: "Ctrl+O", action: () => { if (activeVaultIndex >= 0) setQuickOpenOpen(true); } },
-    { id: "new-window", label: "新窗口打开", category: "文件", action: () => { if (fileName) handleNewWindow(fileName); } },
+    { id: "save", label: t("app.command.labels.saveFile"), category: t("app.command.categories.file"), shortcut: "Ctrl+S", action: handleSave },
+    { id: "open", label: t("app.command.labels.openFile"), category: t("app.command.categories.file"), shortcut: "Ctrl+O", action: () => { if (activeVaultIndex >= 0) setQuickOpenOpen(true); } },
+    { id: "new-window", label: t("app.command.labels.openInNewWindow"), category: t("app.command.categories.file"), action: () => { if (fileName) handleNewWindow(fileName); } },
 
     // 编辑操作
-    { id: "undo", label: "撤销", category: "编辑", shortcut: "Ctrl+Z", action: () => editorHandleRef.current?.executeCommand("undo") },
-    { id: "redo", label: "重做", category: "编辑", shortcut: "Ctrl+Y", action: () => editorHandleRef.current?.executeCommand("redo") },
+    { id: "undo", label: t("app.command.labels.undo"), category: t("app.command.categories.edit"), shortcut: "Ctrl+Z", action: () => editorHandleRef.current?.executeCommand("undo") },
+    { id: "redo", label: t("app.command.labels.redo"), category: t("app.command.categories.edit"), shortcut: "Ctrl+Y", action: () => editorHandleRef.current?.executeCommand("redo") },
 
     // 视图操作
-    { id: "toggle-sidebar", label: "切换侧栏", category: "视图", shortcut: "Ctrl+\\", action: handleSidebarToggle },
-    { id: "toggle-mode", label: "切换编辑模式", category: "视图", shortcut: "Ctrl+/", action: cycleMode },
-    { id: "toggle-typewriter", label: "切换打字机模式", category: "视图", shortcut: "Ctrl+Alt+T", action: toggleTypewriterMode },
-    { id: "open-mindmap", label: "打开思维导图", category: "视图", shortcut: "Ctrl+M", action: () => {
+    { id: "toggle-sidebar", label: t("app.command.labels.toggleSidebar"), category: t("app.command.categories.view"), shortcut: "Ctrl+\\", action: handleSidebarToggle },
+    { id: "toggle-mode", label: t("app.command.labels.toggleEditMode"), category: t("app.command.categories.view"), shortcut: "Ctrl+/", action: cycleMode },
+    { id: "toggle-typewriter", label: t("app.command.labels.toggleTypewriter"), category: t("app.command.categories.view"), shortcut: "Ctrl+Alt+T", action: toggleTypewriterMode },
+    { id: "open-mindmap", label: t("app.command.labels.openMindmap"), category: t("app.command.categories.view"), shortcut: "Ctrl+M", action: () => {
       localStorage.setItem("zmd-mindmap-mode", "document");
       localStorage.setItem("zmd-mindmap-content", content);
       invoke("open_mindmap_window");
     }},
-    { id: "open-graph", label: "打开知识图谱", category: "视图", action: () => {
+    { id: "open-graph", label: t("app.command.labels.openGraph"), category: t("app.command.categories.view"), action: () => {
       if (getGraphSettings().openInNewWindow) {
         invoke("open_graph_window");
       } else {
         setGraphViewOpen(true);
       }
     }},
-    { id: "open-vault", label: "知识库", category: "视图", aliases: ["knowledge base", "vault", "仓库", "仓库管理"], action: () => invoke("open_vault_manager_window") },
+    { id: "open-vault", label: t("app.command.labels.vaultManager"), category: t("app.command.categories.view"), aliases: t("app.command.aliases.vaultManager").split(", "), action: () => invoke("open_vault_manager_window") },
     // 已打开的知识仓库——输入仓库名称即可在新窗口打开
     ...vaults.map((vault) => ({
       id: `open-vault-window-${vault.path}`,
-      label: `在新窗口打开「${vault.name}」知识库`,
-      category: "视图",
+      label: t("app.command.labels.openVaultInNewWindow", { name: vault.name }),
+      category: t("app.command.categories.view"),
       aliases: [vault.name],
       action: async () => {
         const win = getCurrentWindow();
@@ -1691,66 +1693,66 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         invoke("open_vault_in_new_window", { vaultPath: vault.path, width: size.width / scale, height: size.height / scale });
       },
     })),
-    { id: "publish", label: "发布为网站", category: "工具", action: () => setPublishOpen(true) },
+    { id: "publish", label: t("app.command.labels.publishWebsite"), category: t("app.command.categories.tools"), action: () => setPublishOpen(true) },
     // 复制和导出 — 通过命令面板直接触发各格式导出/复制
-    { id: "copy-markdown", label: "复制为 Markdown", category: "导出", aliases: ["markdown", "md", "复制", "copy", "拷贝"], action: handleCopyAsMarkdown },
-    { id: "copy-wechat", label: "复制公众号", category: "导出", aliases: ["wechat", "公众号", "微信", "复制", "copy"], action: () => handleExportRef.current("wechat") },
-    { id: "export-pdf", label: "导出为 PDF", category: "导出", aliases: ["pdf", "导出"], action: () => handleExportRef.current("pdf") },
-    { id: "export-html", label: "导出为 HTML", category: "导出", aliases: ["html", "网页", "导出"], action: () => handleExportRef.current("html") },
-    { id: "export-docx", label: "导出为 Word", category: "导出", aliases: ["word", "docx", "文档", "导出"], action: () => handleExportRef.current("docx") },
-    { id: "export-png", label: "导出为图片", category: "导出", aliases: ["png", "图片", "图像", "导出"], action: () => handleExportRef.current("png") },
+    { id: "copy-markdown", label: t("app.command.labels.copyMarkdown"), category: t("app.command.categories.export"), aliases: t("app.command.aliases.copyMarkdown").split(", "), action: handleCopyAsMarkdown },
+    { id: "copy-wechat", label: t("app.command.labels.copyWechat"), category: t("app.command.categories.export"), aliases: t("app.command.aliases.copyWechat").split(", "), action: () => handleExportRef.current("wechat") },
+    { id: "export-pdf", label: t("app.command.labels.exportPdf"), category: t("app.command.categories.export"), aliases: t("app.command.aliases.exportPdf").split(", "), action: () => handleExportRef.current("pdf") },
+    { id: "export-html", label: t("app.command.labels.exportHtml"), category: t("app.command.categories.export"), aliases: t("app.command.aliases.exportHtml").split(", "), action: () => handleExportRef.current("html") },
+    { id: "export-docx", label: t("app.command.labels.exportWord"), category: t("app.command.categories.export"), aliases: t("app.command.aliases.exportWord").split(", "), action: () => handleExportRef.current("docx") },
+    { id: "export-png", label: t("app.command.labels.exportImage"), category: t("app.command.categories.export"), aliases: t("app.command.aliases.exportImage").split(", "), action: () => handleExportRef.current("png") },
 
     // 编辑模式
-    { id: "mode-ir", label: viewMode === "ir" ? "即时渲染模式 ✓" : "切换到即时渲染模式", category: "模式", aliases: ["ir", "即时渲染", "编辑模式"], action: () => setViewMode("ir") },
-    { id: "mode-sv", label: viewMode === "sv" ? "源码模式 ✓" : "切换到源码模式", category: "模式", aliases: ["sv", "源码", "source", "编辑模式"], action: () => setViewMode("sv") },
+    { id: "mode-ir", label: viewMode === "ir" ? t("app.command.labels.irModeActive") : t("app.command.labels.irMode"), category: t("app.command.categories.mode"), aliases: t("app.command.aliases.irMode").split(", "), action: () => setViewMode("ir") },
+    { id: "mode-sv", label: viewMode === "sv" ? t("app.command.labels.svModeActive") : t("app.command.labels.svMode"), category: t("app.command.categories.mode"), aliases: t("app.command.aliases.svMode").split(", "), action: () => setViewMode("sv") },
 
     // 格式化
-    { id: "bold", label: "加粗", category: "格式", shortcut: "Ctrl+B", action: () => editorHandleRef.current?.executeCommand("bold") },
-    { id: "italic", label: "斜体", category: "格式", shortcut: "Ctrl+I", action: () => editorHandleRef.current?.executeCommand("italic") },
-    { id: "strike", label: "删除线", category: "格式", shortcut: "Ctrl+D", action: () => editorHandleRef.current?.executeCommand("strike") },
-    { id: "inline-code", label: "行内代码", category: "格式", shortcut: "Ctrl+G", action: () => editorHandleRef.current?.executeCommand("inline-code") },
-    { id: "code-block", label: "代码块", category: "格式", shortcut: "Ctrl+U", action: () => editorHandleRef.current?.executeCommand("code") },
-    { id: "link", label: "超链接", category: "格式", shortcut: "Ctrl+K", action: () => editorHandleRef.current?.executeCommand("link") },
-    { id: "quote", label: "引用", category: "格式", shortcut: "Ctrl+;", action: () => editorHandleRef.current?.executeCommand("quote") },
-    { id: "hr", label: "水平分割线", category: "格式", shortcut: "Ctrl+Shift+H", action: () => editorHandleRef.current?.executeCommand("line") },
-    { id: "table", label: "表格", category: "格式", shortcut: "Ctrl+T", action: () => editorHandleRef.current?.executeCommand("table") },
+    { id: "bold", label: t("app.command.labels.bold"), category: t("app.command.categories.format"), shortcut: "Ctrl+B", action: () => editorHandleRef.current?.executeCommand("bold") },
+    { id: "italic", label: t("app.command.labels.italic"), category: t("app.command.categories.format"), shortcut: "Ctrl+I", action: () => editorHandleRef.current?.executeCommand("italic") },
+    { id: "strike", label: t("app.command.labels.strikethrough"), category: t("app.command.categories.format"), shortcut: "Ctrl+D", action: () => editorHandleRef.current?.executeCommand("strike") },
+    { id: "inline-code", label: t("app.command.labels.inlineCode"), category: t("app.command.categories.format"), shortcut: "Ctrl+G", action: () => editorHandleRef.current?.executeCommand("inline-code") },
+    { id: "code-block", label: t("app.command.labels.codeBlock"), category: t("app.command.categories.format"), shortcut: "Ctrl+U", action: () => editorHandleRef.current?.executeCommand("code") },
+    { id: "link", label: t("app.command.labels.link"), category: t("app.command.categories.format"), shortcut: "Ctrl+K", action: () => editorHandleRef.current?.executeCommand("link") },
+    { id: "quote", label: t("app.command.labels.quote"), category: t("app.command.categories.format"), shortcut: "Ctrl+;", action: () => editorHandleRef.current?.executeCommand("quote") },
+    { id: "hr", label: t("app.command.labels.horizontalRule"), category: t("app.command.categories.format"), shortcut: "Ctrl+Shift+H", action: () => editorHandleRef.current?.executeCommand("line") },
+    { id: "table", label: t("app.command.labels.table"), category: t("app.command.categories.format"), shortcut: "Ctrl+T", action: () => editorHandleRef.current?.executeCommand("table") },
 
     // 列表
-    { id: "unordered-list", label: "无序列表", category: "列表", shortcut: "Ctrl+L", action: () => editorHandleRef.current?.executeCommand("list") },
-    { id: "ordered-list", label: "有序列表", category: "列表", shortcut: "Ctrl+O", action: () => editorHandleRef.current?.executeCommand("ordered-list") },
-    { id: "check-list", label: "任务列表", category: "列表", shortcut: "Ctrl+J", action: () => editorHandleRef.current?.executeCommand("check") },
+    { id: "unordered-list", label: t("app.command.labels.unorderedList"), category: t("app.command.categories.list"), shortcut: "Ctrl+L", action: () => editorHandleRef.current?.executeCommand("list") },
+    { id: "ordered-list", label: t("app.command.labels.orderedList"), category: t("app.command.categories.list"), shortcut: "Ctrl+O", action: () => editorHandleRef.current?.executeCommand("ordered-list") },
+    { id: "check-list", label: t("app.command.labels.taskList"), category: t("app.command.categories.list"), shortcut: "Ctrl+J", action: () => editorHandleRef.current?.executeCommand("check") },
 
     // 标题
-    { id: "heading-1", label: "一级标题", category: "标题", shortcut: "Ctrl+Alt+1", action: () => editorHandleRef.current?.executeCommand("heading-1") },
-    { id: "heading-2", label: "二级标题", category: "标题", shortcut: "Ctrl+Alt+2", action: () => editorHandleRef.current?.executeCommand("heading-2") },
-    { id: "heading-3", label: "三级标题", category: "标题", shortcut: "Ctrl+Alt+3", action: () => editorHandleRef.current?.executeCommand("heading-3") },
-    { id: "heading-4", label: "四级标题", category: "标题", shortcut: "Ctrl+Alt+4", action: () => editorHandleRef.current?.executeCommand("heading-4") },
-    { id: "heading-5", label: "五级标题", category: "标题", shortcut: "Ctrl+Alt+5", action: () => editorHandleRef.current?.executeCommand("heading-5") },
-    { id: "heading-6", label: "六级标题", category: "标题", shortcut: "Ctrl+Alt+6", action: () => editorHandleRef.current?.executeCommand("heading-6") },
-    { id: "paragraph", label: "段落", category: "标题", action: () => editorHandleRef.current?.executeCommand("paragraph") },
+    { id: "heading-1", label: t("app.command.labels.h1"), category: t("app.command.categories.heading"), shortcut: "Ctrl+Alt+1", action: () => editorHandleRef.current?.executeCommand("heading-1") },
+    { id: "heading-2", label: t("app.command.labels.h2"), category: t("app.command.categories.heading"), shortcut: "Ctrl+Alt+2", action: () => editorHandleRef.current?.executeCommand("heading-2") },
+    { id: "heading-3", label: t("app.command.labels.h3"), category: t("app.command.categories.heading"), shortcut: "Ctrl+Alt+3", action: () => editorHandleRef.current?.executeCommand("heading-3") },
+    { id: "heading-4", label: t("app.command.labels.h4"), category: t("app.command.categories.heading"), shortcut: "Ctrl+Alt+4", action: () => editorHandleRef.current?.executeCommand("heading-4") },
+    { id: "heading-5", label: t("app.command.labels.h5"), category: t("app.command.categories.heading"), shortcut: "Ctrl+Alt+5", action: () => editorHandleRef.current?.executeCommand("heading-5") },
+    { id: "heading-6", label: t("app.command.labels.h6"), category: t("app.command.categories.heading"), shortcut: "Ctrl+Alt+6", action: () => editorHandleRef.current?.executeCommand("heading-6") },
+    { id: "paragraph", label: t("app.command.labels.paragraph"), category: t("app.command.categories.heading"), action: () => editorHandleRef.current?.executeCommand("paragraph") },
 
     // 插入
-    { id: "upload", label: "插入图像", category: "插入", action: () => editorHandleRef.current?.executeCommand("upload") },
-    { id: "footnotes", label: "插入脚注", category: "插入", action: () => editorHandleRef.current?.executeCommand("footnotes") },
-    { id: "toc", label: "插入目录", category: "插入", action: () => editorHandleRef.current?.executeCommand("toc") },
-    { id: "math", label: "插入公式", category: "插入", action: () => editorHandleRef.current?.executeCommand("math") },
+    { id: "upload", label: t("app.command.labels.insertImage"), category: t("app.command.categories.insert"), action: () => editorHandleRef.current?.executeCommand("upload") },
+    { id: "footnotes", label: t("app.command.labels.insertFootnote"), category: t("app.command.categories.insert"), action: () => editorHandleRef.current?.executeCommand("footnotes") },
+    { id: "toc", label: t("app.command.labels.insertToc"), category: t("app.command.categories.insert"), action: () => editorHandleRef.current?.executeCommand("toc") },
+    { id: "math", label: t("app.command.labels.insertFormula"), category: t("app.command.categories.insert"), action: () => editorHandleRef.current?.executeCommand("math") },
 
     // 窗口操作
-    { id: "minimize", label: "最小化窗口", category: "窗口", action: handleMinimize },
-    { id: "maximize", label: "最大化窗口", category: "窗口", action: handleToggleMaximize },
-    { id: "close", label: "关闭窗口", category: "窗口", action: handleClose },
+    { id: "minimize", label: t("app.command.labels.minimizeWindow"), category: t("app.command.categories.window"), action: handleMinimize },
+    { id: "maximize", label: t("app.command.labels.maximizeWindow"), category: t("app.command.categories.window"), action: handleToggleMaximize },
+    { id: "close", label: t("app.command.labels.closeWindow"), category: t("app.command.categories.window"), action: handleClose },
 
     // 设置
-    { id: "open-settings", label: "打开设置", category: "设置", action: () => invoke("open_settings_window") },
-    { id: "settings-general", label: "通用设置", category: "设置", aliases: ["通用", "general"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "general"); invoke("open_settings_window"); } },
-    { id: "settings-theme", label: "主题设置", category: "设置", aliases: ["主题", "theme", "颜色", "外观"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "theme"); invoke("open_settings_window"); } },
-    { id: "settings-shortcuts", label: "快捷键设置", category: "设置", aliases: ["快捷键", "shortcuts", "键盘"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "shortcuts"); invoke("open_settings_window"); } },
-    { id: "settings-mindmap", label: "思维导图设置", category: "设置", aliases: ["思维导图", "mindmap"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "mindmap"); invoke("open_settings_window"); } },
-    { id: "settings-graph", label: "关系图谱设置", category: "设置", aliases: ["图谱", "graph", "关系"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "graph"); invoke("open_settings_window"); } },
-    { id: "settings-image", label: "图像设置", category: "设置", aliases: ["图像", "image", "图片"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "image"); invoke("open_settings_window"); } },
-    { id: "settings-canvas", label: "白板设置", category: "设置", aliases: ["白板", "canvas", "画布"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "canvas"); invoke("open_settings_window"); } },
-    { id: "settings-about", label: "关于", category: "设置", aliases: ["about", "版本"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "about"); invoke("open_settings_window"); } },
-  ], [handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, handleMinimize, handleToggleMaximize, handleClose, setViewMode, viewMode, vaults, handleCopyAsMarkdown]);
+    { id: "open-settings", label: t("app.command.labels.openSettings"), category: t("app.command.categories.settings"), action: () => invoke("open_settings_window") },
+    { id: "settings-general", label: t("app.command.labels.generalSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.generalSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "general"); invoke("open_settings_window"); } },
+    { id: "settings-theme", label: t("app.command.labels.themeSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.themeSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "theme"); invoke("open_settings_window"); } },
+    { id: "settings-shortcuts", label: t("app.command.labels.shortcutSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.shortcutSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "shortcuts"); invoke("open_settings_window"); } },
+    { id: "settings-mindmap", label: t("app.command.labels.mindmapSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.mindmapSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "mindmap"); invoke("open_settings_window"); } },
+    { id: "settings-graph", label: t("app.command.labels.graphSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.graphSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "graph"); invoke("open_settings_window"); } },
+    { id: "settings-image", label: t("app.command.labels.imageSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.imageSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "image"); invoke("open_settings_window"); } },
+    { id: "settings-canvas", label: t("app.command.labels.canvasSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.canvasSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "canvas"); invoke("open_settings_window"); } },
+    { id: "settings-about", label: t("app.command.labels.about"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.about").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "about"); invoke("open_settings_window"); } },
+  ], [t, handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, setViewMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings]);
 
   return (
     <div className="app">
@@ -1781,7 +1783,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           {/* 顶部透明栏 */}
           <div className="editor-topbar">
             <div className="editor-topbar-left">
-              <button className="sidebar-toggle-btn" onClick={handleSidebarToggle} title={sidebarOpen ? "折叠侧栏" : "展开侧栏"}>
+              <button className="sidebar-toggle-btn" onClick={handleSidebarToggle} title={sidebarOpen ? t("app.toolbar.collapseSidebar") : t("app.toolbar.expandSidebar")}>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                   {sidebarOpen ? (
                     <>
@@ -1798,7 +1800,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                 </svg>
               </button>
               {updateInfo && !updateDownloading && (
-                <button className="update-btn" onClick={handleUpdateDownload} title={`有新版本 v${updateInfo.version}`}>
+                <button className="update-btn" onClick={handleUpdateDownload} title={`New version v${updateInfo.version}`}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="7 10 12 15 17 10" />
@@ -1810,7 +1812,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
               {updateDownloading && (
                 <div className="update-progress">
                   <div className="update-progress-text">
-                    下载中...{updateProgress.total ? ` ${Math.round(updateProgress.downloaded / updateProgress.total * 100)}%` : ""}
+                    {t("app.update.downloading")}{updateProgress.total ? ` ${Math.round(updateProgress.downloaded / updateProgress.total * 100)}%` : ""}
                   </div>
                   {updateProgress.total && (
                     <div className="update-progress-bar">
@@ -1826,7 +1828,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
             </span>
             <div className="window-controls">
               {pinnedItems.mindmap && (
-                <button className="window-control-btn" title="思维导图" onClick={() => {
+                <button className="window-control-btn" title={t("app.toolbar.mindmap")} onClick={() => {
                   localStorage.setItem("zmd-mindmap-mode", "document");
                   localStorage.setItem("zmd-mindmap-content", content);
                   invoke("open_mindmap_window");
@@ -1837,7 +1839,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                 </button>
               )}
               {pinnedItems.graph && (
-                <button className="window-control-btn" title="关系图谱" onClick={() => {
+                <button className="window-control-btn" title={t("app.toolbar.graph")} onClick={() => {
                   if (getGraphSettings().openInNewWindow) {
                     invoke("open_graph_window");
                   } else {
@@ -1857,7 +1859,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
               {pinnedItems.export && (
                 <button
                   className="window-control-btn"
-                  title="复制和导出"
+                  title={t("app.toolbar.exportAndCopy")}
                   disabled={viewMode === "sv" || exporting}
                   onClick={() => {
                     if (viewMode === "sv" || exporting) return;
@@ -1873,7 +1875,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                 </button>
               )}
               <div className="editor-topbar-more-wrapper" ref={moreMenuRef}>
-                <button className="window-control-btn" title="更多" onClick={() => setMoreMenuOpen((v) => !v)}>
+                <button className="window-control-btn" title={t("app.toolbar.more")} onClick={() => setMoreMenuOpen((v) => !v)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <circle cx="5" cy="12" r="2" />
                     <circle cx="12" cy="12" r="2" />
@@ -1889,7 +1891,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="15 18 9 12 15 6" />
                       </svg>
-                      后退
+                      {t("app.menu.back")}
                     </div>
                     <div
                       className={`editor-topbar-more-menu-item${historyIndex >= fileHistory.length - 1 ? ' disabled' : ''}`}
@@ -1898,7 +1900,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="9 18 15 12 9 6" />
                       </svg>
-                      前进
+                      {t("app.menu.forward")}
                     </div>
                     <div className="editor-topbar-more-menu-divider" />
                     <div
@@ -1911,7 +1913,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                         <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
                       </svg>
-                      <span className="editor-topbar-more-menu-label">查找</span>
+                      <span className="editor-topbar-more-menu-label">{t("app.menu.find")}</span>
                     </div>
                     <div
                       className="editor-topbar-more-menu-item"
@@ -1926,7 +1928,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                         <path d="M16 4v16"/>
                         <polyline points="12 16 16 20 20 16"/>
                       </svg>
-                      <span className="editor-topbar-more-menu-label">替换</span>
+                      <span className="editor-topbar-more-menu-label">{t("app.menu.replace")}</span>
                     </div>
                     <div className="editor-topbar-more-menu-divider" />
                     <div
@@ -1936,7 +1938,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
                       </svg>
-                      <span className="editor-topbar-more-menu-label">收藏</span>
+                      <span className="editor-topbar-more-menu-label">{t("app.menu.favorite")}</span>
                     </div>
                     <div
                       className={`editor-topbar-more-menu-item${!fileName ? ' disabled' : ''}`}
@@ -1947,7 +1949,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                         <line x1="3" y1="9" x2="21" y2="9" />
                         <line x1="9" y1="21" x2="9" y2="9" />
                       </svg>
-                      <span className="editor-topbar-more-menu-label">在新窗口中打开</span>
+                      <span className="editor-topbar-more-menu-label">{t("app.menu.openInNewWindow")}</span>
                     </div>
                     <div
                       className={`editor-topbar-more-menu-item${!fileName ? ' disabled' : ''}`}
@@ -1956,27 +1958,27 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polygon points="16 3 21 8 8 21 3 21 3 16" />
                       </svg>
-                      <span className="editor-topbar-more-menu-label">重命名</span>
+                      <span className="editor-topbar-more-menu-label">{t("app.menu.rename")}</span>
                     </div>
                     <div className={`editor-topbar-more-menu-item has-submenu${!fileName ? ' disabled' : ''}`}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                       </svg>
-                      <span className="editor-topbar-more-menu-label">复制路径</span>
+                      <span className="editor-topbar-more-menu-label">{t("app.menu.copyPath")}</span>
                       <span className="editor-topbar-more-menu-arrow">&#8250;</span>
                       <div className="editor-topbar-more-submenu">
                         <div
                           className="editor-topbar-more-menu-item"
                           onClick={() => { if (fileName) handleCopyRelativePath(); }}
                         >
-                          基于库的相对路径
+                          {t("app.menu.relativePath")}
                         </div>
                         <div
                           className="editor-topbar-more-menu-item"
                           onClick={() => { if (fileName) handleCopyAbsolutePath(); }}
                         >
-                          绝对路径
+                          {t("app.menu.absolutePath")}
                         </div>
                       </div>
                     </div>
@@ -1987,7 +1989,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                       </svg>
-                      <span className="editor-topbar-more-menu-label">在系统资源管理器中显示</span>
+                      <span className="editor-topbar-more-menu-label">{t("app.menu.openInExplorer")}</span>
                     </div>
                     <div className="editor-topbar-more-menu-divider" />
                     <div
@@ -2002,10 +2004,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M20 4a1 1 0 0 1 0 2h-2.7a7.4 7.4 0 0 0-7.2 6H20a1 1 0 0 1 0 2h-9.9a7.4 7.4 0 0 0 7.2 6H20a1 1 0 0 1 0 2h-2.7a9.4 9.4 0 0 1-9.2-8H4a1 1 0 0 1 0-2h4.1a9.4 9.4 0 0 1 9.2-8H20z" />
                       </svg>
-                      <span className="editor-topbar-more-menu-label">思维导图</span>
+                      <span className="editor-topbar-more-menu-label">{t("app.menu.mindmap")}</span>
                       <button
                         className={`editor-topbar-more-menu-pin${pinnedItems.mindmap ? ' pinned' : ''}`}
-                        title={pinnedItems.mindmap ? '取消固定' : '固定在顶部栏'}
+                        title={pinnedItems.mindmap ? t("app.toolbar.unpin") : t("app.toolbar.pinToToolbar")}
                         onClick={(e) => {
                           e.stopPropagation();
                           setPinnedItems(prev => ({ ...prev, mindmap: !prev.mindmap }));
@@ -2037,10 +2039,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                         <line x1="14.5" y1="6.5" x2="18.5" y2="16.5" />
                         <line x1="7" y1="19" x2="17" y2="19" />
                       </svg>
-                      <span className="editor-topbar-more-menu-label">关系图谱</span>
+                      <span className="editor-topbar-more-menu-label">{t("app.menu.graph")}</span>
                       <button
                         className={`editor-topbar-more-menu-pin${pinnedItems.graph ? ' pinned' : ''}`}
-                        title={pinnedItems.graph ? '取消固定' : '固定在顶部栏'}
+                        title={pinnedItems.graph ? t("app.toolbar.unpin") : t("app.toolbar.pinToToolbar")}
                         onClick={(e) => {
                           e.stopPropagation();
                           setPinnedItems(prev => ({ ...prev, graph: !prev.graph }));
@@ -2067,10 +2069,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                         <polyline points="17 8 12 3 7 8" />
                         <line x1="12" y1="3" x2="12" y2="15" />
                       </svg>
-                      <span className="editor-topbar-more-menu-label">{exporting ? "导出中…" : "复制和导出"}</span>
+                      <span className="editor-topbar-more-menu-label">{exporting ? t("app.menu.exporting") : t("app.menu.exportAndCopy")}</span>
                       <button
                         className={`editor-topbar-more-menu-pin${pinnedItems.export ? ' pinned' : ''}`}
-                        title={pinnedItems.export ? '取消固定' : '固定在顶部栏'}
+                        title={pinnedItems.export ? t("app.toolbar.unpin") : t("app.toolbar.pinToToolbar")}
                         onClick={(e) => {
                           e.stopPropagation();
                           setPinnedItems(prev => ({ ...prev, export: !prev.export }));
@@ -2087,17 +2089,17 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                 )}
               </div>
               <div className="window-controls-divider" />
-              <button className="window-control-btn" onClick={handleMinimize} title="最小化">
+              <button className="window-control-btn" onClick={handleMinimize} title={t("app.toolbar.minimize")}>
                 <svg width="10" height="10" viewBox="0 0 10 10">
                   <line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" strokeWidth="1.2" />
                 </svg>
               </button>
-              <button className="window-control-btn" onClick={handleToggleMaximize} title="最大化">
+              <button className="window-control-btn" onClick={handleToggleMaximize} title={t("app.toolbar.maximize")}>
                 <svg width="10" height="10" viewBox="0 0 10 10">
                   <rect x="1" y="1" width="8" height="8" rx="0.5" fill="none" stroke="currentColor" strokeWidth="1.2" />
                 </svg>
               </button>
-              <button className="window-control-btn window-control-close" onClick={handleClose} title="关闭">
+              <button className="window-control-btn window-control-close" onClick={handleClose} title={t("app.toolbar.close")}>
                 <svg width="10" height="10" viewBox="0 0 10 10">
                   <line x1="1.5" y1="1.5" x2="8.5" y2="8.5" stroke="currentColor" strokeWidth="1.2" />
                   <line x1="8.5" y1="1.5" x2="1.5" y2="8.5" stroke="currentColor" strokeWidth="1.2" />
@@ -2175,7 +2177,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
             <button
               className="editor-mode-toggle source-mode-toggle floating-mode-toggle"
               onClick={cycleMode}
-              title={`当前: ${MODE_LABELS[viewMode]}，点击切换模式 (Ctrl+/)`}
+              title={`${MODE_LABELS[viewMode]} (Ctrl+/)`}
             >
               {MODE_LABELS[viewMode]}
             </button>
@@ -2185,7 +2187,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
             <button
               className={`typewriter-indicator ${typewriterMode ? 'active' : ''}`}
               onClick={toggleTypewriterMode}
-              title={typewriterMode ? "打字机模式已开启，点击关闭" : "点击开启打字机模式"}
+              title={typewriterMode ? t("app.typewriter.enabled") : t("app.typewriter.disabled")}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 7h14v12H5z" />
@@ -2197,7 +2199,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
               </svg>
             </button>
             <span className="editor-word-count">
-              {wordCount} 字
+              {t("app.wordCount", { count: wordCount })}
             </span>
           </div>
           )}
@@ -2234,11 +2236,11 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
       <ConfirmDialog
         isOpen={saveConfirmOpen}
-        title="保存文件"
-        message={`文件 "${fileName?.split(/[/\\]/).pop() || ""}" 尚未保存，是否先保存？`}
+        title={t("app.dialog.saveFile")}
+        message={t("app.dialog.saveFileMessage", { name: fileName?.split(/[/\\]/).pop() || "" })}
         type="warning"
-        confirmText="保存"
-        cancelText="不保存"
+        confirmText={t("app.dialog.save")}
+        cancelText={t("app.dialog.dontSave")}
         onConfirm={handleSaveConfirm}
         onCancel={handleSaveCancel}
       />
@@ -2247,7 +2249,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         <div className="export-formatpicker-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowExportFormatPicker(false); }}>
           <div className="export-formatpicker-dialog">
             <div className="export-formatpicker-header">
-              <span>复制和导出</span>
+              <span>{t("app.export.title")}</span>
               <button className="export-formatpicker-close" onClick={() => setShowExportFormatPicker(false)}>✕</button>
             </div>
             <div className="export-formatpicker-body">
@@ -2266,7 +2268,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                   </svg>
                 </span>
                 <span className="export-formatpicker-option-label">Markdown</span>
-                <span className="export-formatpicker-option-ext">{markdownCopied ? "已复制 ✓" : "复制"}</span>
+                <span className="export-formatpicker-option-ext">{markdownCopied ? t("app.dialog.copied") : t("app.dialog.copy")}</span>
               </button>
               <button
                 className="export-formatpicker-option"
@@ -2281,8 +2283,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                     <polyline points="9 21 12 23.5 15 21" />
                   </svg>
                 </span>
-                <span className="export-formatpicker-option-label">公众号</span>
-                <span className="export-formatpicker-option-ext">复制</span>
+                <span className="export-formatpicker-option-label">{t("app.export.wechat")}</span>
+                <span className="export-formatpicker-option-ext">{t("app.dialog.copy")}</span>
               </button>
               {/* 分隔线 */}
               <div className="export-formatpicker-separator" />
@@ -2334,7 +2336,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       </svg>
                     )}
                   </span>
-                  <span className="export-formatpicker-option-label">{EXPORT_FORMATS[fmt].label}</span>
+                  <span className="export-formatpicker-option-label">{t(`app.export.${fmt}`)}</span>
                   <span className="export-formatpicker-option-ext">.{EXPORT_FORMATS[fmt].ext}</span>
                 </button>
               ))}

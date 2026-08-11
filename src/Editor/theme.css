@@ -1008,9 +1008,15 @@
 
 /* 高亮 */
 .tiptap-editor mark {
-  background: var(--bg-highlight, #fff3b0);
-  padding: 0.1em 0.2em;
+  /* 用 background-image 代替 background-color，通过 background-size 缩小着色区域 */
+  background-image: linear-gradient(var(--bg-highlight, #fff3b0), var(--bg-highlight, #fff3b0));
+  background-size: 100% calc(100% - 0.35em);
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: 0.12em 0.2em;
   border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
 /* 代码块工具栏 */

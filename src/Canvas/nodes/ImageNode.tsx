@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, memo } from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
 import { convertFileSrc } from '@tauri-apps/api/core';
+import { useTranslation } from 'react-i18next';
 import { getCanvasColor, resolveFilePath } from '../canvas-utils';
 import { useNearestEdge } from '../useNearestEdge';
 
 function ImageNode({ data, selected }: NodeProps) {
+  const { t } = useTranslation();
   const [imageSrc, setImageSrc] = useState('');
   const { nodeRef, activeEdge, handleMouseMove, handleMouseLeave } = useNearestEdge();
   const [isHovered, setIsHovered] = useState(false);
@@ -86,7 +88,7 @@ function ImageNode({ data, selected }: NodeProps) {
             <circle cx="8.5" cy="8.5" r="1.5" />
             <polyline points="21 15 16 10 5 21" />
           </svg>
-          <span className="canvas-placeholder">拖入图片文件</span>
+          <span className="canvas-placeholder">{t("canvas.imageNode.dragImageHere")}</span>
         </div>
       )}
     </div>

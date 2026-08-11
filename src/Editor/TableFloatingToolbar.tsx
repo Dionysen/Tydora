@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import type { Editor } from "@tiptap/core";
 
 const GRID_ROWS = 8;
@@ -13,6 +14,7 @@ interface TableFloatingToolbarProps {
 }
 
 export function TableFloatingToolbar({ editor, tableElement, onClose, onContentChange }: TableFloatingToolbarProps) {
+  const { t } = useTranslation();
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showGridPicker, setShowGridPicker] = useState(false);
   const [hoverRow, setHoverRow] = useState(0);
@@ -245,7 +247,7 @@ export function TableFloatingToolbar({ editor, tableElement, onClose, onContentC
       <div className="table-grid-size">
         {hoverRow > 0 && hoverCol > 0
           ? `${hoverRow} × ${hoverCol}`
-          : "选择表格大小"}
+          : t("editor.tableToolbar.selectTableSize")}
       </div>
     </div>
   );
@@ -260,7 +262,7 @@ export function TableFloatingToolbar({ editor, tableElement, onClose, onContentC
         <div className="table-toolbar-grid-wrapper" ref={gridPickerRef}>
           <button
             className={`table-toolbar-btn ${showGridPicker ? "active" : ""}`}
-            title="调整表格大小"
+            title={t("editor.tableToolbar.resizeTable")}
             onClick={() => {
               setShowGridPicker(!showGridPicker);
               setShowMoreMenu(false);
@@ -271,15 +273,15 @@ export function TableFloatingToolbar({ editor, tableElement, onClose, onContentC
           {gridPicker}
         </div>
         <div className="table-toolbar-divider" />
-        <button className="table-toolbar-btn" title="左对齐" onClick={() => handleAlign("left")}>{ICONS.alignLeft}</button>
-        <button className="table-toolbar-btn" title="居中对齐" onClick={() => handleAlign("center")}>{ICONS.alignCenter}</button>
-        <button className="table-toolbar-btn" title="右对齐" onClick={() => handleAlign("right")}>{ICONS.alignRight}</button>
+        <button className="table-toolbar-btn" title={t("editor.tableToolbar.alignLeft")} onClick={() => handleAlign("left")}>{ICONS.alignLeft}</button>
+        <button className="table-toolbar-btn" title={t("editor.tableToolbar.alignCenter")} onClick={() => handleAlign("center")}>{ICONS.alignCenter}</button>
+        <button className="table-toolbar-btn" title={t("editor.tableToolbar.alignRight")} onClick={() => handleAlign("right")}>{ICONS.alignRight}</button>
       </div>
       <div className="table-floating-toolbar-right">
         <div className="table-toolbar-more-wrapper" ref={moreMenuRef}>
           <button
             className={`table-toolbar-btn ${showMoreMenu ? "active" : ""}`}
-            title="更多操作"
+            title={t("editor.tableToolbar.moreActions")}
             onClick={() => {
               setShowMoreMenu(!showMoreMenu);
               setShowGridPicker(false);
@@ -289,21 +291,21 @@ export function TableFloatingToolbar({ editor, tableElement, onClose, onContentC
           </button>
           {showMoreMenu && (
             <div className="table-toolbar-dropdown">
-              <button onClick={handleInsertRowAbove}>上方插入行</button>
-              <button onClick={handleInsertRowBelow}>下方插入行</button>
+              <button onClick={handleInsertRowAbove}>{t("editor.tableToolbar.insertRowAbove")}</button>
+              <button onClick={handleInsertRowBelow}>{t("editor.tableToolbar.insertRowBelow")}</button>
               <div className="table-toolbar-dropdown-divider" />
-              <button onClick={handleInsertColLeft}>左侧插入列</button>
-              <button onClick={handleInsertColRight}>右侧插入列</button>
+              <button onClick={handleInsertColLeft}>{t("editor.tableToolbar.insertColLeft")}</button>
+              <button onClick={handleInsertColRight}>{t("editor.tableToolbar.insertColRight")}</button>
               <div className="table-toolbar-dropdown-divider" />
-              <button onClick={handleDeleteRow}>删除行</button>
-              <button onClick={handleDeleteCol}>删除列</button>
+              <button onClick={handleDeleteRow}>{t("editor.tableToolbar.deleteRow")}</button>
+              <button onClick={handleDeleteCol}>{t("editor.tableToolbar.deleteCol")}</button>
               <div className="table-toolbar-dropdown-divider" />
-              <button onClick={handleMergeCells}>合并单元格</button>
-              <button onClick={handleSplitCell}>拆分单元格</button>
+              <button onClick={handleMergeCells}>{t("editor.tableToolbar.mergeCells")}</button>
+              <button onClick={handleSplitCell}>{t("editor.tableToolbar.splitCell")}</button>
             </div>
           )}
         </div>
-        <button className="table-toolbar-btn delete" title="删除表格" onClick={handleDeleteTable}>{ICONS.trash}</button>
+        <button className="table-toolbar-btn delete" title={t("editor.tableToolbar.deleteTable")} onClick={handleDeleteTable}>{ICONS.trash}</button>
       </div>
     </div>
   );

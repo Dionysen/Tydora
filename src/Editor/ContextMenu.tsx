@@ -1,7 +1,9 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { executeCommand } from "./extensions/custom-commands";
 import { loadShortcuts, formatShortcutDisplay } from "./shortcuts";
+import type { ShortcutItem } from "./shortcuts";
 import type { Editor } from "@tiptap/core";
+import { useTranslation } from "react-i18next";
 
 interface ContextMenuProps {
   editor: Editor | null;
@@ -144,65 +146,69 @@ const ICONS = {
   ),
 };
 
-// 三行图标按钮配置
-const ICON_ROWS: IconItem[][] = [
-  // 第一行：剪贴板
-  [
-    { name: "cut", label: "剪切", shortcutId: null, icon: ICONS.cut },
-    { name: "copy", label: "复制", shortcutId: null, icon: ICONS.copy },
-    { name: "paste", label: "粘贴", shortcutId: null, icon: ICONS.paste },
-    { name: "delete", label: "删除", shortcutId: null, icon: ICONS.trash },
-  ],
-  // 第二行：行内格式
-  [
-    { name: "bold", label: "加粗", shortcutId: "bold", icon: ICONS.bold },
-    { name: "italic", label: "斜体", shortcutId: "italic", icon: ICONS.italic },
-    { name: "strike", label: "删除线", shortcutId: "strike", icon: ICONS.strikethrough },
-    { name: "inline-code", label: "行内代码", shortcutId: "inline-code", icon: ICONS.code },
-    { name: "link", label: "链接", shortcutId: "link", icon: ICONS.link },
-  ],
-  // 第三行：块级格式
-  [
-    { name: "quote", label: "引用", shortcutId: "quote", icon: ICONS.quote },
-    { name: "list", label: "无序列表", shortcutId: "unordered-list", icon: ICONS.listUnordered },
-    { name: "ordered-list", label: "有序列表", shortcutId: "ordered-list", icon: ICONS.listOrdered },
-    { name: "check", label: "任务列表", shortcutId: "check-list", icon: ICONS.checkSquare },
-    { name: "highlight", label: "高亮", shortcutId: "highlight", icon: ICONS.highlight },
-  ],
-];
+// 三行图标按钮配置（使用工厂函数以便 i18n）
+function createIconRows(t: (key: string) => string): IconItem[][] {
+  return [
+    // 第一行：剪贴板
+    [
+      { name: "cut", label: t("editor.contextMenu.cut"), shortcutId: null, icon: ICONS.cut },
+      { name: "copy", label: t("editor.contextMenu.copy"), shortcutId: null, icon: ICONS.copy },
+      { name: "paste", label: t("editor.contextMenu.paste"), shortcutId: null, icon: ICONS.paste },
+      { name: "delete", label: t("editor.contextMenu.delete"), shortcutId: null, icon: ICONS.trash },
+    ],
+    // 第二行：行内格式
+    [
+      { name: "bold", label: t("editor.contextMenu.bold"), shortcutId: "bold", icon: ICONS.bold },
+      { name: "italic", label: t("editor.contextMenu.italic"), shortcutId: "italic", icon: ICONS.italic },
+      { name: "strike", label: t("editor.contextMenu.strikethrough"), shortcutId: "strike", icon: ICONS.strikethrough },
+      { name: "inline-code", label: t("editor.contextMenu.inlineCode"), shortcutId: "inline-code", icon: ICONS.code },
+      { name: "link", label: t("editor.contextMenu.link"), shortcutId: "link", icon: ICONS.link },
+    ],
+    // 第三行：块级格式
+    [
+      { name: "quote", label: t("editor.contextMenu.quote"), shortcutId: "quote", icon: ICONS.quote },
+      { name: "list", label: t("editor.contextMenu.unorderedList"), shortcutId: "unordered-list", icon: ICONS.listUnordered },
+      { name: "ordered-list", label: t("editor.contextMenu.orderedList"), shortcutId: "ordered-list", icon: ICONS.listOrdered },
+      { name: "check", label: t("editor.contextMenu.taskList"), shortcutId: "check-list", icon: ICONS.checkSquare },
+      { name: "highlight", label: t("editor.contextMenu.highlight"), shortcutId: "highlight", icon: ICONS.highlight },
+    ],
+  ];
+}
 
-// 子菜单配置
-const SUBMENU_ITEMS: SubmenuItem[] = [
-  {
-    name: "heading",
-    label: "标题",
-    icon: ICONS.heading,
-    submenu: [
-      { name: "heading-1", label: "一级标题", shortcutId: "heading-1" },
-      { name: "heading-2", label: "二级标题", shortcutId: "heading-2" },
-      { name: "heading-3", label: "三级标题", shortcutId: "heading-3" },
-      { name: "heading-4", label: "四级标题", shortcutId: "heading-4" },
-      { name: "heading-5", label: "五级标题", shortcutId: "heading-5" },
-      { name: "heading-6", label: "六级标题", shortcutId: "heading-6" },
-      { divider: true, label: "" },
-      { name: "paragraph", label: "段落", shortcutId: "paragraph" },
-    ],
-  },
-  {
-    name: "insert",
-    label: "插入",
-    icon: ICONS.plus,
-    submenu: [
-      { name: "upload", label: "图像", shortcutId: null, icon: ICONS.image },
-      { name: "hr", label: "水平分割线", shortcutId: "hr", icon: ICONS.minus },
-      { name: "table", label: "表格", shortcutId: "table", icon: ICONS.table },
-      { name: "code", label: "代码块", shortcutId: "code-block", icon: ICONS.codeBlock },
-      { name: "math", label: "公式块", shortcutId: null, icon: ICONS.math },
-      { divider: true, label: "" },
-      { name: "wiki-link", label: "WikiLink", shortcutId: null, icon: ICONS.wikiLink },
-    ],
-  },
-];
+// 子菜单配置（使用工厂函数以便 i18n）
+function createSubmenuItems(t: (key: string) => string): SubmenuItem[] {
+  return [
+    {
+      name: "heading",
+      label: t("editor.contextMenu.heading"),
+      icon: ICONS.heading,
+      submenu: [
+        { name: "heading-1", label: t("editor.contextMenu.heading1"), shortcutId: "heading-1" },
+        { name: "heading-2", label: t("editor.contextMenu.heading2"), shortcutId: "heading-2" },
+        { name: "heading-3", label: t("editor.contextMenu.heading3"), shortcutId: "heading-3" },
+        { name: "heading-4", label: t("editor.contextMenu.heading4"), shortcutId: "heading-4" },
+        { name: "heading-5", label: t("editor.contextMenu.heading5"), shortcutId: "heading-5" },
+        { name: "heading-6", label: t("editor.contextMenu.heading6"), shortcutId: "heading-6" },
+        { divider: true, label: "" },
+        { name: "paragraph", label: t("editor.contextMenu.paragraph"), shortcutId: "paragraph" },
+      ],
+    },
+    {
+      name: "insert",
+      label: t("editor.contextMenu.insert"),
+      icon: ICONS.plus,
+      submenu: [
+        { name: "upload", label: t("editor.contextMenu.image"), shortcutId: null, icon: ICONS.image },
+        { name: "hr", label: t("editor.contextMenu.horizontalRule"), shortcutId: "hr", icon: ICONS.minus },
+        { name: "table", label: t("editor.contextMenu.table"), shortcutId: "table", icon: ICONS.table },
+        { name: "code", label: t("editor.contextMenu.codeBlock"), shortcutId: "code-block", icon: ICONS.codeBlock },
+        { name: "math", label: t("editor.contextMenu.mathBlock"), shortcutId: null, icon: ICONS.math },
+        { divider: true, label: "" },
+        { name: "wiki-link", label: t("editor.contextMenu.wikiLink"), shortcutId: null, icon: ICONS.wikiLink },
+      ],
+    },
+  ];
+}
 
 function getShortcutLabel(shortcutId: string | null, shortcuts: ShortcutItem[]): string {
   if (!shortcutId) return "";
@@ -211,12 +217,16 @@ function getShortcutLabel(shortcutId: string | null, shortcuts: ShortcutItem[]):
 }
 
 export function ContextMenu({ editor, position, onClose }: ContextMenuProps) {
+  const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
   const submenuRef = useRef<HTMLDivElement>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [submenuPos, setSubmenuPos] = useState<{ x: number; y: number } | null>(null);
   const [shortcuts, setShortcuts] = useState<ShortcutItem[]>([]);
+
+  const iconRows = createIconRows(t);
+  const submenuItems = createSubmenuItems(t);
 
   useEffect(() => {
     if (position) {
@@ -357,7 +367,7 @@ export function ContextMenu({ editor, position, onClose }: ContextMenuProps) {
       style={{ left: position.x, top: position.y }}
     >
       {/* 三行图标按钮 */}
-      {ICON_ROWS.map((row, rowIdx) => (
+      {iconRows.map((row, rowIdx) => (
         <div key={`row-${rowIdx}`} className="context-menu-icon-row">
           {row.map((item) => {
             const shortcutLabel = getShortcutLabel(item.shortcutId, shortcuts);
@@ -386,7 +396,7 @@ export function ContextMenu({ editor, position, onClose }: ContextMenuProps) {
       <div className="context-menu-divider" />
 
       {/* 标题和插入子菜单 */}
-      {SUBMENU_ITEMS.map((item) => (
+      {submenuItems.map((item) => (
         <div
           key={item.name}
           className="context-menu-item-wrapper"
@@ -407,24 +417,25 @@ export function ContextMenu({ editor, position, onClose }: ContextMenuProps) {
               onMouseEnter={handleSubmenuPanelEnter}
               onMouseLeave={handleSubmenuPanelLeave}
             >
-              {item.submenu.map((sub, subIdx: number) => {
+              {item.submenu!.map((sub, subIdx: number) => {
                 if ('divider' in sub && sub.divider) {
                   return <div key={`sub-div-${subIdx}`} className="context-menu-divider" />;
                 }
+                const subItem = sub as { name: string; label: string; shortcutId: string | null; icon?: React.ReactNode };
                 return (
                   <button
-                    key={sub.name}
+                    key={subItem.name}
                     className="context-menu-item"
                     onMouseDown={(e) => {
                       e.preventDefault();
-                      if (sub.name) handleItemClick(sub.name);
+                      if (subItem.name) handleItemClick(subItem.name);
                     }}
                   >
-                    {'icon' in sub && sub.icon && <span className="context-menu-icon">{sub.icon}</span>}
-                    <span className="context-menu-label">{sub.label}</span>
-                    {getShortcutLabel(sub.shortcutId || null, shortcuts) && (
+                    {subItem.icon && <span className="context-menu-icon">{subItem.icon}</span>}
+                    <span className="context-menu-label">{subItem.label}</span>
+                    {getShortcutLabel(subItem.shortcutId, shortcuts) && (
                       <span className="context-menu-shortcut">
-                        {getShortcutLabel(sub.shortcutId || null, shortcuts)}
+                        {getShortcutLabel(subItem.shortcutId, shortcuts)}
                       </span>
                     )}
                   </button>

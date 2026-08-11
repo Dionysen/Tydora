@@ -6,6 +6,8 @@ import { MindmapWindow } from "./mindmap";
 import { GraphWindow } from "./graph";
 import CanvasWindow from "./Canvas/CanvasWindow";
 import { ThemeProvider } from "./themes";
+import { LanguageProvider } from "./i18n/LanguageContext";
+import "./i18n"; // init i18next before first render
 import "./themes.css";
 
 // 屏蔽 ResizeObserver 循环警告（调整窗口/侧栏宽度时的良性警告）
@@ -49,6 +51,8 @@ const initialVaultPath = urlParams.get("window") === "editor"
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <ThemeProvider>
-    {isSettingsWindow ? <Settings /> : isVaultManagerWindow ? <VaultManagerWindow /> : isMindmapWindow ? <MindmapWindow /> : isGraphWindow ? <GraphWindow /> : isCanvasWindow ? <CanvasWindow /> : <App initialFilePath={initialFilePath} initialVaultPath={initialVaultPath} />}
+    <LanguageProvider>
+      {isSettingsWindow ? <Settings /> : isVaultManagerWindow ? <VaultManagerWindow /> : isMindmapWindow ? <MindmapWindow /> : isGraphWindow ? <GraphWindow /> : isCanvasWindow ? <CanvasWindow /> : <App initialFilePath={initialFilePath} initialVaultPath={initialVaultPath} />}
+    </LanguageProvider>
   </ThemeProvider>,
 );

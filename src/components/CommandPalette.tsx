@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useDebounce } from "../hooks/useDebounce";
 
 interface Command {
@@ -85,6 +86,7 @@ function highlightMatch(text: string, query: string): React.ReactNode {
 const CMD_DEBOUNCE = 100; // ms — 命令面板防抖延迟，命令列表较小所以延迟可以更短
 
 export default function CommandPalette({ isOpen, onClose, commands }: CommandPaletteProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query.trim(), CMD_DEBOUNCE);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -273,7 +275,7 @@ export default function CommandPalette({ isOpen, onClose, commands }: CommandPal
             ref={inputRef}
             type="text"
             className="command-palette-input"
-            placeholder="输入命令搜索..."
+            placeholder={t("commandPalette.placeholder")}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -287,7 +289,7 @@ export default function CommandPalette({ isOpen, onClose, commands }: CommandPal
           {isSearchMode && (
             <>
               {filteredCommands.length === 0 && (
-                <div className="command-palette-empty">未找到匹配的命令</div>
+                <div className="command-palette-empty">{t("commandPalette.noResults")}</div>
               )}
               {Object.entries(searchGroupedCommands).map(([category, cmds]) => (
                 <div key={category} className="command-palette-group">
@@ -304,7 +306,7 @@ export default function CommandPalette({ isOpen, onClose, commands }: CommandPal
               {/* 最近使用的命令 */}
               {recentCommands.length > 0 && (
                 <div className="command-palette-group">
-                  <div className="command-palette-group-title">最近使用</div>
+                  <div className="command-palette-group-title">{t("commandPalette.recent")}</div>
                   {recentCommands.map((cmd) => renderCommand(cmd))}
                 </div>
               )}
@@ -322,12 +324,12 @@ export default function CommandPalette({ isOpen, onClose, commands }: CommandPal
 
         <div className="command-palette-footer">
           <span className="command-palette-hint">
-            <kbd>↑</kbd> <kbd>↓</kbd> 或 <kbd>Ctrl+J</kbd> <kbd>Ctrl+K</kbd> 选择 &nbsp;
-            <kbd>Enter</kbd> 执行 &nbsp;
-            <kbd>Esc</kbd> 关闭
+            <kbd>↑</kbd> <kbd>↓</kbd> or <kbd>Ctrl+J</kbd> <kbd>Ctrl+K</kbd> {t("commandPalette.select")}&nbsp;
+            <kbd>Enter</kbd> {t("commandPalette.execute")}&nbsp;
+            <kbd>Esc</kbd> {t("commandPalette.close")}
           </span>
           <span className="command-palette-count">
-            {isSearchMode ? `${filteredCommands.length} 个结果` : `${commands.length} 个命令`}
+            {isSearchMode ? t("commandPalette.results", { count: filteredCommands.length }) : t("commandPalette.commands", { count: commands.length })}
           </span>
         </div>
       </div>

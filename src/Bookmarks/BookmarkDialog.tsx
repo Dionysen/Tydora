@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import type { Bookmark, BookmarkGroup } from "./BookmarksService";
 import { createGroup } from "./BookmarksService";
 
@@ -26,6 +27,7 @@ export function BookmarkDialog({
   onSave,
   onCancel,
 }: BookmarkDialogProps) {
+  const { t } = useTranslation();
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(editingBookmark?.title ?? "");
@@ -93,7 +95,7 @@ export function BookmarkDialog({
       groupId = existingGroups[0].id;
     }
     if (!groupId) {
-      const group = createGroup(vaultPath, "默认分组");
+      const group = createGroup(vaultPath, t("bookmarks.defaultGroup"));
       groupId = group.id;
     }
     onSave(title.trim(), groupId);
@@ -108,7 +110,7 @@ export function BookmarkDialog({
       <div ref={dialogRef} className="bookmark-dialog">
         <div className="bookmark-dialog-header">
           <span className="bookmark-dialog-title">
-            {editingBookmark ? "编辑书签" : "添加书签"}
+            {editingBookmark ? t("bookmarks.dialog.editTitle") : t("bookmarks.dialog.addTitle")}
           </span>
           <button className="bookmark-dialog-close" onClick={onCancel}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -120,7 +122,7 @@ export function BookmarkDialog({
 
         <div className="bookmark-dialog-body">
           <div className="bookmark-dialog-field">
-            <label className="bookmark-dialog-label">路径</label>
+            <label className="bookmark-dialog-label">{t("bookmarks.dialog.path")}</label>
             <div className="bookmark-dialog-path">
               {isDirectory ? "📁 " : "📄 "}
               <span className="bookmark-dialog-path-text">{filePath}</span>
@@ -128,7 +130,7 @@ export function BookmarkDialog({
           </div>
 
           <div className="bookmark-dialog-field">
-            <label className="bookmark-dialog-label">标题</label>
+            <label className="bookmark-dialog-label">{t("bookmarks.dialog.title")}</label>
             <input
               ref={titleInputRef}
               className="bookmark-dialog-input"
@@ -141,12 +143,12 @@ export function BookmarkDialog({
               }}
             />
             {!title.trim() && (
-              <span className="bookmark-dialog-hint">留空则显示原文件名</span>
+              <span className="bookmark-dialog-hint">{t("bookmarks.dialog.emptyTitleHint")}</span>
             )}
           </div>
 
           <div className="bookmark-dialog-field">
-            <label className="bookmark-dialog-label">分组</label>
+            <label className="bookmark-dialog-label">{t("bookmarks.dialog.group")}</label>
             {isCreatingGroup ? (
               <div className="bookmark-dialog-new-group">
                 <input
@@ -154,7 +156,7 @@ export function BookmarkDialog({
                   type="text"
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
-                  placeholder="输入分组名称"
+                  placeholder={t("bookmarks.dialog.newGroupPlaceholder")}
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && newGroupName.trim()) handleSave();
@@ -165,7 +167,7 @@ export function BookmarkDialog({
                   className="bookmark-dialog-btn-text"
                   onClick={() => setIsCreatingGroup(false)}
                 >
-                  取消
+                  {t("bookmarks.dialog.cancel")}
                 </button>
               </div>
             ) : (
@@ -175,7 +177,7 @@ export function BookmarkDialog({
                     className="bookmark-dialog-select"
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                   >
-                    {selectedGroup?.name || "选择分组"}
+                    {selectedGroup?.name || t("bookmarks.dialog.selectGroup")}
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="6 9 12 15 18 9" />
                     </svg>
@@ -199,7 +201,7 @@ export function BookmarkDialog({
                       ))}
                       {existingGroups.length === 0 && (
                         <div className="bookmark-dialog-dropdown-empty">
-                          暂无分组
+                          {t("bookmarks.dialog.noGroups")}
                         </div>
                       )}
                     </div>
@@ -209,7 +211,7 @@ export function BookmarkDialog({
                   className="bookmark-dialog-btn-text"
                   onClick={() => setIsCreatingGroup(true)}
                 >
-                  + 新建
+                  {t("bookmarks.dialog.newGroup")}
                 </button>
               </div>
             )}
@@ -218,10 +220,10 @@ export function BookmarkDialog({
 
         <div className="bookmark-dialog-footer">
           <button className="bookmark-dialog-btn bookmark-dialog-btn-cancel" onClick={onCancel}>
-            取消
+            {t("bookmarks.dialog.cancel")}
           </button>
           <button className="bookmark-dialog-btn bookmark-dialog-btn-save" onClick={handleSave}>
-            保存
+            {t("bookmarks.dialog.save")}
           </button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { readDir } from "@tauri-apps/plugin-fs";
 import { VaultInfo } from "../Sidebar";
 import { useDebounce } from "../hooks/useDebounce";
@@ -92,6 +93,7 @@ function getFileName(path: string): string {
 const QUICKOPEN_DEBOUNCE = 120; // ms — 快速打开防抖延迟，比查找对话框更短以保持响应感
 
 export default function QuickOpen({ vault, vaults, recentFiles, currentFilePath, files: externalFiles, onSelect, onSelectVault, onClose }: QuickOpenProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query.trim(), QUICKOPEN_DEBOUNCE);
   const [allFiles, setAllFiles] = useState<FileItem[] | null>(null);
@@ -271,7 +273,7 @@ export default function QuickOpen({ vault, vaults, recentFiles, currentFilePath,
             ref={inputRef}
             type="text"
             className="quick-open-input"
-            placeholder="输入文件名搜索..."
+            placeholder={t("quickOpen.placeholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -279,24 +281,24 @@ export default function QuickOpen({ vault, vaults, recentFiles, currentFilePath,
 
         <div className="quick-open-results" ref={listRef}>
           {loading && searchMode && (
-            <div className="quick-open-empty">搜索中...</div>
+            <div className="quick-open-empty">{t("quickOpen.searching")}</div>
           )}
 
           {!loading && !searchMode && filteredFiles.length === 0 && (
             <div className="quick-open-empty">
-              <div className="quick-open-empty-title">最近访问的文件</div>
-              <div className="quick-open-empty-hint">输入文件名搜索，或打开文件后会显示在这里</div>
+              <div className="quick-open-empty-title">{t("quickOpen.recentFiles")}</div>
+              <div className="quick-open-empty-hint">{t("quickOpen.searchHint")}</div>
             </div>
           )}
 
           {!loading && searchMode && filteredFiles.length === 0 && matchedVaults.length === 0 && (
-            <div className="quick-open-empty">未找到匹配的文件或知识库</div>
+            <div className="quick-open-empty">{t("quickOpen.noMatch")}</div>
           )}
 
           {!loading && filteredFiles.length > 0 && (
             <>
               {!searchMode && (
-                <div className="quick-open-section-label">最近访问</div>
+                <div className="quick-open-section-label">{t("quickOpen.recentAccess")}</div>
               )}
               {filteredFiles.map((file, idx) => (
                 <div
@@ -319,7 +321,7 @@ export default function QuickOpen({ vault, vaults, recentFiles, currentFilePath,
 
           {!loading && matchedVaults.length > 0 && (
             <>
-              <div className="quick-open-section-label">知识库</div>
+              <div className="quick-open-section-label">{t("quickOpen.vault")}</div>
               {matchedVaults.map((vault, vi) => {
                 const idx = filteredFiles.length + vi;
                 return (
@@ -345,12 +347,12 @@ export default function QuickOpen({ vault, vaults, recentFiles, currentFilePath,
 
         <div className="quick-open-footer">
           <span className="quick-open-hint">
-            <kbd>↑</kbd> <kbd>↓</kbd> 或 <kbd>Ctrl+J</kbd> <kbd>Ctrl+K</kbd> 选择 &nbsp;
-            <kbd>Enter</kbd> 打开 &nbsp;
-            <kbd>Esc</kbd> 关闭
+            <kbd>↑</kbd> <kbd>↓</kbd> or <kbd>Ctrl+J</kbd> <kbd>Ctrl+K</kbd> {t("quickOpen.select")}&nbsp;
+            <kbd>Enter</kbd> {t("quickOpen.open")}&nbsp;
+            <kbd>Esc</kbd> {t("quickOpen.close")}
           </span>
           <span className="quick-open-count">
-            {searchMode ? `${totalItems} 个结果` : `${filteredFiles.length} 个最近文件`}
+            {searchMode ? t("quickOpen.results", { count: totalItems }) : t("quickOpen.recentFilesCount", { count: filteredFiles.length })}
           </span>
         </div>
       </div>

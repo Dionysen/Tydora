@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { EXPORT_FORMATS, type BuiltArtifact, type ExportFormat, saveExportArtifact } from "../export";
 import "./ExportPreviewDialog.css";
 
@@ -258,6 +259,7 @@ function buildPdfPreviewHtml(baseHtml: string): string {
 }
 
 export function ExportPreviewDialog({ format, artifact, title, onClose, onSaveSuccess }: ExportPreviewDialogProps) {
+  const { t } = useTranslation();
   const dialogRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -350,7 +352,7 @@ export function ExportPreviewDialog({ format, artifact, title, onClose, onSaveSu
           onClose();
         }, 1500);
       } catch (e2) {
-        setError(e instanceof Error ? e.message : "复制失败，请重试");
+        setError(e instanceof Error ? e.message : t("app.export.copyFailed"));
       }
     } finally {
       setSaving(false);
@@ -364,20 +366,20 @@ export function ExportPreviewDialog({ format, artifact, title, onClose, onSaveSu
     <div className="export-preview-overlay">
       <div ref={dialogRef} className="export-preview-dialog">
         <div className="export-preview-header">
-          <span className="export-preview-title">导出预览 · {meta.label}</span>
+          <span className="export-preview-title">{t("exportPreview.title", { label: t(`app.export.${format}`) })}</span>
           <div className="export-preview-header-actions">
-            {error && <span className="export-preview-error">导出失败：{error}</span>}
-            {copied && <span className="export-preview-copied">✅ 已复制到剪贴板，可粘贴到公众号编辑器</span>}
+            {error && <span className="export-preview-error">{t("exportPreview.exportFailed", { error })}</span>}
+            {copied && <span className="export-preview-copied">{t("exportPreview.copiedToClipboard")}</span>}
             {isWechat ? (
               <button className="export-preview-btn export-preview-btn-confirm" onClick={handleCopyWechat} disabled={saving}>
-                {copied ? "已复制 ✓" : saving ? "复制中…" : "复制到剪贴板（Enter）"}
+                {copied ? t("exportPreview.copied") : saving ? t("exportPreview.copying") : t("exportPreview.copyToClipboard")}
               </button>
             ) : (
               <button className="export-preview-btn export-preview-btn-confirm" onClick={handleConfirm} disabled={saving}>
-                {saving ? "导出中…" : `导出为 ${meta.label}（Enter）`}
+                {saving ? t("exportPreview.exporting") : t("exportPreview.exportAs", { label: t(`app.export.${format}`) })}
               </button>
             )}
-            <button className="export-preview-close" onClick={onClose} disabled={saving} title="关闭">
+            <button className="export-preview-close" onClick={onClose} disabled={saving} title={t("settings.close")}>
               ✕
             </button>
           </div>
@@ -387,13 +389,13 @@ export function ExportPreviewDialog({ format, artifact, title, onClose, onSaveSu
           {previewHtml ? (
             <iframe
               className={`export-preview-frame${format === "pdf" ? " export-preview-frame--pdf" : ""}`}
-              title="导出预览"
+              title={t("exportPreview.dialogTitle")}
               srcDoc={previewHtml}
               sandbox={format === "pdf" ? "allow-scripts" : ""}
             />
           ) : artifact.previewPng ? (
             <div className="export-preview-img-wrap">
-              <img className="export-preview-img" src={artifact.previewPng} alt="导出预览" />
+              <img className="export-preview-img" src={artifact.previewPng} alt={t("exportPreview.dialogTitle")} />
             </div>
           ) : null}
         </div>

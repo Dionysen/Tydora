@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -16,12 +17,15 @@ export function ConfirmDialog({
   title,
   message,
   type = "warning",
-  confirmText = "确定",
-  cancelText = "取消",
+  confirmText,
+  cancelText,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
   const dialogRef = useRef<HTMLDivElement>(null);
+  const resolvedConfirmText = confirmText ?? t("dialog.confirm");
+  const resolvedCancelText = cancelText ?? t("dialog.cancel");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -75,10 +79,10 @@ export function ConfirmDialog({
         <div className="confirm-dialog-message">{message}</div>
         <div className="confirm-dialog-actions">
           <button className="confirm-dialog-btn confirm-dialog-btn-cancel" onClick={onCancel}>
-            {cancelText} <span className="confirm-dialog-btn-hint">(N)</span>
+            {resolvedCancelText} <span className="confirm-dialog-btn-hint">(N)</span>
           </button>
           <button className="confirm-dialog-btn confirm-dialog-btn-confirm" onClick={onConfirm}>
-            {confirmText} <span className="confirm-dialog-btn-hint">(Y/Enter)</span>
+            {resolvedConfirmText} <span className="confirm-dialog-btn-hint">(Y/Enter)</span>
           </button>
         </div>
       </div>

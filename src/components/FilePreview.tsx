@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { readFile } from "@tauri-apps/plugin-fs";
 
 type FileType = "image" | "video" | "audio" | "pdf" | "unsupported";
@@ -67,6 +68,7 @@ interface FilePreviewProps {
 }
 
 export default function FilePreview({ filePath, onBack }: FilePreviewProps) {
+  const { t } = useTranslation();
   const [fileSrc, setFileSrc] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -100,7 +102,7 @@ export default function FilePreview({ filePath, onBack }: FilePreviewProps) {
         const dataUrl = `data:${mimeType};base64,${base64}`;
         setFileSrc(dataUrl);
       } catch (e) {
-        setError("无法加载文件: " + (e as Error).message);
+        setError(t("filePreview.fileLoadFailed") + (e as Error).message);
         console.error("加载文件失败:", e);
       } finally {
         setLoading(false);
@@ -114,7 +116,7 @@ export default function FilePreview({ filePath, onBack }: FilePreviewProps) {
       return (
         <div className="preview-loading">
           <span className="preview-loading-spinner">⏳</span>
-          <span className="preview-loading-text">加载中...</span>
+          <span className="preview-loading-text">{t("filePreview.loading")}</span>
         </div>
       );
     }
@@ -142,7 +144,7 @@ export default function FilePreview({ filePath, onBack }: FilePreviewProps) {
               style={{ transform: `scale(${scale})` }}
               onError={(e) => {
                 e.preventDefault();
-                setError("图片加载失败");
+                setError(t("filePreview.imageLoadFailed"));
               }}
             />
           </div>
@@ -158,7 +160,7 @@ export default function FilePreview({ filePath, onBack }: FilePreviewProps) {
               autoPlay={false}
               onError={(e) => {
                 e.preventDefault();
-                setError("视频加载失败");
+                setError(t("filePreview.videoLoadFailed"));
               }}
             />
           </div>
@@ -175,7 +177,7 @@ export default function FilePreview({ filePath, onBack }: FilePreviewProps) {
               controls
               onError={(e) => {
                 e.preventDefault();
-                setError("音频加载失败");
+                setError(t("filePreview.audioLoadFailed"));
               }}
             />
           </div>
@@ -190,7 +192,7 @@ export default function FilePreview({ filePath, onBack }: FilePreviewProps) {
               title={fileName}
               onError={(e) => {
                 e.preventDefault();
-                setError("PDF 加载失败");
+                setError(t("filePreview.pdfLoadFailed"));
               }}
             />
           </div>
@@ -201,10 +203,10 @@ export default function FilePreview({ filePath, onBack }: FilePreviewProps) {
           <div className="preview-unsupported">
             <span className="preview-unsupported-icon"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
             <span className="preview-unsupported-text">
-              无法预览此类型文件
+              {t("filePreview.unsupportedType")}
             </span>
             <span className="preview-unsupported-hint">
-              您可以使用外部程序打开此文件
+              {t("filePreview.unsupportedHint")}
             </span>
           </div>
         );
@@ -214,8 +216,8 @@ export default function FilePreview({ filePath, onBack }: FilePreviewProps) {
   return (
     <div className="file-preview">
       <div className="preview-header">
-        <button className="preview-back-btn" onClick={onBack} title="返回">
-          ◀ 返回
+        <button className="preview-back-btn" onClick={onBack} title={t("filePreview.back")}>
+          {t("filePreview.back")}
         </button>
         <div className="preview-file-info">
           <span className="preview-file-name" title={fileName}>
@@ -228,7 +230,7 @@ export default function FilePreview({ filePath, onBack }: FilePreviewProps) {
             <button
               className="preview-zoom-reset"
               onClick={handleResetScale}
-              title="重置缩放"
+              title={t("filePreview.resetZoom")}
               style={{ opacity: scale !== 1 ? 1 : 0.5 }}
             >
               ⟲

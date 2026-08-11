@@ -1,3 +1,5 @@
+import i18n from "../i18n";
+
 const BOOKMARKS_KEY = "zmd-bookmarks";
 
 export interface Bookmark {
@@ -57,7 +59,7 @@ export function addBookmark(
   if (!group) {
     group = {
       id: generateId(),
-      name: "未分组",
+      name: i18n.t("bookmarks.ungrouped"),
       bookmarks: [],
       order: store[vaultPath].length,
     };
@@ -117,7 +119,7 @@ export function updateBookmark(
     if (!targetGroup) {
       targetGroup = {
         id: generateId(),
-        name: "未分组",
+        name: i18n.t("bookmarks.ungrouped"),
         bookmarks: [],
         order: store[vaultPath].length,
       };

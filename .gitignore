@@ -43,6 +43,9 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
+# TypeScript
+*.tsbuildinfo
+
 # Coverage reports
 coverage/
 htmlcov/
@@ -53,6 +56,13 @@ htmlcov/
 .pytest_cache/
 .mypy_cache/
 .hypothesis/
+
+
+# agents
+.claude/
+.mimocode/
+.codebuddy/
+.trae/
 
 # Temporary files
 *.tmp
@@ -70,3 +80,4 @@ htmlcov/
 ehthumbs.db
 Thumbs.db
 ```
+

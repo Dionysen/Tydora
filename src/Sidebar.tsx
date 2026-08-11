@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "./i18n";
 import { createPortal } from "react-dom";
 import { readDir, readTextFile, writeTextFile, mkdir, remove, rename, exists } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
@@ -517,52 +519,52 @@ interface FileActions {
   onMoveTo: () => void;
 }
 
-function getFileMenuItems(actions: FileActions): ContextMenuItem[] {
+function getFileMenuItems(actions: FileActions, t: (key: string) => string): ContextMenuItem[] {
   return [
-    { label: "打开", onClick: actions.onOpen },
-    { label: "在新窗口中打开", onClick: actions.onNewWindow },
-    { label: "收藏", onClick: actions.onBookmark },
-    { label: "新建文件", onClick: actions.onNewFile, separator: true },
-    { label: "新建白板", onClick: actions.onNewWhiteboard },
-    { label: "新建文件夹", onClick: actions.onNewFolder },
-    { label: "搜索", onClick: actions.onSearch },
-    { label: "重命名", onClick: actions.onRename, separator: true },
-    { label: "创建副本", onClick: actions.onDuplicate },
-    { label: "移动到...", onClick: actions.onMoveTo },
-    { label: "删除", onClick: actions.onDelete, danger: true, separator: true },
-    { label: "复制文件路径", onClick: actions.onCopyPath, separator: true },
-    { label: "打开文件位置", onClick: actions.onOpenLocation },
+    { label: t("sidebar.contextMenu.open"), onClick: actions.onOpen },
+    { label: t("sidebar.contextMenu.openInNewWindow"), onClick: actions.onNewWindow },
+    { label: t("sidebar.contextMenu.favorite"), onClick: actions.onBookmark },
+    { label: t("sidebar.contextMenu.newFile"), onClick: actions.onNewFile, separator: true },
+    { label: t("sidebar.contextMenu.newCanvas"), onClick: actions.onNewWhiteboard },
+    { label: t("sidebar.contextMenu.newFolder"), onClick: actions.onNewFolder },
+    { label: t("sidebar.contextMenu.search"), onClick: actions.onSearch },
+    { label: t("sidebar.contextMenu.rename"), onClick: actions.onRename, separator: true },
+    { label: t("sidebar.contextMenu.duplicate"), onClick: actions.onDuplicate },
+    { label: t("sidebar.contextMenu.moveTo"), onClick: actions.onMoveTo },
+    { label: t("sidebar.contextMenu.delete"), onClick: actions.onDelete, danger: true, separator: true },
+    { label: t("sidebar.contextMenu.copyPath"), onClick: actions.onCopyPath, separator: true },
+    { label: t("sidebar.contextMenu.openLocation"), onClick: actions.onOpenLocation },
   ];
 }
 
-function getFolderMenuItems(actions: FileActions): ContextMenuItem[] {
+function getFolderMenuItems(actions: FileActions, t: (key: string) => string): ContextMenuItem[] {
   return [
-    { label: "新建文件", onClick: actions.onNewFile },
-    { label: "新建白板", onClick: actions.onNewWhiteboard },
-    { label: "新建文件夹", onClick: actions.onNewFolder },
-    { label: "收藏", onClick: actions.onBookmark },
-    { label: "搜索", onClick: actions.onSearch },
-    { label: "重命名", onClick: actions.onRename, separator: true },
-    { label: "移动到...", onClick: actions.onMoveTo },
-    { label: "删除", onClick: actions.onDelete, danger: true, separator: true },
-    { label: "复制文件路径", onClick: actions.onCopyPath },
-    { label: "打开文件位置", onClick: actions.onOpenLocation },
+    { label: t("sidebar.contextMenu.newFile"), onClick: actions.onNewFile },
+    { label: t("sidebar.contextMenu.newCanvas"), onClick: actions.onNewWhiteboard },
+    { label: t("sidebar.contextMenu.newFolder"), onClick: actions.onNewFolder },
+    { label: t("sidebar.contextMenu.favorite"), onClick: actions.onBookmark },
+    { label: t("sidebar.contextMenu.search"), onClick: actions.onSearch },
+    { label: t("sidebar.contextMenu.rename"), onClick: actions.onRename, separator: true },
+    { label: t("sidebar.contextMenu.moveTo"), onClick: actions.onMoveTo },
+    { label: t("sidebar.contextMenu.delete"), onClick: actions.onDelete, danger: true, separator: true },
+    { label: t("sidebar.contextMenu.copyPath"), onClick: actions.onCopyPath },
+    { label: t("sidebar.contextMenu.openLocation"), onClick: actions.onOpenLocation },
   ];
 }
 
-function getBlankMenuItems(actions: FileActions): ContextMenuItem[] {
+function getBlankMenuItems(actions: FileActions, t: (key: string) => string): ContextMenuItem[] {
   return [
-    { label: "新建文件", onClick: actions.onNewFile },
-    { label: "新建白板", onClick: actions.onNewWhiteboard },
-    { label: "新建文件夹", onClick: actions.onNewFolder },
-    { label: "搜索", onClick: actions.onSearch },
-    { label: "复制文件路径", onClick: actions.onCopyPath },
-    { label: "打开文件位置", onClick: actions.onOpenLocation },
+    { label: t("sidebar.contextMenu.newFile"), onClick: actions.onNewFile },
+    { label: t("sidebar.contextMenu.newCanvas"), onClick: actions.onNewWhiteboard },
+    { label: t("sidebar.contextMenu.newFolder"), onClick: actions.onNewFolder },
+    { label: t("sidebar.contextMenu.search"), onClick: actions.onSearch },
+    { label: t("sidebar.contextMenu.copyPath"), onClick: actions.onCopyPath },
+    { label: t("sidebar.contextMenu.openLocation"), onClick: actions.onOpenLocation },
   ];
 }
 
 function showDevAlert() {
-  alert("此功能开发中");
+  alert(i18n.t("sidebar.alert.inDevelopment"));
 }
 
 function showToast(message: string) {
@@ -598,7 +600,7 @@ function SearchBar({
         ref={inputRef}
         className="sidebar-search-input"
         type="text"
-        placeholder="搜索文件内容..."
+        placeholder={i18n.t("sidebar.search.placeholder")}
         value={query}
         onChange={(e) => onQueryChange(e.target.value)}
         onKeyDown={(e) => {
@@ -612,7 +614,7 @@ function SearchBar({
         <button
           className="sidebar-search-clear"
           onClick={() => onQueryChange("")}
-          title="清除"
+          title={i18n.t("sidebar.search.clear")}
         >
           ✕
         </button>
@@ -668,9 +670,9 @@ function SearchResults({
 
   return (
     <div className="sidebar-search-results">
-      {searching && <div className="sidebar-search-status">搜索中...</div>}
+      {searching && <div className="sidebar-search-status">{i18n.t("sidebar.search.searching")}</div>}
       {!searching && results.length === 0 && (
-        <div className="sidebar-search-status">未找到匹配结果</div>
+        <div className="sidebar-search-status">{i18n.t("sidebar.search.noResults")}</div>
       )}
       {!searching && results.map((r) => (
         <div key={r.path} className="sidebar-search-result">
@@ -808,7 +810,7 @@ function TreeNodeComp({
     try {
       const filePath = await uniqueFilePath(targetDir, "untitled", ".md");
       await writeTextFile(filePath, ""); await onReload(targetDir); onStartEdit(filePath);
-    } catch (err) { console.error("新建文件失败:", err); }
+    } catch (err) { console.error(i18n.t("sidebar.error.newFileFailed"), err); }
   }, [node, onReload, onStartEdit]);
 
   const handleNewFolder = useCallback(async () => {
@@ -816,7 +818,7 @@ function TreeNodeComp({
     try {
       const dirPath = await uniqueDirPath(targetDir, "新建文件夹");
       await mkdir(dirPath); await onReload(targetDir); onStartEdit(dirPath);
-    } catch (err) { console.error("新建文件夹失败:", err); }
+    } catch (err) { console.error(i18n.t("sidebar.error.newFolderFailed"), err); }
   }, [node, onReload, onStartEdit]);
 
   const handleNewWhiteboard = useCallback(async () => {
@@ -824,7 +826,7 @@ function TreeNodeComp({
     try {
       const filePath = await uniqueFilePath(targetDir, "untitled", ".canvas");
       await writeTextFile(filePath, '{"nodes":[],"edges":[]}'); await onReload(targetDir); onStartEdit(filePath);
-    } catch (err) { console.error("新建白板失败:", err); }
+    } catch (err) { console.error(i18n.t("sidebar.error.newCanvasFailed"), err); }
   }, [node, onReload, onStartEdit]);
 
   const handleRename = useCallback(async () => {
@@ -846,20 +848,20 @@ function TreeNodeComp({
       }
       onMultiSelect([], 'replace');
       onReload();
-    } catch (err) { console.error("删除失败:", err); }
+    } catch (err) { console.error(i18n.t("sidebar.error.deleteFailed"), err); }
   }, [node, onReload, selectedPaths, onMultiSelect]);
 
   const handleCopyPath = useCallback(() => {
     navigator.clipboard.writeText(node.path).then(() => {
-      showToast("路径已复制到剪贴板");
-    }).catch(() => { prompt("文件路径:", node.path); });
+      showToast(i18n.t("sidebar.toast.pathCopied"));
+    }).catch(() => { prompt(`${i18n.t("sidebar.file.filePath")}`, node.path); });
   }, [node]);
 
   const handleOpenLocation = useCallback(async () => {
     try {
       await invoke("open_file_location", { filePath: node.path });
     } catch (err) {
-      console.error("打开文件位置失败:", err);
+      console.error(i18n.t("sidebar.error.openLocationFailed"), err);
     }
   }, [node]);
 
@@ -880,8 +882,8 @@ function TreeNodeComp({
   };
 
   const menuItems = node.isDirectory
-    ? getFolderMenuItems(actions)
-    : getFileMenuItems(actions);
+    ? getFolderMenuItems(actions, i18n.t)
+    : getFileMenuItems(actions, i18n.t);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -980,12 +982,12 @@ function TreeNodeComp({
 
       <ConfirmDialog
         isOpen={deleteConfirmOpen}
-        title="删除确认"
+        title={i18n.t("sidebar.dialog.deleteConfirmTitle")}
         message={selectedPaths.size > 1 && selectedPaths.has(node.path)
-          ? `确定要删除选中的 ${selectedPaths.size} 个项目吗？`
+          ? i18n.t("sidebar.dialog.deleteMultiConfirm", { count: selectedPaths.size })
           : node.isDirectory
-            ? `确定要删除文件夹 "${node.name}" 及其所有内容吗？`
-            : `确定要删除文件 "${node.name}" 吗？`}
+            ? i18n.t("sidebar.dialog.deleteFolderConfirm", { name: node.name })
+            : i18n.t("sidebar.dialog.deleteFileConfirm", { name: node.name })}
         type="danger"
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteConfirmOpen(false)}
@@ -1376,33 +1378,33 @@ function FileTree({
     try {
       const filePath = await uniqueFilePath(rootPath, "untitled", ".md");
       await writeTextFile(filePath, ""); await handleReload(); handleStartEdit(filePath);
-    } catch (err) { console.error("新建文件失败:", err); }
+    } catch (err) { console.error(i18n.t("sidebar.error.newFileFailed"), err); }
   }, [rootPath, handleReload, handleStartEdit]);
 
   const handleNewRootFolder = useCallback(async () => {
     try {
       const dirPath = await uniqueDirPath(rootPath, "新建文件夹");
       await mkdir(dirPath); await handleReload(); handleStartEdit(dirPath);
-    } catch (err) { console.error("新建文件夹失败:", err); }
+    } catch (err) { console.error(i18n.t("sidebar.error.newFolderFailed"), err); }
   }, [rootPath, handleReload, handleStartEdit]);
 
   const handleNewRootWhiteboard = useCallback(async () => {
     try {
       const filePath = await uniqueFilePath(rootPath, "untitled", ".canvas");
       await writeTextFile(filePath, '{"nodes":[],"edges":[]}'); await handleReload(); handleStartEdit(filePath);
-    } catch (err) { console.error("新建白板失败:", err); }
+    } catch (err) { console.error(i18n.t("sidebar.error.newCanvasFailed"), err); }
   }, [rootPath, handleReload, handleStartEdit]);
 
   const handleCopyRootPath = useCallback(() => {
     navigator.clipboard.writeText(rootPath).then(() => {
-      showToast("路径已复制到剪贴板");
-    }).catch(() => { prompt("文件夹路径:", rootPath); });
+      showToast(i18n.t("sidebar.toast.pathCopied"));
+    }).catch(() => { prompt(`${i18n.t("sidebar.file.folderPath")}`, rootPath); });
   }, [rootPath]);
   const handleOpenRootLocation = useCallback(async () => {
     try {
       await invoke("open_file_location", { filePath: rootPath });
     } catch (err) {
-      console.error("打开文件夹位置失败:", err);
+      console.error(i18n.t("sidebar.error.openFolderLocationFailed"), err);
     }
   }, [rootPath]);
 
@@ -1541,7 +1543,7 @@ function FileTree({
         <ContextMenu
           x={ctxMenu.x}
           y={ctxMenu.y}
-          items={getBlankMenuItems(blankActions)}
+          items={getBlankMenuItems(blankActions, i18n.t)}
           onClose={() => setCtxMenu(null)}
         />
       )}
@@ -1757,6 +1759,7 @@ function VaultSwitcher({
   onPublish: () => void;
   onSelectVault: (index: number) => void;
 }) {
+  const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
   const [removingVaultIndex, setRemovingVaultIndex] = useState<number>(-1);
@@ -1779,7 +1782,7 @@ function VaultSwitcher({
     try {
       await invoke("open_settings_window");
     } catch (err) {
-      console.error("打开设置窗口失败:", err);
+      console.error(i18n.t("sidebar.error.openSettingsFailed"), err);
     }
   }, []);
 
@@ -1797,11 +1800,11 @@ function VaultSwitcher({
         <div className="vault-empty-row">
           <button className="vault-open-btn" onClick={() => invoke("open_vault_manager_window")}>
             {vaultSvgIcon}
-            <span className="vault-name">管理仓库</span>
+            <span className="vault-name">{t("sidebar.vault.manage")}</span>
           </button>
           <button
             className="vault-menu-btn"
-            title="设置"
+            title={t("sidebar.vault.settings")}
             onClick={(e) => {
               e.stopPropagation();
               handleOpenSettings();
@@ -1821,7 +1824,7 @@ function VaultSwitcher({
     <div className="sidebar-footer">
       <div
         className="vault-current"
-        title="切换仓库"
+        title={t("sidebar.vault.switch")}
       >
         {vaultSvgIcon}
         <span
@@ -1831,11 +1834,11 @@ function VaultSwitcher({
             setMenuOpen((prev) => !prev);
           }}
         >
-          {activeVault ? activeVault.name : "未选择"}
+          {activeVault ? activeVault.name : t("sidebar.vault.unselected")}
         </span>
         <button
           className="vault-menu-btn"
-          title="设置"
+          title={t("sidebar.vault.settings")}
           onClick={(e) => {
             e.stopPropagation();
             setMenuOpen(false);
@@ -1864,7 +1867,7 @@ function VaultSwitcher({
                 <span className="vault-menu-name">{vault.name}</span>
                 <button
                   className="vault-menu-remove-btn"
-                  title="移除此仓库"
+                  title={t("sidebar.vault.remove")}
                   onClick={(e) => {
                     e.stopPropagation();
                     setRemovingVaultIndex(i);
@@ -1890,7 +1893,7 @@ function VaultSwitcher({
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
               <path d="M9 7h6M9 11h4" />
             </svg>
-            <span>管理仓库</span>
+            <span>{t("sidebar.vault.manage")}</span>
           </div>
           {activeIndex >= 0 && (
             <div
@@ -1905,7 +1908,7 @@ function VaultSwitcher({
                 <polyline points="16 6 12 2 8 6" />
                 <line x1="12" y1="2" x2="12" y2="15" />
               </svg>
-              <span>发布为网站</span>
+              <span>{t("sidebar.vault.publishWebsite")}</span>
             </div>
           )}
         </div>
@@ -1913,8 +1916,8 @@ function VaultSwitcher({
 
       <ConfirmDialog
         isOpen={removeConfirmOpen}
-        title="移除仓库"
-        message={`确定要移除仓库 "${vaults[removingVaultIndex]?.name || ""}" 吗？\n此操作不会删除本地文件。`}
+        title={t("sidebar.vault.removeConfirmTitle")}
+        message={t("sidebar.vault.removeConfirmMessage", { name: vaults[removingVaultIndex]?.name || "" })}
         type="warning"
         onConfirm={() => {
           onRemove(removingVaultIndex);
@@ -1949,6 +1952,8 @@ export default function Sidebar({
   const [isResizing, setIsResizing] = useState(false);
   const [activeTab, setActiveTab] = useState<"files" | "search" | "outline" | "bookmarks">("files");
   const [searchQuery, setSearchQuery] = useState("");
+  // Trigger re-render on language change
+  useTranslation();
 
   const handleSelectFile = useCallback(
     (path: string, line?: number, query?: string) => { onSelectFile(path, line, query); },
