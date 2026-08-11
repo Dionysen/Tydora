@@ -108,11 +108,8 @@ export function resolveRelativePath(baseDir: string, relPath: string): string {
     }
   }
 
-  // Windows: 保留盘符+分隔符格式
-  if (baseParts.length > 0 && /^[a-zA-Z]:$/.test(baseParts[0])) {
-    baseParts[0] = baseParts[0] + sep;
-  }
-
+  // baseParts.join(sep) 已自动在每段之间插入平台分隔符
+  // 例如 ["C:", "Users", "zuorn"] + join("\") → "C:\Users\zuorn"
   return baseParts.join(sep);
 }
 

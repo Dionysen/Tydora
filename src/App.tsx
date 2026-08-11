@@ -1146,6 +1146,11 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     const parentDir = fileName.replace(/[/\\][^/\\]*$/, '');
     const newPath = `${parentDir}/${newBaseName}${ext}`;
     try {
+      // 更新 wiki 链接
+      if (!LinkIndexService.isEmpty() && fileName.endsWith('.md')) {
+        const vp = activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null;
+        if (vp) await LinkIndexService.rewriteWikiLinks(fileName, newPath, vp);
+      }
       await rename(fileName, newPath);
       setTreeRefreshKey(k => k + 1);
       handleSelectFile(newPath);
@@ -1153,7 +1158,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       console.error('重命名失败:', err);
     }
     setMoreMenuOpen(false);
-  }, [fileName, handleSelectFile]);
+  }, [fileName, handleSelectFile, vaults, activeVaultIndex]);
 
   const handleCopyRelativePath = useCallback(() => {
     if (!fileName) return;
@@ -1625,6 +1630,26 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       setExporting(false);
     }
   };
+  const handleExportRef = useRef(handleExport);
+  handleExportRef.current = handleExport;
+
+  // 复制为 Markdown — 直接获取编辑器 Markdown 源码并写入剪贴板，无需预览
+  const [markdownCopied, setMarkdownCopied] = useState(false);
+  const handleCopyAsMarkdown = useCallback(async () => {
+    const markdown = editorHandleRef.current?.getValue();
+    if (!markdown) return;
+    try {
+      await navigator.clipboard.writeText(markdown);
+      setMarkdownCopied(true);
+      // 短暂显示"已复制"反馈后关闭弹框
+      setTimeout(() => {
+        setMarkdownCopied(false);
+        setShowExportFormatPicker(false);
+      }, 600);
+    } catch {
+      alert("复制失败，请重试");
+    }
+  }, []);
 
   // ── 命令面板命令列表 ──
   const commands = useMemo(() => [
@@ -1667,6 +1692,13 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       },
     })),
     { id: "publish", label: "发布为网站", category: "工具", action: () => setPublishOpen(true) },
+    // 复制和导出 — 通过命令面板直接触发各格式导出/复制
+    { id: "copy-markdown", label: "复制为 Markdown", category: "导出", aliases: ["markdown", "md", "复制", "copy", "拷贝"], action: handleCopyAsMarkdown },
+    { id: "copy-wechat", label: "复制公众号", category: "导出", aliases: ["wechat", "公众号", "微信", "复制", "copy"], action: () => handleExportRef.current("wechat") },
+    { id: "export-pdf", label: "导出为 PDF", category: "导出", aliases: ["pdf", "导出"], action: () => handleExportRef.current("pdf") },
+    { id: "export-html", label: "导出为 HTML", category: "导出", aliases: ["html", "网页", "导出"], action: () => handleExportRef.current("html") },
+    { id: "export-docx", label: "导出为 Word", category: "导出", aliases: ["word", "docx", "文档", "导出"], action: () => handleExportRef.current("docx") },
+    { id: "export-png", label: "导出为图片", category: "导出", aliases: ["png", "图片", "图像", "导出"], action: () => handleExportRef.current("png") },
 
     // 编辑模式
     { id: "mode-ir", label: viewMode === "ir" ? "即时渲染模式 ✓" : "切换到即时渲染模式", category: "模式", aliases: ["ir", "即时渲染", "编辑模式"], action: () => setViewMode("ir") },
@@ -1718,7 +1750,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "settings-image", label: "图像设置", category: "设置", aliases: ["图像", "image", "图片"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "image"); invoke("open_settings_window"); } },
     { id: "settings-canvas", label: "白板设置", category: "设置", aliases: ["白板", "canvas", "画布"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "canvas"); invoke("open_settings_window"); } },
     { id: "settings-about", label: "关于", category: "设置", aliases: ["about", "版本"], action: () => { localStorage.setItem("zmd-settings-initial-tab", "about"); invoke("open_settings_window"); } },
-  ], [handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, handleMinimize, handleToggleMaximize, handleClose, setViewMode, viewMode, vaults]);
+  ], [handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, handleMinimize, handleToggleMaximize, handleClose, setViewMode, viewMode, vaults, handleCopyAsMarkdown]);
 
   return (
     <div className="app">
@@ -1825,10 +1857,11 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
               {pinnedItems.export && (
                 <button
                   className="window-control-btn"
-                  title="导出"
+                  title="复制和导出"
                   disabled={viewMode === "sv" || exporting}
                   onClick={() => {
                     if (viewMode === "sv" || exporting) return;
+                    setMarkdownCopied(false);
                     setShowExportFormatPicker(true);
                   }}
                 >
@@ -2025,6 +2058,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       onClick={() => {
                         if (viewMode === "sv" || exporting) return;
                         setMoreMenuOpen(false);
+                        setMarkdownCopied(false);
                         setShowExportFormatPicker(true);
                       }}
                     >
@@ -2033,7 +2067,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                         <polyline points="17 8 12 3 7 8" />
                         <line x1="12" y1="3" x2="12" y2="15" />
                       </svg>
-                      <span className="editor-topbar-more-menu-label">{exporting ? "导出中…" : "导出"}</span>
+                      <span className="editor-topbar-more-menu-label">{exporting ? "导出中…" : "复制和导出"}</span>
                       <button
                         className={`editor-topbar-more-menu-pin${pinnedItems.export ? ' pinned' : ''}`}
                         title={pinnedItems.export ? '取消固定' : '固定在顶部栏'}
@@ -2213,11 +2247,47 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         <div className="export-formatpicker-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowExportFormatPicker(false); }}>
           <div className="export-formatpicker-dialog">
             <div className="export-formatpicker-header">
-              <span>导出格式</span>
+              <span>复制和导出</span>
               <button className="export-formatpicker-close" onClick={() => setShowExportFormatPicker(false)}>✕</button>
             </div>
             <div className="export-formatpicker-body">
-              {(Object.keys(EXPORT_FORMATS) as ExportFormat[]).map((fmt) => (
+              {/* 第一行：复制 — Markdown + 公众号 */}
+              <button
+                className="export-formatpicker-option"
+                onClick={handleCopyAsMarkdown}
+              >
+                <span className="export-formatpicker-option-icon">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <path d="M10 9 L7 9" />
+                  </svg>
+                </span>
+                <span className="export-formatpicker-option-label">Markdown</span>
+                <span className="export-formatpicker-option-ext">{markdownCopied ? "已复制 ✓" : "复制"}</span>
+              </button>
+              <button
+                className="export-formatpicker-option"
+                onClick={() => handleExport("wechat")}
+                disabled={exporting}
+              >
+                <span className="export-formatpicker-option-icon">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 10.9c3.2 0 5.8-2.3 5.8-5.2S11.2.5 8 .5 2.2 2.8 2.2 5.7c0 1.5.8 2.9 1.9 3.8l-.5 1.6 1.9-1c.7.2 1.5.4 2.3.4" />
+                    <path d="M15.5 13.5c4 0 7.3-2.9 7.3-6.5S19.5.5 15.5.5 8.2 3.4 8.2 7c0 1.9.8 3.5 2.3 4.7l-.7 2.1 2.5-1.4c1 .4 2 .5 3.1.5Z" />
+                    <line x1="12" y1="18.5" x2="12" y2="23.5" />
+                    <polyline points="9 21 12 23.5 15 21" />
+                  </svg>
+                </span>
+                <span className="export-formatpicker-option-label">公众号</span>
+                <span className="export-formatpicker-option-ext">复制</span>
+              </button>
+              {/* 分隔线 */}
+              <div className="export-formatpicker-separator" />
+              {/* 第二行起：导出格式 */}
+              {(Object.keys(EXPORT_FORMATS) as ExportFormat[]).filter(fmt => fmt !== "wechat").map((fmt) => (
                 <button
                   key={fmt}
                   className="export-formatpicker-option"
@@ -2265,7 +2335,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                     )}
                   </span>
                   <span className="export-formatpicker-option-label">{EXPORT_FORMATS[fmt].label}</span>
-                  <span className="export-formatpicker-option-ext">{fmt === "wechat" ? "复制" : `.${EXPORT_FORMATS[fmt].ext}`}</span>
+                  <span className="export-formatpicker-option-ext">.{EXPORT_FORMATS[fmt].ext}</span>
                 </button>
               ))}
             </div>

@@ -4,6 +4,7 @@ interface UpdateLinkDialogProps {
   isOpen: boolean;
   filesCount: number;
   linksCount: number;
+  imagePathsCount?: number;
   onAlwaysUpdate: () => void;
   onUpdateOnce: () => void;
   onSkip: () => void;
@@ -13,6 +14,7 @@ export function UpdateLinkDialog({
   isOpen,
   filesCount,
   linksCount,
+  imagePathsCount,
   onAlwaysUpdate,
   onUpdateOnce,
   onSkip,
@@ -52,7 +54,13 @@ export function UpdateLinkDialog({
         <div className="confirm-dialog-message">
           你是否需要更新与此文件相关联的内部链接？
           <br />
-          这将影响 {filesCount} 个文件 中 的 {linksCount} 个链接。
+          这将影响 {filesCount} 个文件 中 的 {linksCount} 个链接
+          {imagePathsCount != null && imagePathsCount > 0 ? (
+            <>，以及 {imagePathsCount} 个图片引用</>
+          ) : (
+            ""
+          )}
+          。
         </div>
         <div className="update-link-actions">
           <button className="update-link-btn update-link-btn-primary" onClick={onAlwaysUpdate}>

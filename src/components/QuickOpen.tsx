@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { readDir } from "@tauri-apps/plugin-fs";
 import { VaultInfo } from "../Sidebar";
+import { useDebounce } from "../hooks/useDebounce";
 
 interface QuickOpenProps {
   vault: VaultInfo | null;
@@ -88,8 +89,11 @@ function getFileName(path: string): string {
   return path.split(sep).pop() || path;
 }
 
+const QUICKOPEN_DEBOUNCE = 120; // ms — 快速打开防抖延迟，比查找对话框更短以保持响应感
+
 export default function QuickOpen({ vault, vaults, recentFiles, currentFilePath, files: externalFiles, onSelect, onSelectVault, onClose }: QuickOpenProps) {
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query.trim(), QUICKOPEN_DEBOUNCE);
   const [allFiles, setAllFiles] = useState<FileItem[] | null>(null);
   const [filteredFiles, setFilteredFiles] = useState<FileItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -146,11 +150,11 @@ export default function QuickOpen({ vault, vaults, recentFiles, currentFilePath,
     }
   }, [query, vault, allFiles, loading, useExternalFiles]);
 
-  // 搜索过滤
+  // 搜索过滤 — 使用防抖查询避免每次按键都过滤全量文件
   useEffect(() => {
     if (!searchMode) return;
 
-    const q = query.trim();
+    const q = debouncedQuery;
     const sourceFiles = useExternalFiles && externalFiles ? externalFiles : allFiles;
 
     if (!q) {
@@ -170,17 +174,17 @@ export default function QuickOpen({ vault, vaults, recentFiles, currentFilePath,
 
     setFilteredFiles(matched);
     setSelectedIndex(0);
-  }, [searchMode, allFiles, query, recentFileItems, externalFiles, useExternalFiles]);
+  }, [searchMode, allFiles, debouncedQuery, recentFileItems, externalFiles, useExternalFiles]);
 
-  // 匹配知识库名称
+  // 匹配知识库名称 — 使用防抖查询
   const matchedVaults = useMemo(() => {
     if (!searchMode) return [];
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.toLowerCase();
     if (!q) return [];
     return vaults
       .filter((v) => v.name.toLowerCase().includes(q))
       .map((v) => ({ name: v.name, path: v.path }));
-  }, [searchMode, query, vaults]);
+  }, [searchMode, debouncedQuery, vaults]);
 
   // 综合项目数（文件 + 知识库），用于键盘导航边界
   const totalItems = filteredFiles.length + matchedVaults.length;

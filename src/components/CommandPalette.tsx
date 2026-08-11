@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useDebounce } from "../hooks/useDebounce";
 
 interface Command {
   id: string;
@@ -81,8 +82,11 @@ function highlightMatch(text: string, query: string): React.ReactNode {
   );
 }
 
+const CMD_DEBOUNCE = 100; // ms — 命令面板防抖延迟，命令列表较小所以延迟可以更短
+
 export default function CommandPalette({ isOpen, onClose, commands }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query.trim(), CMD_DEBOUNCE);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [recentIds, setRecentIds] = useState<string[]>(() => loadRecentCommands());
   const inputRef = useRef<HTMLInputElement>(null);
@@ -95,15 +99,15 @@ export default function CommandPalette({ isOpen, onClose, commands }: CommandPal
       .filter((cmd): cmd is Command => cmd !== undefined);
   }, [recentIds, commands]);
 
-  // 过滤后的命令（搜索时）
+  // 过滤后的命令（搜索时）— 使用防抖查询
   const filteredCommands = useMemo(() => {
-    if (!query.trim()) return [];
+    if (!debouncedQuery) return [];
     return commands
       .map((cmd) => {
-        let score = fuzzyScore(cmd.label, query);
+        let score = fuzzyScore(cmd.label, debouncedQuery);
         if (score === 0 && cmd.aliases) {
           for (const alias of cmd.aliases) {
-            const aliasScore = fuzzyScore(alias, query);
+            const aliasScore = fuzzyScore(alias, debouncedQuery);
             if (aliasScore > score) score = aliasScore;
           }
         }
@@ -113,7 +117,7 @@ export default function CommandPalette({ isOpen, onClose, commands }: CommandPal
       .sort((a, b) => b.score - a.score)
       .map(({ command }) => command)
       .slice(0, 30);
-  }, [query, commands]);
+  }, [debouncedQuery, commands]);
 
   // 所有命令按分类分组（非搜索时）
   const allGroupedCommands = useMemo(() => {
@@ -126,16 +130,16 @@ export default function CommandPalette({ isOpen, onClose, commands }: CommandPal
     return groups;
   }, [query, commands]);
 
-  // 搜索结果按分类分组
+  // 搜索结果按分类分组 — 使用防抖查询
   const searchGroupedCommands = useMemo(() => {
-    if (!query.trim()) return {};
+    if (!debouncedQuery) return {};
     const groups: Record<string, Command[]> = {};
     filteredCommands.forEach((cmd) => {
       if (!groups[cmd.category]) groups[cmd.category] = [];
       groups[cmd.category].push(cmd);
     });
     return groups;
-  }, [query, filteredCommands]);
+  }, [debouncedQuery, filteredCommands]);
 
   const isSearchMode = query.trim().length > 0;
 

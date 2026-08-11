@@ -1011,24 +1011,82 @@ export function buildWechatHtml(
       pre.replaceWith(blockquote);
     }
 
-    // 处理 TaskList（GFM 任务列表）：[ ] / [x] -> ☐ / ☑
-    const taskItems = Array.from(container.querySelectorAll("li.task-list-item, li[class*='task']"));
-    for (const li of taskItems) {
-      const text = li.textContent || "";
-      if (/^\s*\[\s\]\s*/.test(text)) {
-        li.innerHTML = li.innerHTML.replace(/^\s*\[\s\]\s*/, "☐ ");
-      } else if (/^\s*\[x\]\s*/i.test(text)) {
-        li.innerHTML = li.innerHTML.replace(/^\s*\[x\]\s*/i, "☑ ");
+    // ── 处理 TaskList — 把结构 + 样式直接内联到 DOM，公众号不支持 CSS 伪元素 ──
+    // 用 getElementsByTagName 遍历避免 querySelectorAll 在临时 DOM 中的兼容问题
+    const allUls = container.getElementsByTagName("ul");
+    const taskListUls: HTMLUListElement[] = [];
+    for (let i = 0; i < allUls.length; i++) {
+      if (allUls[i].getAttribute("data-type") === "taskList") {
+        taskListUls.push(allUls[i] as HTMLUListElement);
       }
     }
 
-    // 处理隐藏的 input checkbox（GFM 任务列表的另一种实现）
-    const checkboxes = Array.from(container.querySelectorAll('input[type="checkbox"]'));
-    for (const cb of checkboxes) {
-      const isChecked = (cb as HTMLInputElement).checked;
-      const symbol = isChecked ? "☑" : "☐";
-      const textNode = document.createTextNode(symbol + " ");
-      cb.replaceWith(textNode);
+    for (const ul of taskListUls) {
+      ul.style.cssText = "list-style:none;padding-left:0;position:relative;margin:0;";
+
+      const childLis = ul.children;
+      for (let k = 0; k < childLis.length; k++) {
+        const li = childLis[k] as HTMLElement;
+        if (li.tagName !== "LI" || li.getAttribute("data-type") !== "taskItem") continue;
+
+        const isChecked = li.getAttribute("data-checked") === "true";
+        li.style.cssText = "display:flex;align-items:flex-start;gap:8px;margin:6px 0;";
+
+        // 递归处理嵌套子任务列表的缩进
+        const nestedUls = li.getElementsByTagName("ul");
+        for (let j = 0; j < nestedUls.length; j++) {
+          const nested = nestedUls[j];
+          if (nested.getAttribute("data-type") !== "taskList") continue;
+          nested.style.setProperty("margin", "4px 0");
+          nested.style.setProperty("margin-left", "24px");
+          nested.style.setProperty("list-style", "none");
+          nested.style.setProperty("padding-left", "0");
+          nested.style.setProperty("position", "relative");
+        }
+
+        // 替换 input[type="checkbox"] 为圆形 span
+        const inputs = li.getElementsByTagName("input");
+        for (let m = 0; m < inputs.length; m++) {
+          const cb = inputs[m];
+          if (cb.type !== "checkbox") continue;
+
+          const checkSpan = document.createElement("span");
+          checkSpan.style.cssText = isChecked
+            ? "display:inline-block;width:16px;height:16px;min-width:16px;background:#5b8c5a;border:2px solid #5b8c5a;border-radius:50%;vertical-align:middle;flex-shrink:0;text-align:center;font-size:11px;color:#fff;line-height:14px;box-sizing:content-box;"
+            : "display:inline-block;width:16px;height:16px;min-width:16px;border:2px solid #c0c0c0;border-radius:50%;vertical-align:middle;flex-shrink:0;box-sizing:content-box;";
+          if (isChecked) checkSpan.textContent = "✓";
+          cb.replaceWith(checkSpan);
+
+          // 样式化父级 label
+          const parentLabel = checkSpan.parentElement;
+          if (parentLabel && parentLabel.tagName === "LABEL") {
+            parentLabel.style.cssText = "flex-shrink:0;display:inline-flex;align-items:center;";
+          }
+          break;
+        }
+
+        // 移除空 checkboxStyler span
+        const spans = li.getElementsByTagName("span");
+        for (let n = spans.length - 1; n >= 0; n--) {
+          const s = spans[n];
+          if (!s.style.cssText && !s.textContent?.trim() && !s.querySelector("*")) {
+            s.remove();
+          }
+        }
+
+        // 内容容器 div
+        const divs = li.getElementsByTagName("div");
+        if (divs.length > 0) {
+          const content = divs[0] as HTMLElement;
+          content.style.cssText =
+            "flex:1;min-width:0;" + (isChecked ? "text-decoration:line-through;color:#999;" : "");
+          const firstP = content.querySelector("p");
+          if (firstP) {
+            firstP.style.setProperty("margin-top", "0");
+            firstP.style.setProperty("margin-bottom", "0");
+          }
+        }
+      }
     }
 
     // 提取 .export-page 的内容（去除外部 wrapper）

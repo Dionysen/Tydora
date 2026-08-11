@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { EditorHandle } from "../Editor/types";
+import { useDebounce } from "../hooks/useDebounce";
 import "./FindReplaceDialog.css";
 
 interface FindReplaceDialogProps {
@@ -8,8 +9,11 @@ interface FindReplaceDialogProps {
   onClose: () => void;
 }
 
+const DEBOUNCE_DELAY = 180; // ms — 防抖延迟，用户停止输入 180ms 后才执行搜索
+
 export default function FindReplaceDialog({ editorHandle, mode: initialMode, onClose }: FindReplaceDialogProps) {
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, DEBOUNCE_DELAY);
   const [replaceText, setReplaceText] = useState("");
   const [matches, setMatches] = useState<Array<{ from: number; to: number }>>([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
@@ -45,10 +49,18 @@ export default function FindReplaceDialog({ editorHandle, mode: initialMode, onC
     }
   }, [editorHandle]);
 
+  // Perform search when debounced query changes — 防抖避免每次按键都扫描全文
   useEffect(() => {
-    doSearch(query);
+    // 空查询立即清空高亮（无延迟，保证即时响应）
+    if (!debouncedQuery) {
+      editorHandle?.clearHighlight();
+      setMatches([]);
+      setCurrentIndex(-1);
+      return;
+    }
+    doSearch(debouncedQuery);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
+  }, [debouncedQuery]);
 
   // Navigate to next match
   const goToNext = useCallback(() => {

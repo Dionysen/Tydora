@@ -1753,6 +1753,13 @@ body {
   padding: 20px;
 }
 
+.export-formatpicker-separator {
+  grid-column: 1 / -1;
+  height: 1px;
+  background: var(--border, #d9ede5);
+  margin: 4px 0;
+}
+
 .export-formatpicker-option {
   display: flex;
   flex-direction: column;

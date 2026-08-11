@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EXPORT_FORMATS, type BuiltArtifact, type ExportFormat, saveExportArtifact } from "../export";
 import "./ExportPreviewDialog.css";
 
@@ -273,7 +273,17 @@ export function ExportPreviewDialog({ format, artifact, title, onClose, onSaveSu
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !saving) onClose();
+      if (saving) return;
+      if (e.key === "Escape") {
+        onClose();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (format === "wechat") {
+          copyWechatRef.current();
+        } else {
+          confirmRef.current();
+        }
+      }
     };
     const handleOverlayClick = (e: MouseEvent) => {
       if (dialogRef.current && !dialogRef.current.contains(e.target as Node) && !saving) {
@@ -286,9 +296,13 @@ export function ExportPreviewDialog({ format, artifact, title, onClose, onSaveSu
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("mousedown", handleOverlayClick);
     };
-  }, [onClose, saving]);
+  }, [onClose, saving, format]);
 
-  const handleConfirm = async () => {
+  // 使用 ref 保持确认回调稳定，避免 Enter 快捷键监听反复注册
+  const confirmRef = useRef<() => void>(() => {});
+  const copyWechatRef = useRef<() => void>(() => {});
+
+  const handleConfirm = useCallback(async () => {
     if (saving) return;
     setSaving(true);
     setError(null);
@@ -306,10 +320,11 @@ export function ExportPreviewDialog({ format, artifact, title, onClose, onSaveSu
     } finally {
       setSaving(false);
     }
-  };
+  }, [saving, format, artifact.content, title, onClose, onSaveSuccess]);
+  confirmRef.current = handleConfirm;
 
   /** 公众号格式：将 HTML 内容写入剪贴板，支持粘贴到公众号编辑器 */
-  const handleCopyWechat = async () => {
+  const handleCopyWechat = useCallback(async () => {
     if (saving) return;
     setSaving(true);
     setError(null);
@@ -340,7 +355,8 @@ export function ExportPreviewDialog({ format, artifact, title, onClose, onSaveSu
     } finally {
       setSaving(false);
     }
-  };
+  }, [saving, artifact.content, onClose]);
+  copyWechatRef.current = handleCopyWechat;
 
   const isWechat = format === "wechat";
 
@@ -354,11 +370,11 @@ export function ExportPreviewDialog({ format, artifact, title, onClose, onSaveSu
             {copied && <span className="export-preview-copied">✅ 已复制到剪贴板，可粘贴到公众号编辑器</span>}
             {isWechat ? (
               <button className="export-preview-btn export-preview-btn-confirm" onClick={handleCopyWechat} disabled={saving}>
-                {copied ? "已复制 ✓" : saving ? "复制中…" : "复制到剪贴板"}
+                {copied ? "已复制 ✓" : saving ? "复制中…" : "复制到剪贴板（Enter）"}
               </button>
             ) : (
               <button className="export-preview-btn export-preview-btn-confirm" onClick={handleConfirm} disabled={saving}>
-                {saving ? "导出中…" : `导出为 ${meta.label}`}
+                {saving ? "导出中…" : `导出为 ${meta.label}（Enter）`}
               </button>
             )}
             <button className="export-preview-close" onClick={onClose} disabled={saving} title="关闭">

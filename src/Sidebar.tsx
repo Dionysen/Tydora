@@ -6,6 +6,8 @@ import { ConfirmDialog } from "./components";
 import { UpdateLinkDialog } from "./components";
 import { FolderPicker } from "./components";
 import { LinkIndexService } from "./wikilink";
+import { resolveRelativePath } from "./services";
+import { relativePath as computeRelativePath } from "./services/ImageManager";
 import { BookmarksPanel } from "./Bookmarks";
 import "./Sidebar.css";
 
@@ -197,6 +199,174 @@ async function getFileList(dirPath: string): Promise<FileEntry[]> {
 
 function invalidateFileCache(dirPath: string) {
   fileCache.delete(dirPath);
+}
+
+/** 递归查找目录下所有 .md 文件（用于文件夹重命名/移动时更新 wiki 链接） */
+async function getAllMdFiles(dirPath: string): Promise<string[]> {
+  const files: string[] = [];
+  try {
+    const entries = await readDir(dirPath);
+    for (const entry of entries) {
+      const fullPath = joinPath(dirPath, entry.name);
+      if (entry.isDirectory) {
+        files.push(...await getAllMdFiles(fullPath));
+      } else if (entry.name.endsWith(".md")) {
+        files.push(fullPath);
+      }
+    }
+  } catch {
+    // 目录可能不存在或被删除，静默处理
+  }
+  return files;
+}
+
+/** 重写文件夹内所有 .md 文件的 wiki 链接 */
+async function rewriteWikiLinksForFolder(
+  oldDirPath: string,
+  newDirPath: string,
+  vaultPath: string,
+): Promise<{ filesUpdated: number; linksUpdated: number }> {
+  let filesUpdated = 0;
+  let linksUpdated = 0;
+  const mdFiles = await getAllMdFiles(oldDirPath);
+  for (const filePath of mdFiles) {
+    const relativePath = filePath.substring(oldDirPath.length);
+    const newFilePath = newDirPath + relativePath;
+    const result = await LinkIndexService.rewriteWikiLinks(filePath, newFilePath, vaultPath);
+    filesUpdated += result.filesUpdated;
+    linksUpdated += result.linksUpdated;
+  }
+  return { filesUpdated, linksUpdated };
+}
+
+/** 统计文件夹内所有 .md 文件移动后受影响的 wiki 链接数 */
+async function getAffectedLinkCountForFolder(
+  oldDirPath: string,
+  newDirPath: string,
+  vaultPath: string,
+): Promise<{ filesCount: number; linksCount: number }> {
+  let filesCount = 0;
+  let linksCount = 0;
+  const mdFiles = await getAllMdFiles(oldDirPath);
+  for (const filePath of mdFiles) {
+    const relativePath = filePath.substring(oldDirPath.length);
+    const newFilePath = newDirPath + relativePath;
+    const result = LinkIndexService.getAffectedLinkCount(filePath, newFilePath, vaultPath);
+    filesCount += result.filesCount;
+    linksCount += result.linksCount;
+  }
+  return { filesCount, linksCount };
+}
+
+// ── 图片路径正则 ──
+/** Markdown 图片: ![alt](path) */
+const MD_IMAGE_REGEX = /!\[[^\]]*\]\(([^)\s]+)\)/g;
+/** HTML img: <img src="path" ...> */
+const HTML_IMG_REGEX = /<img\s+[^>]*src=["']([^"'\s]+)["'][^>]*>/gi;
+
+/** 判断是否为外部/内联路径（不需要更新） */
+function isExternalOrInline(path: string): boolean {
+  return path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:");
+}
+
+/** 统计文件夹改名后受影响的图片路径数 */
+async function countImagePathsAffected(
+  oldFolderPath: string,
+  newFolderPath: string,
+  vaultPath: string,
+): Promise<{ filesCount: number; pathsCount: number }> {
+  let filesCount = 0;
+  let pathsCount = 0;
+
+  const mdFiles = await getAllMdFiles(vaultPath);
+  for (const filePath of mdFiles) {
+    const content = await readTextFile(filePath);
+    const docDir = parentPath(filePath);
+    let fileAffected = false;
+
+    const sep = pathSep();
+    for (const match of content.matchAll(MD_IMAGE_REGEX)) {
+      const imgPath = match[1];
+      if (isExternalOrInline(imgPath)) continue;
+      const resolved = resolveRelativePath(docDir, imgPath);
+      if (resolved.startsWith(oldFolderPath + sep) || resolved === oldFolderPath) {
+        pathsCount++;
+        fileAffected = true;
+      }
+    }
+
+    for (const match of content.matchAll(HTML_IMG_REGEX)) {
+      const imgPath = match[1];
+      if (isExternalOrInline(imgPath)) continue;
+      const resolved = resolveRelativePath(docDir, imgPath);
+      if (resolved.startsWith(oldFolderPath + sep) || resolved === oldFolderPath) {
+        pathsCount++;
+        fileAffected = true;
+      }
+    }
+
+    if (fileAffected) filesCount++;
+  }
+
+  return { filesCount, pathsCount };
+}
+
+/** 更新文件夹改名后所有文档中的图片路径 */
+async function updateImagePathsForFolder(
+  oldFolderPath: string,
+  newFolderPath: string,
+  vaultPath: string,
+): Promise<{ filesUpdated: number; pathsUpdated: number }> {
+  let filesUpdated = 0;
+  let pathsUpdated = 0;
+
+  const mdFiles = await getAllMdFiles(vaultPath);
+  const sep = pathSep();
+  for (const filePath of mdFiles) {
+    const content = await readTextFile(filePath);
+    const docDir = parentPath(filePath);
+    let newContent = content;
+    let changed = false;
+
+    // 处理 Markdown 图片: ![alt](path)
+    newContent = newContent.replace(MD_IMAGE_REGEX, (fullMatch, imgPath: string) => {
+      if (isExternalOrInline(imgPath)) return fullMatch;
+      const resolved = resolveRelativePath(docDir, imgPath);
+      if (resolved.startsWith(oldFolderPath + sep) || resolved === oldFolderPath) {
+        const relativePart = resolved.slice(oldFolderPath.length);
+        const newAbsolute = newFolderPath + relativePart;
+        // computeRelativePath 返回平台原生分隔符，Markdown 需要 / 
+        const newRelative = computeRelativePath(docDir, newAbsolute).replace(/\\/g, "/");
+        changed = true;
+        pathsUpdated++;
+        return fullMatch.replace(imgPath, newRelative);
+      }
+      return fullMatch;
+    });
+
+    // 处理 HTML img: <img src="path" ...>
+    newContent = newContent.replace(HTML_IMG_REGEX, (fullMatch, imgPath: string) => {
+      if (isExternalOrInline(imgPath)) return fullMatch;
+      const resolved = resolveRelativePath(docDir, imgPath);
+      if (resolved.startsWith(oldFolderPath + sep) || resolved === oldFolderPath) {
+        const relativePart = resolved.slice(oldFolderPath.length);
+        const newAbsolute = newFolderPath + relativePart;
+        // computeRelativePath 返回平台原生分隔符，HTML 需要 /
+        const newRelative = computeRelativePath(docDir, newAbsolute).replace(/\\/g, "/");
+        changed = true;
+        pathsUpdated++;
+        return fullMatch.replace(imgPath, newRelative);
+      }
+      return fullMatch;
+    });
+
+    if (changed) {
+      await writeTextFile(filePath, newContent);
+      filesUpdated++;
+    }
+  }
+
+  return { filesUpdated, pathsUpdated };
 }
 
 async function searchFile(filePath: string, lowerQuery: string): Promise<SearchMatch[] | null> {
@@ -554,17 +724,17 @@ function TreeNodeComp({
   onReload: (expandPath?: string) => void;
   rootPath: string;
   dragOverPath: string | null;
-  onMouseDown: (e: React.MouseEvent, nodePath: string) => void;
+  onMouseDown: (e: React.MouseEvent, nodePath: string, isDirectory: boolean) => void;
   editingPath: string | null;
   onStartEdit: (path: string) => void;
-  onFinishEdit: (path: string, newName: string) => void;
+  onFinishEdit: (path: string, newName: string, isDirectory: boolean) => void;
   onNewWindow: (filePath: string) => void;
   onBookmark: (filePath: string, isDirectory: boolean) => void;
   selectedPaths: Set<string>;
   onMultiSelect: (paths: string[], mode: 'toggle' | 'range' | 'replace') => void;
   lastClickedPathRef: React.MutableRefObject<string | null>;
   onToggleExpand: (path: string, expanded: boolean) => void;
-  onMoveTo: (path: string) => void;
+  onMoveTo: (path: string, isDirectory: boolean) => void;
 }) {
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -706,7 +876,7 @@ function TreeNodeComp({
     onCopyPath: handleCopyPath,
     onOpenLocation: handleOpenLocation,
     onBookmark: () => onBookmark(node.path, node.isDirectory),
-    onMoveTo: () => onMoveTo(node.path),
+    onMoveTo: () => onMoveTo(node.path, node.isDirectory),
   };
 
   const menuItems = node.isDirectory
@@ -732,7 +902,7 @@ function TreeNodeComp({
         style={{ paddingLeft: `${8 + indent}px` }}
         onClick={handleToggle}
         onContextMenu={handleContextMenu}
-        onMouseDown={(e) => onMouseDown(e, node.path)}
+        onMouseDown={(e) => onMouseDown(e, node.path, node.isDirectory)}
         title={node.path}
         data-path={node.path}
         data-is-dir={node.isDirectory ? "1" : "0"}
@@ -754,14 +924,14 @@ function TreeNodeComp({
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                onFinishEdit(node.path, (e.target as HTMLInputElement).value);
+                onFinishEdit(node.path, (e.target as HTMLInputElement).value, node.isDirectory);
               } else if (e.key === "Escape") {
                 e.preventDefault();
-                onFinishEdit(node.path, node.name);
+                onFinishEdit(node.path, node.name, node.isDirectory);
               }
             }}
             onBlur={(e) => {
-              onFinishEdit(node.path, e.target.value);
+              onFinishEdit(node.path, e.target.value, node.isDirectory);
             }}
             onClick={(e) => e.stopPropagation()}
           />
@@ -863,7 +1033,8 @@ function FileTree({
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragNodeRef = useRef<string | null>(null);
-  const dragStartRef = useRef<{ x: number; y: number; path: string } | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number; path: string; isDirectory: boolean } | null>(null);
+  const isDragDirectoryRef = useRef(false);
 
   // ── Update link dialog state ──
   const [linkUpdateDialog, setLinkUpdateDialog] = useState<{
@@ -871,9 +1042,11 @@ function FileTree({
     targetPath: string;
     filesCount: number;
     linksCount: number;
+    imagePathsCount?: number;
+    isDirectory?: boolean;
   } | null>(null);
   const alwaysUpdateLinksRef = useRef(false);
-  const pendingRenameRef = useRef<{ path: string; newName: string } | null>(null);
+  const pendingRenameRef = useRef<{ path: string; newName: string; isDirectory?: boolean } | null>(null);
 
   // ── Move to folder state ──
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
@@ -929,7 +1102,7 @@ function FileTree({
     handleRefresh();
   }, [rootPath, collectExpanded, restoreExpanded, handleRefresh]);
 
-  const handleFinishEdit = useCallback(async (path: string, newName: string) => {
+  const handleFinishEdit = useCallback(async (path: string, newName: string, isDirectory: boolean) => {
     setEditingPath(null);
     if (!newName || newName.trim() === "") return;
     newName = newName.trim();
@@ -938,8 +1111,19 @@ function FileTree({
     const p = parentPath(path);
     const newPath = joinPath(p, newName);
 
-    // 检查是否有受影响的 wiki links（仅 .md 文件）
-    if (path.endsWith(".md") && !LinkIndexService.isEmpty()) {
+    // 检查是否有受影响的 wiki links 和图片路径
+    if (isDirectory) {
+      // 文件夹：检查内部所有 .md 文件（wiki 链接 + 图片路径）
+      const [wikiTotal, imgTotal] = await Promise.all([
+        !LinkIndexService.isEmpty() ? getAffectedLinkCountForFolder(path, newPath, rootPath) : Promise.resolve({ filesCount: 0, linksCount: 0 }),
+        countImagePathsAffected(path, newPath, rootPath),
+      ]);
+      if (wikiTotal.filesCount > 0 || imgTotal.pathsCount > 0) {
+        pendingRenameRef.current = { path, newName, isDirectory: true };
+        setLinkUpdateDialog({ srcPath: path, targetPath: newPath, filesCount: wikiTotal.filesCount, linksCount: wikiTotal.linksCount, imagePathsCount: imgTotal.pathsCount, isDirectory: true });
+        return;
+      }
+    } else if (path.endsWith(".md") && !LinkIndexService.isEmpty()) {
       const { filesCount, linksCount } = LinkIndexService.getAffectedLinkCount(path, newPath, rootPath);
       if (filesCount > 0) {
         pendingRenameRef.current = { path, newName };
@@ -953,8 +1137,11 @@ function FileTree({
   }, [handleReload, rootPath]);
 
   // ── Move to folder ──
-  const handleMoveTo = useCallback((path: string) => {
+  const moveSourceIsDirectoryRef = useRef(false);
+
+  const handleMoveTo = useCallback((path: string, isDirectory: boolean) => {
     setMoveSourcePath(path);
+    moveSourceIsDirectoryRef.current = isDirectory;
     setFolderPickerOpen(true);
   }, []);
 
@@ -963,6 +1150,7 @@ function FileTree({
     
     const fileName = moveSourcePath.split(pathSep()).pop() || "";
     const targetPath = joinPath(targetFolder, fileName);
+    const isDir = moveSourceIsDirectoryRef.current;
     
     // 不能移动到自身所在目录
     if (targetFolder === parentPath(moveSourcePath)) {
@@ -971,41 +1159,44 @@ function FileTree({
       return;
     }
     
-    // 检查是否有受影响的 wiki links（仅 .md 文件）
-    if (moveSourcePath.endsWith(".md") && !LinkIndexService.isEmpty()) {
+    // 检查是否有受影响的 wiki links 和图片路径
+    if (isDir) {
+      // 文件夹：检查内部所有 .md 文件（wiki 链接 + 图片路径）
+      const [wikiTotal, imgTotal] = await Promise.all([
+        !LinkIndexService.isEmpty() ? getAffectedLinkCountForFolder(moveSourcePath, targetPath, rootPath) : Promise.resolve({ filesCount: 0, linksCount: 0 }),
+        countImagePathsAffected(moveSourcePath, targetPath, rootPath),
+      ]);
+      if (wikiTotal.filesCount > 0 || imgTotal.pathsCount > 0) {
+        if (alwaysUpdateLinksRef.current) {
+          if (wikiTotal.filesCount > 0) await rewriteWikiLinksForFolder(moveSourcePath, targetPath, rootPath);
+          if (imgTotal.pathsCount > 0) await updateImagePathsForFolder(moveSourcePath, targetPath, rootPath);
+          await rename(moveSourcePath, targetPath);
+          await handleReload();
+        } else {
+          pendingRenameRef.current = { path: moveSourcePath, newName: fileName, isDirectory: true };
+          setLinkUpdateDialog({ srcPath: moveSourcePath, targetPath, filesCount: wikiTotal.filesCount, linksCount: wikiTotal.linksCount, imagePathsCount: imgTotal.pathsCount, isDirectory: true });
+        }
+      } else {
+        try { await rename(moveSourcePath, targetPath); await handleReload(); } catch (err) { console.error("移动失败:", err); }
+      }
+    } else if (moveSourcePath.endsWith(".md") && !LinkIndexService.isEmpty()) {
       const { filesCount, linksCount } = LinkIndexService.getAffectedLinkCount(moveSourcePath, targetPath, rootPath);
       if (filesCount > 0) {
-        // 如果已选择"总是更新"，直接重写链接
         if (alwaysUpdateLinksRef.current) {
           try {
             await LinkIndexService.rewriteWikiLinks(moveSourcePath, targetPath, rootPath);
             await rename(moveSourcePath, targetPath);
             await handleReload();
-          } catch (err) {
-            console.error("移动失败:", err);
-          }
+          } catch (err) { console.error("移动失败:", err); }
         } else {
-          // 弹出对话框
           pendingRenameRef.current = { path: moveSourcePath, newName: fileName };
           setLinkUpdateDialog({ srcPath: moveSourcePath, targetPath, filesCount, linksCount });
         }
       } else {
-        // 无受影响链接，直接移动
-        try {
-          await rename(moveSourcePath, targetPath);
-          await handleReload();
-        } catch (err) {
-          console.error("移动失败:", err);
-        }
+        try { await rename(moveSourcePath, targetPath); await handleReload(); } catch (err) { console.error("移动失败:", err); }
       }
     } else {
-      // 非 .md 文件或索引为空，直接移动
-      try {
-        await rename(moveSourcePath, targetPath);
-        await handleReload();
-      } catch (err) {
-        console.error("移动失败:", err);
-      }
+      try { await rename(moveSourcePath, targetPath); await handleReload(); } catch (err) { console.error("移动失败:", err); }
     }
     
     setFolderPickerOpen(false);
@@ -1037,10 +1228,10 @@ function FileTree({
   }, []);
 
   // ── Mouse-based Drag & Drop ──
-  const handleMouseDown = useCallback((e: React.MouseEvent, nodePath: string) => {
+  const handleMouseDown = useCallback((e: React.MouseEvent, nodePath: string, isDirectory: boolean) => {
     // Only left button
     if (e.button !== 0) return;
-    dragStartRef.current = { x: e.clientX, y: e.clientY, path: nodePath };
+    dragStartRef.current = { x: e.clientX, y: e.clientY, path: nodePath, isDirectory };
   }, []);
 
   useEffect(() => {
@@ -1077,6 +1268,7 @@ function FileTree({
       // Dragging started
       if (!dragNodeRef.current) {
         dragNodeRef.current = dragStartRef.current.path;
+        isDragDirectoryRef.current = dragStartRef.current.isDirectory;
         setIsDragging(true);
       }
 
@@ -1107,8 +1299,30 @@ function FileTree({
             const fileName = srcPath.split(pathSep()).pop() || "untitled";
             const targetPath = joinPath(targetDir, fileName);
             if (srcPath !== targetPath) {
-              // 检查是否有受影响的 wiki links（仅 .md 文件）
-              if (srcPath.endsWith(".md") && !LinkIndexService.isEmpty()) {
+              const isDir = isDragDirectoryRef.current;
+
+              // 检查是否有受影响的 wiki links 和图片路径
+              if (isDir) {
+                // 文件夹：检查内部所有 .md 文件（wiki 链接 + 图片路径）
+                const [wikiTotal, imgTotal] = await Promise.all([
+                  !LinkIndexService.isEmpty() ? getAffectedLinkCountForFolder(srcPath, targetPath, rootPath) : Promise.resolve({ filesCount: 0, linksCount: 0 }),
+                  countImagePathsAffected(srcPath, targetPath, rootPath),
+                ]);
+                if (wikiTotal.filesCount > 0 || imgTotal.pathsCount > 0) {
+                  if (alwaysUpdateLinksRef.current) {
+                    if (wikiTotal.filesCount > 0) await rewriteWikiLinksForFolder(srcPath, targetPath, rootPath);
+                    if (imgTotal.pathsCount > 0) await updateImagePathsForFolder(srcPath, targetPath, rootPath);
+                    await rename(srcPath, targetPath);
+                    await handleReload();
+                  } else {
+                    pendingRenameRef.current = { path: srcPath, newName: fileName, isDirectory: true };
+                    setLinkUpdateDialog({ srcPath, targetPath, filesCount: wikiTotal.filesCount, linksCount: wikiTotal.linksCount, imagePathsCount: imgTotal.pathsCount, isDirectory: true });
+                  }
+                } else {
+                  try { await rename(srcPath, targetPath); await handleReload(); } catch (err) { console.error("移动失败:", err); }
+                }
+              } else if (srcPath.endsWith(".md") && !LinkIndexService.isEmpty()) {
+                // 单个 .md 文件
                 const { filesCount, linksCount } = LinkIndexService.getAffectedLinkCount(srcPath, targetPath, rootPath);
                 if (filesCount > 0) {
                   // 如果已选择"总是更新"，直接重写链接
@@ -1135,13 +1349,7 @@ function FileTree({
                   }
                 }
               } else {
-                // 非 .md 文件或索引为空，直接移动
-                try {
-                  await rename(srcPath, targetPath);
-                  await handleReload();
-                } catch (err) {
-                  console.error("移动失败:", err);
-                }
+                try { await rename(srcPath, targetPath); await handleReload(); } catch (err) { console.error("移动失败:", err); }
               }
             }
           }
@@ -1249,7 +1457,14 @@ function FileTree({
     alwaysUpdateLinksRef.current = true;
     if (linkUpdateDialog) {
       try {
-        await LinkIndexService.rewriteWikiLinks(linkUpdateDialog.srcPath, linkUpdateDialog.targetPath, rootPath);
+        if (linkUpdateDialog.isDirectory) {
+          const tasks: Promise<unknown>[] = [];
+          if (linkUpdateDialog.linksCount > 0) tasks.push(rewriteWikiLinksForFolder(linkUpdateDialog.srcPath, linkUpdateDialog.targetPath, rootPath));
+          if (linkUpdateDialog.imagePathsCount != null && linkUpdateDialog.imagePathsCount > 0) tasks.push(updateImagePathsForFolder(linkUpdateDialog.srcPath, linkUpdateDialog.targetPath, rootPath));
+          if (tasks.length > 0) await Promise.all(tasks);
+        } else {
+          await LinkIndexService.rewriteWikiLinks(linkUpdateDialog.srcPath, linkUpdateDialog.targetPath, rootPath);
+        }
         await rename(linkUpdateDialog.srcPath, linkUpdateDialog.targetPath);
         await handleReload();
       } catch (err) {
@@ -1263,7 +1478,14 @@ function FileTree({
   const handleLinkUpdateOnce = useCallback(async () => {
     if (linkUpdateDialog) {
       try {
-        await LinkIndexService.rewriteWikiLinks(linkUpdateDialog.srcPath, linkUpdateDialog.targetPath, rootPath);
+        if (linkUpdateDialog.isDirectory) {
+          const tasks: Promise<unknown>[] = [];
+          if (linkUpdateDialog.linksCount > 0) tasks.push(rewriteWikiLinksForFolder(linkUpdateDialog.srcPath, linkUpdateDialog.targetPath, rootPath));
+          if (linkUpdateDialog.imagePathsCount != null && linkUpdateDialog.imagePathsCount > 0) tasks.push(updateImagePathsForFolder(linkUpdateDialog.srcPath, linkUpdateDialog.targetPath, rootPath));
+          if (tasks.length > 0) await Promise.all(tasks);
+        } else {
+          await LinkIndexService.rewriteWikiLinks(linkUpdateDialog.srcPath, linkUpdateDialog.targetPath, rootPath);
+        }
         await rename(linkUpdateDialog.srcPath, linkUpdateDialog.targetPath);
         await handleReload();
       } catch (err) {
@@ -1328,6 +1550,7 @@ function FileTree({
         isOpen={linkUpdateDialog !== null}
         filesCount={linkUpdateDialog?.filesCount ?? 0}
         linksCount={linkUpdateDialog?.linksCount ?? 0}
+        imagePathsCount={linkUpdateDialog?.imagePathsCount}
         onAlwaysUpdate={handleLinkUpdateAlways}
         onUpdateOnce={handleLinkUpdateOnce}
         onSkip={handleLinkUpdateSkip}
