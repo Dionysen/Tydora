@@ -1,58 +1,72 @@
-
-#  Dotfiles
-.codebuddy/
-.workbuddy/
-.mimocode/
-
-# 帮助文档
-website/site/
-
+```gitignore
 # Dependencies
 node_modules/
 
-# Build output
+# Build outputs
 dist/
-dist-ssr/
+build/
+target/
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc.*
+.Python
+env/
+venv/
+.venv/
+.venv.bak/
+pip-log.txt
+pip-selfcheck.json
+.python-version
 
-/themes/
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-/public/
+# Environment specific
+.env
+.env.local
+.env.*
+!.env.example
 
-# Tauri
-src-tauri/target/
-
-# IDE
+# IDE and editor files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-.claude/
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Env
-.env
-.env.local
-.env.*.local
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+*.coveragerc
 
-# Tauri signing keys (private key must NOT be committed)
-src-tauri/*.key
+# Testing
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
 
-# Logs
-*.log
-npm-debug.log*
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+*.bak
+*.backup
 
-# Misc
-*.tsbuildinfo
-
-# Waste / non-source
-.mimocode/
-vditor/
-wix314-binaries/
-check_nodes.mjs
-
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+```

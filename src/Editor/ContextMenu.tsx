@@ -16,6 +16,13 @@ interface IconItem {
   icon: React.ReactNode;
 }
 
+interface SubmenuItem {
+  name: string;
+  label: string;
+  icon?: React.ReactNode;
+  submenu?: Array<{ name: string; label: string; shortcutId: string | null; icon?: React.ReactNode } | { divider: true; label: string }>;
+}
+
 const ICONS = {
   cut: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -165,7 +172,7 @@ const ICON_ROWS: IconItem[][] = [
 ];
 
 // 子菜单配置
-const SUBMENU_ITEMS: any[] = [
+const SUBMENU_ITEMS: SubmenuItem[] = [
   {
     name: "heading",
     label: "标题",
@@ -197,7 +204,7 @@ const SUBMENU_ITEMS: any[] = [
   },
 ];
 
-function getShortcutLabel(shortcutId: string | null, shortcuts: any[]): string {
+function getShortcutLabel(shortcutId: string | null, shortcuts: ShortcutItem[]): string {
   if (!shortcutId) return "";
   const item = shortcuts.find((s) => s.id === shortcutId);
   return item ? formatShortcutDisplay(item.keys) : "";
@@ -209,7 +216,7 @@ export function ContextMenu({ editor, position, onClose }: ContextMenuProps) {
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [submenuPos, setSubmenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [shortcuts, setShortcuts] = useState<any[]>([]);
+  const [shortcuts, setShortcuts] = useState<ShortcutItem[]>([]);
 
   useEffect(() => {
     if (position) {
@@ -400,8 +407,8 @@ export function ContextMenu({ editor, position, onClose }: ContextMenuProps) {
               onMouseEnter={handleSubmenuPanelEnter}
               onMouseLeave={handleSubmenuPanelLeave}
             >
-              {item.submenu.map((sub: any, subIdx: number) => {
-                if (sub.divider) {
+              {item.submenu.map((sub, subIdx: number) => {
+                if ('divider' in sub && sub.divider) {
                   return <div key={`sub-div-${subIdx}`} className="context-menu-divider" />;
                 }
                 return (
@@ -413,7 +420,7 @@ export function ContextMenu({ editor, position, onClose }: ContextMenuProps) {
                       if (sub.name) handleItemClick(sub.name);
                     }}
                   >
-                    {sub.icon && <span className="context-menu-icon">{sub.icon}</span>}
+                    {'icon' in sub && sub.icon && <span className="context-menu-icon">{sub.icon}</span>}
                     <span className="context-menu-label">{sub.label}</span>
                     {getShortcutLabel(sub.shortcutId || null, shortcuts) && (
                       <span className="context-menu-shortcut">
