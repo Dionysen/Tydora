@@ -53,7 +53,7 @@ import { BulletListMindmap } from "./extensions/bullet-list-mindmap";
 import { HardBreakCleanup } from "./extensions/hardbreak-cleanup";
 import { TableFloatingToolbar as TableFloatingToolbarComponent } from "./TableFloatingToolbar";
 import { executeCommand } from "./extensions/custom-commands";
-import { Math } from "./extensions/math";
+import { Math as MathExtension } from "./extensions/math";
 import { saveImageToLocal, loadImageSettings, resolveRelativePath, dirName } from "../services";
 import { loadShortcuts, matchShortcut } from "./shortcuts";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
@@ -324,7 +324,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         ...(editorSettings?.wikiLink !== false ? [WikiLink] : []),
         ...(editorSettings?.math !== false
           ? [
-              Math.configure({
+              MathExtension.configure({
                 onClick: (node: any, pos: number) => {
                   setMathDialog({
                     latex: node.attrs.latex || "",
