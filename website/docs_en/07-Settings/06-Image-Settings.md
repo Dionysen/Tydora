@@ -67,10 +67,10 @@ Pasting and dragging supports the following image formats:
 - BMP
 
 > [!NOTE]
-> For image preview methods, see [[04-文件管理/04-文件预览]]; for embedding images in notes, see [[03-知识管理/02-嵌入内容]].
+> For image preview methods, see [[04-File-Management/04-File-Preview]]; for embedding images in notes, see [[03-Knowledge-Management/02-Embedded-Content]].
 
 ## Related Documents
 
-- [[04-文件管理/04-文件预览]] — Image preview
-- [[04-文件管理/03-文件操作]] — File management
-- [[07-设置/01-通用设置]] — Basic settings
+- [[04-File-Management/04-File-Preview]] — Image preview
+- [[04-File-Management/03-File-Operations]] — File management
+- [[07-Settings/01-General-Settings]] — Basic settings

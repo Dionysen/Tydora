@@ -5,7 +5,7 @@ tags: [Settings]
 
 # Mind Map Settings
 
-This page configures the display parameters of [[08-高级功能/02-思维导图]] and [[03-知识管理/04-知识图谱]], allowing you to adjust node density, line thickness, and physics layout to your preference.
+This page configures the display parameters of [[08-Advanced-Features/02-Mind-Map]] and [[03-Knowledge-Management/04-Knowledge-Graph]], allowing you to adjust node density, line thickness, and physics layout to your preference.
 
 > [!NOTE]
 > Press `Ctrl+,` to open Settings, then switch to the "Mind Map" tab. The "Relationship Graph" group corresponds to the Knowledge Graph.
@@ -55,6 +55,6 @@ Adjust the **physics simulation strength** (charge force) of the force-directed 
 
 ## Related Documents
 
-- [[08-高级功能/02-思维导图]] — Mind map usage
-- [[03-知识管理/04-知识图谱]] — Knowledge graph
-- [[07-设置/01-通用设置]] — Basic settings
+- [[08-Advanced-Features/02-Mind-Map]] — Mind map usage
+- [[03-Knowledge-Management/04-Knowledge-Graph]] — Knowledge graph
+- [[07-Settings/01-General-Settings]] — Basic settings

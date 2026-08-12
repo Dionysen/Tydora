@@ -26,7 +26,7 @@ Quick Open supports fuzzy matching — no need to type the full filename:
 - Type `project readme` → matches `project/README.md` (cross-level matching works too)
 
 > [!TIP]
-> The search scope is **all files within the currently active repository**. To search another repository, switch repositories first (see [[04-文件管理/01-仓库]]).
+> The search scope is **all files within the currently active repository**. To search another repository, switch repositories first (see [[04-File-Management/01-Vaults]]).
 
 ## Recent Files
 
@@ -41,6 +41,6 @@ Together, these two let you perform nearly all operations using only the keyboar
 
 ## Related Documents
 
-- [[05-导航与搜索/02-命令面板]] — Command search
-- [[04-文件管理/01-仓库]] — Repository management
-- [[04-文件管理/02-文件树]] — File tree browsing
+- [[05-Navigation-Search/02-Command-Palette]] — Command search
+- [[04-File-Management/01-Vaults]] — Repository management
+- [[04-File-Management/02-File-Tree]] — File tree browsing

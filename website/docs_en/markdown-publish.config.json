@@ -1,0 +1,11 @@
+{
+  "siteName": "Tydora",
+  "siteDescription": "A modern Markdown editor",
+  "siteLang": "en",
+  "siteUrl": "",
+  "vaultDir": "website/docs_en",
+  "buildMode": "full",
+  "baseHref": "/Tydora/en/",
+  "out": "website/site/en",
+  "home": "index"
+}

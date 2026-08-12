@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo, Component } from "react";
 import { useTranslation } from "react-i18next";
 import { getCurrentWindow, availableMonitors } from "@tauri-apps/api/window";
-import { LogicalSize, LogicalPosition } from "@tauri-apps/api/dpi";
+import { PhysicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import { clampWindowToMonitor } from "./services/windowState";
 import { readTextFile, writeTextFile, rename } from "@tauri-apps/plugin-fs";
 import { save } from "@tauri-apps/plugin-dialog";
@@ -38,6 +38,8 @@ import "./wikilink/WikiLinkPreview.css";
 import "./tags/Tag.css";
 import "./tags/TagAutocomplete.css";
 import "./components/FindReplaceDialog.css";
+import shortcutsConfig from "./config/shortcuts.json";
+import { matchShortcut } from "./Editor/shortcuts";
 
 // 错误边界：防止编辑器错误导致整个页面空白
 class EditorErrorBoundary extends Component<
@@ -97,6 +99,16 @@ function isEditableFile(fileName: string): boolean {
 function isMarkdownFile(fileName: string): boolean {
   const ext = fileName.split(".").pop()?.toLowerCase() || "";
   return ["md", "markdown", "mdx"].includes(ext);
+}
+
+// 命令面板显示快捷键：优先取 commandDisplay，其次取 editor，再取 app 配置
+function getCommandShortcut(id: string): string | undefined {
+  const display = (shortcutsConfig.commandDisplay as Record<string, string>)[id];
+  if (display) return display;
+  const item = shortcutsConfig.editor.find((s) => s.id === id);
+  if (item) return item.keys.join("+");
+  const appShortcut = shortcutsConfig.app[id as keyof typeof shortcutsConfig.app];
+  return appShortcut ? appShortcut.join("+") : undefined;
 }
 
 function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string | null; initialVaultPath?: string | null }) {
@@ -651,8 +663,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
             { x: state.x ?? 0, y: state.y ?? 0, width: state.width, height: state.height },
             monitors
           );
-          await win.setSize(new LogicalSize(clamped.width, clamped.height));
-          await win.setPosition(new LogicalPosition(clamped.x, clamped.y));
+          await win.setSize(new PhysicalSize(clamped.width, clamped.height));
+          await win.setPosition(new PhysicalPosition(clamped.x, clamped.y));
         }
         if (state.maximized) {
           await win.maximize();
@@ -1094,10 +1106,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     setSidebarOpen((prev) => !prev);
   }, []);
 
-  // 切换侧栏快捷键（从 localStorage 读取）
+  // 切换侧栏快捷键（从 localStorage 读取，默认值来自 src/config/shortcuts.json）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      let shortcutKeys = ["Ctrl", "\\"];
+      let shortcutKeys = shortcutsConfig.editor.find((s) => s.id === "toggle-sidebar")?.keys ?? ["Ctrl", "\\"];
       try {
         const saved = localStorage.getItem(SHORTCUTS_KEY);
         if (saved) {
@@ -1206,10 +1218,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     getCurrentWindow().close();
   }, []);
 
-  // Ctrl+W 关闭窗口
+  // 关闭窗口 / 查找 / 替换快捷键（配置见 src/config/shortcuts.json 的 app）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "w") {
+      if (matchShortcut(e, shortcutsConfig.app["close-window"])) {
         e.preventDefault();
         const win = getCurrentWindow();
         const label = win.label;
@@ -1219,11 +1231,11 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           handleClose();
         }
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+      if (matchShortcut(e, shortcutsConfig.app["find"])) {
         e.preventDefault();
         setFindReplaceDialogMode("find");
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === "h") {
+      if (matchShortcut(e, shortcutsConfig.app["replace"])) {
         e.preventDefault();
         setFindReplaceDialogMode("replace");
       }
@@ -1236,10 +1248,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     setTypewriterMode((prev: boolean) => !prev);
   }, []);
 
-  // Ctrl+Alt+T 打字机模式
+  // 打字机模式快捷键（配置见 src/config/shortcuts.json 的 app.typewriter）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.altKey && e.key === "t") {
+      if (matchShortcut(e, shortcutsConfig.app.typewriter)) {
         e.preventDefault();
         toggleTypewriterMode();
       }
@@ -1260,21 +1272,21 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "/") {
+      if (matchShortcut(e, shortcutsConfig.app["toggle-mode"])) {
         e.preventDefault();
         e.stopImmediatePropagation();
         toggleIrSv();
       }
     };
-    // 使用捕获阶段，在 ProseMirror 处理之前拦截 Ctrl+/
+    // 使用捕获阶段，在 ProseMirror 处理之前拦截模式切换快捷键
     window.addEventListener("keydown", handler, true);
     return () => window.removeEventListener("keydown", handler, true);
   }, [toggleIrSv]);
 
-  // 行内代码快捷键（从 localStorage 读取）
+  // 行内代码快捷键（从 localStorage 读取，默认值来自 src/config/shortcuts.json）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      let shortcutKeys = ["Ctrl", "E"];
+      let shortcutKeys = shortcutsConfig.editor.find((s) => s.id === "inline-code")?.keys ?? ["Ctrl", "E"];
       try {
         const saved = localStorage.getItem(SHORTCUTS_KEY);
         if (saved) {
@@ -1294,10 +1306,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     return () => window.removeEventListener("keydown", handler, { capture: true });
   }, []);
 
-  // Ctrl+M 打开思维导图
+  // 打开思维导图快捷键（配置见 src/config/shortcuts.json 的 app.open-mindmap）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "m") {
+      if (matchShortcut(e, shortcutsConfig.app["open-mindmap"])) {
         e.preventDefault();
         localStorage.setItem("zmd-mindmap-mode", "document");
         localStorage.setItem("zmd-mindmap-content", contentRef.current);
@@ -1656,19 +1668,19 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   // ── 命令面板命令列表 ──
   const commands = useMemo(() => [
     // 文件操作
-    { id: "save", label: t("app.command.labels.saveFile"), category: t("app.command.categories.file"), shortcut: "Ctrl+S", action: handleSave },
-    { id: "open", label: t("app.command.labels.openFile"), category: t("app.command.categories.file"), shortcut: "Ctrl+O", action: () => { if (activeVaultIndex >= 0) setQuickOpenOpen(true); } },
+    { id: "save", label: t("app.command.labels.saveFile"), category: t("app.command.categories.file"), shortcut: getCommandShortcut("save"), action: handleSave },
+    { id: "open", label: t("app.command.labels.openFile"), category: t("app.command.categories.file"), shortcut: getCommandShortcut("open"), action: () => { if (activeVaultIndex >= 0) setQuickOpenOpen(true); } },
     { id: "new-window", label: t("app.command.labels.openInNewWindow"), category: t("app.command.categories.file"), action: () => { if (fileName) handleNewWindow(fileName); } },
 
     // 编辑操作
-    { id: "undo", label: t("app.command.labels.undo"), category: t("app.command.categories.edit"), shortcut: "Ctrl+Z", action: () => editorHandleRef.current?.executeCommand("undo") },
-    { id: "redo", label: t("app.command.labels.redo"), category: t("app.command.categories.edit"), shortcut: "Ctrl+Y", action: () => editorHandleRef.current?.executeCommand("redo") },
+    { id: "undo", label: t("app.command.labels.undo"), category: t("app.command.categories.edit"), shortcut: getCommandShortcut("undo"), action: () => editorHandleRef.current?.executeCommand("undo") },
+    { id: "redo", label: t("app.command.labels.redo"), category: t("app.command.categories.edit"), shortcut: getCommandShortcut("redo"), action: () => editorHandleRef.current?.executeCommand("redo") },
 
     // 视图操作
-    { id: "toggle-sidebar", label: t("app.command.labels.toggleSidebar"), category: t("app.command.categories.view"), shortcut: "Ctrl+\\", action: handleSidebarToggle },
-    { id: "toggle-mode", label: t("app.command.labels.toggleEditMode"), category: t("app.command.categories.view"), shortcut: "Ctrl+/", action: cycleMode },
-    { id: "toggle-typewriter", label: t("app.command.labels.toggleTypewriter"), category: t("app.command.categories.view"), shortcut: "Ctrl+Alt+T", action: toggleTypewriterMode },
-    { id: "open-mindmap", label: t("app.command.labels.openMindmap"), category: t("app.command.categories.view"), shortcut: "Ctrl+M", action: () => {
+    { id: "toggle-sidebar", label: t("app.command.labels.toggleSidebar"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("toggle-sidebar"), action: handleSidebarToggle },
+    { id: "toggle-mode", label: t("app.command.labels.toggleEditMode"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("toggle-mode"), action: cycleMode },
+    { id: "toggle-typewriter", label: t("app.command.labels.toggleTypewriter"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("toggle-typewriter"), action: toggleTypewriterMode },
+    { id: "open-mindmap", label: t("app.command.labels.openMindmap"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("open-mindmap"), action: () => {
       localStorage.setItem("zmd-mindmap-mode", "document");
       localStorage.setItem("zmd-mindmap-content", content);
       invoke("open_mindmap_window");
@@ -1707,28 +1719,28 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "mode-sv", label: viewMode === "sv" ? t("app.command.labels.svModeActive") : t("app.command.labels.svMode"), category: t("app.command.categories.mode"), aliases: t("app.command.aliases.svMode").split(", "), action: () => setViewMode("sv") },
 
     // 格式化
-    { id: "bold", label: t("app.command.labels.bold"), category: t("app.command.categories.format"), shortcut: "Ctrl+B", action: () => editorHandleRef.current?.executeCommand("bold") },
-    { id: "italic", label: t("app.command.labels.italic"), category: t("app.command.categories.format"), shortcut: "Ctrl+I", action: () => editorHandleRef.current?.executeCommand("italic") },
-    { id: "strike", label: t("app.command.labels.strikethrough"), category: t("app.command.categories.format"), shortcut: "Ctrl+D", action: () => editorHandleRef.current?.executeCommand("strike") },
-    { id: "inline-code", label: t("app.command.labels.inlineCode"), category: t("app.command.categories.format"), shortcut: "Ctrl+G", action: () => editorHandleRef.current?.executeCommand("inline-code") },
-    { id: "code-block", label: t("app.command.labels.codeBlock"), category: t("app.command.categories.format"), shortcut: "Ctrl+U", action: () => editorHandleRef.current?.executeCommand("code") },
-    { id: "link", label: t("app.command.labels.link"), category: t("app.command.categories.format"), shortcut: "Ctrl+K", action: () => editorHandleRef.current?.executeCommand("link") },
-    { id: "quote", label: t("app.command.labels.quote"), category: t("app.command.categories.format"), shortcut: "Ctrl+;", action: () => editorHandleRef.current?.executeCommand("quote") },
-    { id: "hr", label: t("app.command.labels.horizontalRule"), category: t("app.command.categories.format"), shortcut: "Ctrl+Shift+H", action: () => editorHandleRef.current?.executeCommand("line") },
-    { id: "table", label: t("app.command.labels.table"), category: t("app.command.categories.format"), shortcut: "Ctrl+T", action: () => editorHandleRef.current?.executeCommand("table") },
+    { id: "bold", label: t("app.command.labels.bold"), category: t("app.command.categories.format"), shortcut: getCommandShortcut("bold"), action: () => editorHandleRef.current?.executeCommand("bold") },
+    { id: "italic", label: t("app.command.labels.italic"), category: t("app.command.categories.format"), shortcut: getCommandShortcut("italic"), action: () => editorHandleRef.current?.executeCommand("italic") },
+    { id: "strike", label: t("app.command.labels.strikethrough"), category: t("app.command.categories.format"), shortcut: getCommandShortcut("strike"), action: () => editorHandleRef.current?.executeCommand("strike") },
+    { id: "inline-code", label: t("app.command.labels.inlineCode"), category: t("app.command.categories.format"), shortcut: getCommandShortcut("inline-code"), action: () => editorHandleRef.current?.executeCommand("inline-code") },
+    { id: "code-block", label: t("app.command.labels.codeBlock"), category: t("app.command.categories.format"), shortcut: getCommandShortcut("code-block"), action: () => editorHandleRef.current?.executeCommand("code") },
+    { id: "link", label: t("app.command.labels.link"), category: t("app.command.categories.format"), shortcut: getCommandShortcut("link"), action: () => editorHandleRef.current?.executeCommand("link") },
+    { id: "quote", label: t("app.command.labels.quote"), category: t("app.command.categories.format"), shortcut: getCommandShortcut("quote"), action: () => editorHandleRef.current?.executeCommand("quote") },
+    { id: "hr", label: t("app.command.labels.horizontalRule"), category: t("app.command.categories.format"), shortcut: getCommandShortcut("hr"), action: () => editorHandleRef.current?.executeCommand("line") },
+    { id: "table", label: t("app.command.labels.table"), category: t("app.command.categories.format"), shortcut: getCommandShortcut("table"), action: () => editorHandleRef.current?.executeCommand("table") },
 
     // 列表
-    { id: "unordered-list", label: t("app.command.labels.unorderedList"), category: t("app.command.categories.list"), shortcut: "Ctrl+L", action: () => editorHandleRef.current?.executeCommand("list") },
-    { id: "ordered-list", label: t("app.command.labels.orderedList"), category: t("app.command.categories.list"), shortcut: "Ctrl+O", action: () => editorHandleRef.current?.executeCommand("ordered-list") },
-    { id: "check-list", label: t("app.command.labels.taskList"), category: t("app.command.categories.list"), shortcut: "Ctrl+J", action: () => editorHandleRef.current?.executeCommand("check") },
+    { id: "unordered-list", label: t("app.command.labels.unorderedList"), category: t("app.command.categories.list"), shortcut: getCommandShortcut("unordered-list"), action: () => editorHandleRef.current?.executeCommand("list") },
+    { id: "ordered-list", label: t("app.command.labels.orderedList"), category: t("app.command.categories.list"), shortcut: getCommandShortcut("ordered-list"), action: () => editorHandleRef.current?.executeCommand("ordered-list") },
+    { id: "check-list", label: t("app.command.labels.taskList"), category: t("app.command.categories.list"), shortcut: getCommandShortcut("check-list"), action: () => editorHandleRef.current?.executeCommand("check") },
 
     // 标题
-    { id: "heading-1", label: t("app.command.labels.h1"), category: t("app.command.categories.heading"), shortcut: "Ctrl+Alt+1", action: () => editorHandleRef.current?.executeCommand("heading-1") },
-    { id: "heading-2", label: t("app.command.labels.h2"), category: t("app.command.categories.heading"), shortcut: "Ctrl+Alt+2", action: () => editorHandleRef.current?.executeCommand("heading-2") },
-    { id: "heading-3", label: t("app.command.labels.h3"), category: t("app.command.categories.heading"), shortcut: "Ctrl+Alt+3", action: () => editorHandleRef.current?.executeCommand("heading-3") },
-    { id: "heading-4", label: t("app.command.labels.h4"), category: t("app.command.categories.heading"), shortcut: "Ctrl+Alt+4", action: () => editorHandleRef.current?.executeCommand("heading-4") },
-    { id: "heading-5", label: t("app.command.labels.h5"), category: t("app.command.categories.heading"), shortcut: "Ctrl+Alt+5", action: () => editorHandleRef.current?.executeCommand("heading-5") },
-    { id: "heading-6", label: t("app.command.labels.h6"), category: t("app.command.categories.heading"), shortcut: "Ctrl+Alt+6", action: () => editorHandleRef.current?.executeCommand("heading-6") },
+    { id: "heading-1", label: t("app.command.labels.h1"), category: t("app.command.categories.heading"), shortcut: getCommandShortcut("heading-1"), action: () => editorHandleRef.current?.executeCommand("heading-1") },
+    { id: "heading-2", label: t("app.command.labels.h2"), category: t("app.command.categories.heading"), shortcut: getCommandShortcut("heading-2"), action: () => editorHandleRef.current?.executeCommand("heading-2") },
+    { id: "heading-3", label: t("app.command.labels.h3"), category: t("app.command.categories.heading"), shortcut: getCommandShortcut("heading-3"), action: () => editorHandleRef.current?.executeCommand("heading-3") },
+    { id: "heading-4", label: t("app.command.labels.h4"), category: t("app.command.categories.heading"), shortcut: getCommandShortcut("heading-4"), action: () => editorHandleRef.current?.executeCommand("heading-4") },
+    { id: "heading-5", label: t("app.command.labels.h5"), category: t("app.command.categories.heading"), shortcut: getCommandShortcut("heading-5"), action: () => editorHandleRef.current?.executeCommand("heading-5") },
+    { id: "heading-6", label: t("app.command.labels.h6"), category: t("app.command.categories.heading"), shortcut: getCommandShortcut("heading-6"), action: () => editorHandleRef.current?.executeCommand("heading-6") },
     { id: "paragraph", label: t("app.command.labels.paragraph"), category: t("app.command.categories.heading"), action: () => editorHandleRef.current?.executeCommand("paragraph") },
 
     // 插入

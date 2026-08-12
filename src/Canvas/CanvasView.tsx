@@ -34,6 +34,8 @@ import AlignmentGuides from './AlignmentGuides';
 import UndoRedoPanel from './UndoRedoPanel';
 import { useCanvasStore, scheduleAutoSave } from './canvas-store';
 import { saveImageToLocal, loadImageSettings, type ImageSettings } from '../services';
+import { matchShortcut } from '../Editor/shortcuts';
+import shortcutsConfig from '../config/shortcuts.json';
 
 // Register custom node types
 const nodeTypes = {
@@ -446,25 +448,25 @@ export default function CanvasView({ onNodeClick }: CanvasViewProps) {
         return;
       }
 
-      // Undo: Ctrl+Z
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      // Undo（配置见 src/config/shortcuts.json 的 canvas）
+      if (matchShortcut(e, shortcutsConfig.canvas.undo)) {
         e.preventDefault();
         undo();
       }
-      // Redo: Ctrl+Y or Ctrl+Shift+Z
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+      // Redo（支持 Ctrl+Y 或 Ctrl+Shift+Z）
+      if (matchShortcut(e, shortcutsConfig.canvas.redo) || matchShortcut(e, shortcutsConfig.canvas["redo-alt"])) {
         e.preventDefault();
         redo();
       }
-      // Copy: Ctrl+C
-      if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey) {
+      // Copy
+      if (matchShortcut(e, shortcutsConfig.canvas.copy)) {
         const selectedNodes = nodes.filter(n => n.selected);
         if (selectedNodes.length > 0) {
           copySelected(selectedNodes.map(n => n.id));
         }
       }
-      // Paste: Ctrl+V
-      if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey) {
+      // Paste
+      if (matchShortcut(e, shortcutsConfig.canvas.paste)) {
         // Check if there's an active text input - if so, let default paste work
         const target = e.target as HTMLElement;
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
@@ -499,8 +501,8 @@ export default function CanvasView({ onNodeClick }: CanvasViewProps) {
           paste();
         });
       }
-      // Select All: Ctrl+A
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+      // Select All
+      if (matchShortcut(e, shortcutsConfig.canvas["select-all"])) {
         e.preventDefault();
         const allNodeIds = nodes.map(n => n.id);
         setSelectedNodeIds(allNodeIds);
@@ -509,7 +511,7 @@ export default function CanvasView({ onNodeClick }: CanvasViewProps) {
         useCanvasStore.getState().setNodes(updatedNodes);
       }
       // Escape: Deselect all
-      if (e.key === 'Escape') {
+      if (matchShortcut(e, shortcutsConfig.canvas.deselect)) {
         setSelectedNodeId(null);
         setToolbarPosition(null);
         setShowAlignmentToolbar(false);
@@ -519,7 +521,7 @@ export default function CanvasView({ onNodeClick }: CanvasViewProps) {
         useCanvasStore.getState().setNodes(updatedNodes);
       }
       // Arrow keys: Move selected nodes
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      if (shortcutsConfig.canvas["arrow-move"].includes(e.key)) {
         const selectedNodes = nodes.filter(n => n.selected);
         if (selectedNodes.length > 0) {
           e.preventDefault();

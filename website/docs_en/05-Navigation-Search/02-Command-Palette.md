@@ -60,10 +60,10 @@ The palette remembers your recently executed commands and pins them to the top, 
 - Quick Open (`Ctrl+O`) searches for **files**.
 
 > [!WARNING]
-> In the default configuration, `Ctrl+P` is also bound to "Split Preview", but the Command Palette takes priority at runtime. See [[07-设置/04-快捷键速查]] for details.
+> In the default configuration, `Ctrl+P` is also bound to "Split Preview", but the Command Palette takes priority at runtime. See [[07-Settings/04-Shortcut-Reference]] for details.
 
 ## Related Documents
 
-- [[05-导航与搜索/01-快速打开]] — File quick open
-- [[07-设置/04-快捷键速查]] — Keyboard shortcut reference
-- [[07-设置/03-快捷键设置]] — Custom keyboard shortcuts
+- [[05-Navigation-Search/01-Quick-Open]] — File quick open
+- [[07-Settings/04-Shortcut-Reference]] — Keyboard shortcut reference
+- [[07-Settings/03-Keyboard-Shortcuts]] — Custom keyboard shortcuts

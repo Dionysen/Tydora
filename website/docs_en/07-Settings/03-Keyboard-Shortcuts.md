@@ -8,7 +8,7 @@ tags: [Settings]
 Tydora comes with **40+ customizable** keyboard shortcuts. You can view all bindings in Settings, modify them to your preferred combinations, or reset them to defaults with one click.
 
 > [!NOTE]
-> Press `Ctrl+,` to open Settings, then switch to the "Shortcuts" tab. For the complete default list, see [[07-设置/04-快捷键速查]].
+> Press `Ctrl+,` to open Settings, then switch to the "Shortcuts" tab. For the complete default list, see [[07-Settings/04-Shortcut-Reference]].
 
 ## Shortcut Groups
 
@@ -69,10 +69,10 @@ Click the "Reset" button to restore **all** shortcuts to their default values. I
 If a newly set shortcut conflicts with an existing binding, the system will prompt for confirmation to avoid silent overwrites that break commands.
 
 > [!WARNING]
-> In the default configuration, `Ctrl+O` and `Ctrl+P` are each shared by two commands (Quick Open / Ordered List, Command Palette / Split Preview). At runtime, the global command takes precedence. If you have reassigned the related commands, pay attention to the actual behavior. See [[07-设置/04-快捷键速查]] for details.
+> In the default configuration, `Ctrl+O` and `Ctrl+P` are each shared by two commands (Quick Open / Ordered List, Command Palette / Split Preview). At runtime, the global command takes precedence. If you have reassigned the related commands, pay attention to the actual behavior. See [[07-Settings/04-Shortcut-Reference]] for details.
 
 ## Related Documents
 
-- [[07-设置/04-快捷键速查]] — Shortcut quick reference
-- [[05-导航与搜索/02-命令面板]] — Command search
-- [[07-设置/01-通用设置]] — Basic settings
+- [[07-Settings/04-Shortcut-Reference]] — Shortcut quick reference
+- [[05-Navigation-Search/02-Command-Palette]] — Command search
+- [[07-Settings/01-General-Settings]] — Basic settings

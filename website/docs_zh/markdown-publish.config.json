@@ -3,7 +3,7 @@
   "siteDescription": "一个现代的 Markdown 编辑器",
   "siteLang": "zh",
   "siteUrl": "",
-  "vaultDir": "website/docs",
+  "vaultDir": "website/docs_zh",
   "buildMode": "full",
   "baseHref": "/Tydora/",
   "out": "website/site",

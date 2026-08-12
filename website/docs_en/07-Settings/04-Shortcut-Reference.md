@@ -5,7 +5,7 @@ tags: [Shortcuts]
 
 # Shortcut Quick Reference
 
-Tydora comes with 40+ keyboard shortcuts. The table below shows the **default configuration**. All shortcuts can be viewed, modified, or reset to defaults in [[07-设置/03-快捷键设置]].
+Tydora comes with 40+ keyboard shortcuts. The table below shows the **default configuration**. All shortcuts can be viewed, modified, or reset to defaults in [[07-Settings/03-Keyboard-Shortcuts]].
 
 > [!NOTE]
 > In the tables, `Ctrl` corresponds to `Cmd` (⌘) on macOS. Some combinations use `Ctrl+Alt+Number` — use the main keyboard number row directly; a numeric keypad is not required.
@@ -16,16 +16,16 @@ The following shortcuts are available anywhere in the application (system-level 
 
 | Shortcut | Function | Related Document |
 | --- | --- | --- |
-| `Ctrl+S` | Save current file | [[01-开始使用/01-快速开始]] |
-| `Ctrl+O` | Quick open file | [[05-导航与搜索/01-快速打开]] |
-| `Ctrl+P` | Command palette | [[05-导航与搜索/02-命令面板]] |
-| `Ctrl+/` | Toggle editing mode (IR ↔ SV) | [[02-编辑器/01-编辑模式]] |
-| `Ctrl+M` | Open mind map | [[08-高级功能/02-思维导图]] |
-| `Ctrl+G` | Open knowledge graph | [[03-知识管理/04-知识图谱]] |
+| `Ctrl+S` | Save current file | [[01-Getting-Started/01-Quick-Start]] |
+| `Ctrl+O` | Quick open file | [[05-Navigation-Search/01-Quick-Open]] |
+| `Ctrl+P` | Command palette | [[05-Navigation-Search/02-Command-Palette]] |
+| `Ctrl+/` | Toggle editing mode (IR ↔ SV) | [[02-Editor/01-Editing-Modes]] |
+| `Ctrl+M` | Open mind map | [[08-Advanced-Features/02-Mind-Map]] |
+| `Ctrl+G` | Open knowledge graph | [[03-Knowledge-Management/04-Knowledge-Graph]] |
 | `Ctrl+\` | Toggle sidebar | — |
 | `Ctrl+W` | Close current window | — |
-| `Ctrl+Alt+T` | Toggle typewriter mode | [[02-编辑器/10-打字机模式]] |
-| `Ctrl+E` | Inline code | [[02-编辑器/02-Markdown语法]] |
+| `Ctrl+Alt+T` | Toggle typewriter mode | [[02-Editor/10-Typewriter-Mode]] |
+| `Ctrl+E` | Inline code | [[02-Editor/02-Markdown-Syntax]] |
 
 ## Format
 
@@ -86,7 +86,7 @@ The following shortcuts are available anywhere in the application (system-level 
 | `Ctrl+Shift+C` | Cell align center |
 | `Ctrl+Shift+R` | Cell align right |
 
-> In instant rendering mode, you can also use `Tab` / `Shift+Tab` to move within a table and automatically add rows. See [[02-编辑器/08-表格操作]] for details.
+> In instant rendering mode, you can also use `Tab` / `Shift+Tab` to move within a table and automatically add rows. See [[02-Editor/08-Table-Operations]] for details.
 
 ## Edit
 
@@ -121,7 +121,7 @@ The following shortcuts are available anywhere in the application (system-level 
 
 > [!WARNING]
 > Due to historical reasons, some default shortcuts overlap. At runtime, **global shortcuts** take precedence:
-> - `Ctrl+O` is bound to both "Ordered List" and "Quick Open File". At runtime, **Quick Open takes priority**, so `Ctrl+O` opens files rather than inserting an ordered list. If you frequently use the ordered list shortcut, consider reassigning "Ordered List" to a non-conflicting combination in [[07-设置/03-快捷键设置]].
+> - `Ctrl+O` is bound to both "Ordered List" and "Quick Open File". At runtime, **Quick Open takes priority**, so `Ctrl+O` opens files rather than inserting an ordered list. If you frequently use the ordered list shortcut, consider reassigning "Ordered List" to a non-conflicting combination in [[07-Settings/03-Keyboard-Shortcuts]].
 > - `Ctrl+P` is bound to both "Split Preview" and "Command Palette". At runtime, **Command Palette takes priority**.
 >
 > All shortcuts can be customized in Settings and take effect immediately after assignment.
@@ -133,11 +133,11 @@ The following shortcuts are available anywhere in the application (system-level 
 3. Find the target command in the list and click the current shortcut combination.
 4. Press the new key combination and save.
 
-> See [[07-设置/03-快捷键设置]] for details.
+> See [[07-Settings/03-Keyboard-Shortcuts]] for details.
 
 ## Related Documents
 
-- [[07-设置/03-快捷键设置]] — Shortcut customization and reset
-- [[05-导航与搜索/02-命令面板]] — Command search
-- [[02-编辑器/09-右键菜单]] — Right-click formatting actions
-- [[02-编辑器/01-编辑模式]] — Editing mode switching
+- [[07-Settings/03-Keyboard-Shortcuts]] — Shortcut customization and reset
+- [[05-Navigation-Search/02-Command-Palette]] — Command search
+- [[02-Editor/09-Context-Menu]] — Right-click formatting actions
+- [[02-Editor/01-Editing-Modes]] — Editing mode switching

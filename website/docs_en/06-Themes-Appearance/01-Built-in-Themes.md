@@ -5,10 +5,10 @@ tags: [Themes]
 
 # Built-in Themes
 
-Tydora provides **9** carefully designed built-in themes covering a range of styles — fresh, understated, vibrant, futuristic, and more — all supporting both light and dark appearances. You can switch themes with a single click in settings, or import your own CSS themes (see [[06-主题与外观/02-Typora主题]]).
+Tydora provides **9** carefully designed built-in themes covering a range of styles — fresh, understated, vibrant, futuristic, and more — all supporting both light and dark appearances. You can switch themes with a single click in settings, or import your own CSS themes (see [[06-Themes-Appearance/02-Typora-Themes]]).
 
 > [!NOTE]
-> The default theme is **Mint**. Code block color schemes can be set independently from the app theme; see [[06-主题与外观/03-代码高亮主题]] for details.
+> The default theme is **Mint**. Code block color schemes can be set independently from the app theme; see [[06-Themes-Appearance/03-Code-Highlight-Themes]] for details.
 
 ## Theme List
 
@@ -70,23 +70,23 @@ Each theme can be used with three appearance modes:
 - **Light** — Forces light rendering
 - **Dark** — Forces dark rendering
 
-> The appearance mode is set in [[07-设置/01-通用设置]]. Dark themes like Mint Dark look best in "Dark" mode.
+> The appearance mode is set in [[07-Settings/01-General-Settings]]. Dark themes like Mint Dark look best in "Dark" mode.
 
 ## Importing More Themes
 
 In addition to built-in themes, you can:
 
-- **Import Typora themes**: Compatible with Typora CSS theme files → [[06-主题与外观/02-Typora主题]]
-- **Customize code highlighting**: 11 code highlight color schemes can be selected independently → [[06-主题与外观/03-代码高亮主题]]
+- **Import Typora themes**: Compatible with Typora CSS theme files → [[06-Themes-Appearance/02-Typora-Themes]]
+- **Customize code highlighting**: 11 code highlight color schemes can be selected independently → [[06-Themes-Appearance/03-Code-Highlight-Themes]]
 
 ## Related Settings
 
-- [[07-设置/01-通用设置]] — Appearance mode and theme resource directory
-- [[06-主题与外观/02-Typora主题]] — Typora theme import and compatibility
-- [[06-主题与外观/03-代码高亮主题]] — Code highlight themes
+- [[07-Settings/01-General-Settings]] — Appearance mode and theme resource directory
+- [[06-Themes-Appearance/02-Typora-Themes]] — Typora theme import and compatibility
+- [[06-Themes-Appearance/03-Code-Highlight-Themes]] — Code highlight themes
 
 ## Related Documents
 
-- [[06-主题与外观/02-Typora主题]] — Import third-party themes
-- [[06-主题与外观/03-代码高亮主题]] — Code highlight themes
-- [[07-设置/01-通用设置]] — Appearance and font settings
+- [[06-Themes-Appearance/02-Typora-Themes]] — Import third-party themes
+- [[06-Themes-Appearance/03-Code-Highlight-Themes]] — Code highlight themes
+- [[07-Settings/01-General-Settings]] — Appearance and font settings

@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow, availableMonitors } from "@tauri-apps/api/window";
+import { PhysicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import { open } from "@tauri-apps/plugin-dialog";
 import { mkdir, exists } from "@tauri-apps/plugin-fs";
 import { emit } from "@tauri-apps/api/event";
+import { clampWindowToMonitor } from "../services/windowState";
 import appIcon from "../assets/icon.png";
 import "./VaultManager.css";
 
@@ -15,6 +17,7 @@ interface VaultInfo {
 
 const VAULTS_KEY = "zmd-vaults";
 const ACTIVE_VAULT_KEY = "zmd-active-vault";
+const VAULT_MANAGER_WINDOW_STATE_KEY = "zmd-vault-manager-window-state";
 
 function loadVaults(): VaultInfo[] {
   try {
@@ -58,6 +61,87 @@ export default function VaultManagerWindow() {
 
   useEffect(() => {
     invoke<string>("get_app_version").then(setVersion).catch(() => {});
+  }, []);
+
+  // ── 窗口位置/大小记忆 ──
+  const saveWindowStateRef = useRef<() => Promise<void>>(async () => {});
+  useEffect(() => {
+    const win = getCurrentWindow();
+
+    const saveWindowState = async () => {
+      try {
+        const maximized = await win.isMaximized();
+        const state: Record<string, unknown> = { maximized };
+        if (!maximized) {
+          const pos = await win.outerPosition();
+          const size = await win.outerSize();
+          state.x = pos.x;
+          state.y = pos.y;
+          state.width = size.width;
+          state.height = size.height;
+        }
+        localStorage.setItem(VAULT_MANAGER_WINDOW_STATE_KEY, JSON.stringify(state));
+      } catch {}
+    };
+    saveWindowStateRef.current = saveWindowState;
+
+    (async () => {
+      try {
+        const monitors = await availableMonitors();
+        if (monitors && monitors.length > 0) {
+          let saved: { x: number; y: number; width: number; height: number; maximized: boolean } | null = null;
+          const savedStr = localStorage.getItem(VAULT_MANAGER_WINDOW_STATE_KEY);
+          if (savedStr) {
+            try { saved = JSON.parse(savedStr); } catch {}
+          }
+
+          if (saved && saved.width && saved.height) {
+            const clamped = clampWindowToMonitor(
+              { x: saved.x ?? 0, y: saved.y ?? 0, width: saved.width, height: saved.height },
+              monitors
+            );
+            await win.setSize(new PhysicalSize(clamped.width, clamped.height));
+            await win.setPosition(new PhysicalPosition(clamped.x, clamped.y));
+            if (saved.maximized) {
+              await win.maximize();
+            }
+          } else {
+            // 无保存状态：将当前（Rust center 定位）位置钳制到屏幕内
+            const pos = await win.outerPosition();
+            const size = await win.outerSize();
+            if (size.width && size.height) {
+              const clamped = clampWindowToMonitor(
+                { x: pos.x, y: pos.y, width: size.width, height: size.height },
+                monitors
+              );
+              await win.setPosition(new PhysicalPosition(clamped.x, clamped.y));
+            }
+          }
+        }
+      } catch {}
+      await win.show();
+      await win.setFocus().catch(() => {});
+    })();
+
+    let moveTimer: ReturnType<typeof setTimeout>;
+    let resizeTimer: ReturnType<typeof setTimeout>;
+
+    const unlistenMove = win.onMoved(() => {
+      clearTimeout(moveTimer);
+      moveTimer = setTimeout(saveWindowState, 300);
+    });
+
+    const unlistenResize = win.onResized(() => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(saveWindowState, 300);
+    });
+
+    return () => {
+      clearTimeout(moveTimer);
+      clearTimeout(resizeTimer);
+      unlistenMove.then((fn) => fn()).catch(() => {});
+      unlistenResize.then((fn) => fn()).catch(() => {});
+    };
   }, []);
 
   // Close menu on outside click

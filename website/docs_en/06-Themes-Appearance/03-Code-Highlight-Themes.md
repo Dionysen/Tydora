@@ -8,7 +8,7 @@ tags: [Themes]
 Code block color schemes are **independent of the app theme**. You can freely choose from 11 highlight themes to make your code both clear and visually pleasing.
 
 > [!NOTE]
-> Code highlighting is powered by highlight.js, supporting syntax coloring for 36 programming languages (see [[02-编辑器/03-代码块]]).
+> Code highlighting is powered by highlight.js, supporting syntax coloring for 36 programming languages (see [[02-Editor/03-Code-Blocks]]).
 
 ## Available Themes
 
@@ -49,14 +49,14 @@ You can disable automatic switching in Settings and lock in a specific theme.
 
 ## Preview
 
-In [[07-设置/02-编辑器设置]], the "Code Highlight Theme" section shows a preview of the selected theme for easy comparison before deciding.
+In [[07-Settings/02-Editor-Settings]], the "Code Highlight Theme" section shows a preview of the selected theme for easy comparison before deciding.
 
 ## Related Settings
 
-- [[07-设置/02-编辑器设置]] — Code highlight theme selection
+- [[07-Settings/02-Editor-Settings]] — Code highlight theme selection
 
 ## Related Documents
 
-- [[02-编辑器/03-代码块]] — Code block usage
-- [[06-主题与外观/01-内置主题]] — App themes
-- [[06-主题与外观/02-Typora主题]] — Typora theme import
+- [[02-Editor/03-Code-Blocks]] — Code block usage
+- [[06-Themes-Appearance/01-Built-in-Themes]] — App themes
+- [[06-Themes-Appearance/02-Typora-Themes]] — Typora theme import

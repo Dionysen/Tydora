@@ -1,12 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { LogicalSize, LogicalPosition } from "@tauri-apps/api/dpi";
+import { PhysicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import { availableMonitors } from "@tauri-apps/api/window";
 import { clampWindowToMonitor } from "../services/windowState";
 import { listen } from "@tauri-apps/api/event";
 import MindmapView, { type MindmapViewHandle } from "./MindmapView";
 import { MINDMAP_SETTINGS_KEY, DEFAULT_MINDMAP } from "../Settings";
+import { matchShortcut } from "../Editor/shortcuts";
+import shortcutsConfig from "../config/shortcuts.json";
 import "./MindmapWindow.css";
 
 const MINDMAP_CONTENT_KEY = "zmd-mindmap-content";
@@ -97,8 +99,8 @@ export default function MindmapWindow() {
               { x: state.x ?? 0, y: state.y ?? 0, width: state.width, height: state.height },
               monitors
             );
-            await win.setSize(new LogicalSize(clamped.width, clamped.height));
-            await win.setPosition(new LogicalPosition(clamped.x, clamped.y));
+            await win.setSize(new PhysicalSize(clamped.width, clamped.height));
+            await win.setPosition(new PhysicalPosition(clamped.x, clamped.y));
             if (state.maximized) {
               await win.maximize();
             }
@@ -134,10 +136,10 @@ export default function MindmapWindow() {
     await win.close();
   }, []);
 
-  // Ctrl+W 关闭思维导图窗口
+  // 关闭窗口快捷键（配置见 src/config/shortcuts.json 的 app.close-window）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "w") {
+      if (matchShortcut(e, shortcutsConfig.app["close-window"])) {
         e.preventDefault();
         handleClose();
       }

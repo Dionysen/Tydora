@@ -17,13 +17,13 @@ Set the default mode when opening new files:
 - **Instant Rendering (IR / WYSIWYG)** — What you see is what you get; recommended for daily writing
 - **Source Code Mode (SV)** — Pure Markdown text; suitable for fine-tuning
 
-> You can always temporarily switch with `Ctrl+/`. See [[02-编辑器/01-编辑模式]] for details.
+> You can always temporarily switch with `Ctrl+/`. See [[02-Editor/01-Editing-Modes]] for details.
 
 ## Typewriter Mode
 
 When enabled, the cursor always stays at the center of the screen. You can also toggle it at any time with `Ctrl+Alt+T`.
 
-> See [[02-编辑器/10-打字机模式]] for details.
+> See [[02-Editor/10-Typewriter-Mode]] for details.
 
 ## Markdown Rendering
 
@@ -34,19 +34,19 @@ Enable / disable formula rendering and choose an engine:
 - **KaTeX** — Fast, great compatibility (recommended)
 - **MathJax** — More feature-rich
 
-> See [[02-编辑器/04-数学公式]] for details.
+> See [[02-Editor/04-Math-Formulas]] for details.
 
 ### Code Highlighting
 
 Enable / disable code syntax highlighting and choose a highlight theme.
 
-> See [[06-主题与外观/03-代码高亮主题]] and [[02-编辑器/03-代码块]] for details.
+> See [[06-Themes-Appearance/03-Code-Highlight-Themes]] and [[02-Editor/03-Code-Blocks]] for details.
 
 ### Mermaid Diagrams
 
 Enable / disable real-time rendering of Mermaid diagrams.
 
-> See [[02-编辑器/05-Mermaid图表]] for details.
+> See [[02-Editor/05-Mermaid-Diagrams]] for details.
 
 ### Footnotes
 
@@ -73,8 +73,8 @@ When enabled, filters potentially malicious cross-site scripting (XSS) code in M
 
 ## Related Documents
 
-- [[02-编辑器/01-编辑模式]] — Editing mode details
-- [[02-编辑器/04-数学公式]] — Formula support
-- [[02-编辑器/03-代码块]] — Code highlighting
-- [[02-编辑器/05-Mermaid图表]] — Diagram rendering
-- [[07-设置/01-通用设置]] — Basic settings
+- [[02-Editor/01-Editing-Modes]] — Editing mode details
+- [[02-Editor/04-Math-Formulas]] — Formula support
+- [[02-Editor/03-Code-Blocks]] — Code highlighting
+- [[02-Editor/05-Mermaid-Diagrams]] — Diagram rendering
+- [[07-Settings/01-General-Settings]] — Basic settings

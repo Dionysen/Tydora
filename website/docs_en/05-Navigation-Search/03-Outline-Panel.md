@@ -43,10 +43,10 @@ The Outline supports all 6 heading levels:
 - **Section jumping**: Click to navigate instantly, no manual scrolling needed
 
 > [!TIP]
-> The Outline and [[03-知识管理/04-知识图谱]] complement each other: the Outline shows the "structure of a single document", while the Graph shows the "relationships between notes".
+> The Outline and [[03-Knowledge-Management/04-Knowledge-Graph]] complement each other: the Outline shows the "structure of a single document", while the Graph shows the "relationships between notes".
 
 ## Related Documents
 
-- [[02-编辑器/01-编辑模式]] — Edit modes
-- [[02-编辑器/02-Markdown语法]] — Heading syntax
-- [[04-文件管理/02-文件树]] — File tree navigation
+- [[02-Editor/01-Editing-Modes]] — Edit modes
+- [[02-Editor/02-Markdown-Syntax]] — Heading syntax
+- [[04-File-Management/02-File-Tree]] — File tree navigation

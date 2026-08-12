@@ -20,7 +20,7 @@ Tydora supports importing and using **Typora CSS theme files**, allowing you to 
 
 ## Theme File Location
 
-Imported themes are saved in Tydora's **theme resource directory** (you can view and change this directory in [[07-设置/01-通用设置]]). You can manage the CSS files directly in that directory.
+Imported themes are saved in Tydora's **theme resource directory** (you can view and change this directory in [[07-Settings/01-General-Settings]]). You can manage the CSS files directly in that directory.
 
 ## Compatibility Notes
 
@@ -59,9 +59,9 @@ In the "Themes" tab of Settings, imported themes are listed alongside built-in t
 
 ## Related Settings
 
-- [[07-设置/01-通用设置]] — Theme resource directory
+- [[07-Settings/01-General-Settings]] — Theme resource directory
 
 ## Related Documents
 
-- [[06-主题与外观/01-内置主题]] — Built-in theme list
-- [[06-主题与外观/03-代码高亮主题]] — Code highlight themes
+- [[06-Themes-Appearance/01-Built-in-Themes]] — Built-in theme list
+- [[06-Themes-Appearance/03-Code-Highlight-Themes]] — Code highlight themes

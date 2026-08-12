@@ -4,6 +4,8 @@ import { emit } from "@tauri-apps/api/event";
 import { LinkIndexService } from "../wikilink";
 import { useVaultWatcher } from "../services";
 import { GraphView } from "./GraphView";
+import { matchShortcut } from "../Editor/shortcuts";
+import shortcutsConfig from "../config/shortcuts.json";
 import "./GraphWindow.css";
 
 interface VaultInfo {
@@ -57,10 +59,10 @@ export default function GraphWindow() {
     getCurrentWindow().close();
   }, []);
 
-  // Ctrl+W 关闭窗口
+  // 关闭窗口快捷键（配置见 src/config/shortcuts.json 的 app.close-window）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === "w") {
+      if (matchShortcut(e, shortcutsConfig.app["close-window"])) {
         e.preventDefault();
         handleClose();
       }

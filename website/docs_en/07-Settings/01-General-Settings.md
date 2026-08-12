@@ -18,7 +18,7 @@ Configure the app's light / dark appearance:
 - **Light** — Force light mode
 - **Dark** — Force dark mode
 
-> A single theme's look and feel changes with the appearance mode; dark themes (such as Mint Dark) look best in "Dark" mode. See [[06-主题与外观/01-内置主题]].
+> A single theme's look and feel changes with the appearance mode; dark themes (such as Mint Dark) look best in "Dark" mode. See [[06-Themes-Appearance/01-Built-in-Themes]].
 
 ## Font Settings
 
@@ -51,11 +51,11 @@ Set the auto-save wait duration (in seconds) to avoid triggering a write on ever
 
 ## Theme Resource Directory
 
-View and modify the storage location of theme files. Imported [[06-主题与外观/02-Typora主题]] themes and custom themes are all saved in this directory, where you can directly manage their CSS files.
+View and modify the storage location of theme files. Imported [[06-Themes-Appearance/02-Typora-Themes]] themes and custom themes are all saved in this directory, where you can directly manage their CSS files.
 
 ## Related Documents
 
-- [[06-主题与外观/01-内置主题]] — Theme selection
-- [[07-设置/02-编辑器设置]] — Editor configuration
-- [[07-设置/03-快捷键设置]] — Keyboard shortcut configuration
-- [[06-主题与外观/02-Typora主题]] — Theme resource directory guide
+- [[06-Themes-Appearance/01-Built-in-Themes]] — Theme selection
+- [[07-Settings/02-Editor-Settings]] — Editor configuration
+- [[07-Settings/03-Keyboard-Shortcuts]] — Keyboard shortcut configuration
+- [[06-Themes-Appearance/02-Typora-Themes]] — Theme resource directory guide

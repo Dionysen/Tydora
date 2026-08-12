@@ -40,14 +40,24 @@ landingHtml = landingHtml.replace(
 writeFileSync(landingPath, landingHtml);
 console.log(`Updated landing page`);
 
-// 更新文档关于页版本号
-const aboutPath = join(root, "website", "docs", "01-开始使用", "02-关于.md");
-let aboutMd = readFileSync(aboutPath, "utf-8");
-aboutMd = aboutMd.replace(
+// 更新文档关于页版本号（中文）
+const aboutPathZh = join(root, "website", "docs_zh", "01-开始使用", "02-关于.md");
+let aboutMdZh = readFileSync(aboutPathZh, "utf-8");
+aboutMdZh = aboutMdZh.replace(
   /(\|\s*当前版本\s*\|\s*)\d+\.\d+\.\d+(\s*\|)/,
   `$1${version}$2`
 );
-writeFileSync(aboutPath, aboutMd);
-console.log(`Updated docs/01-开始使用/02-关于.md`);
+writeFileSync(aboutPathZh, aboutMdZh);
+console.log(`Updated docs_zh/01-开始使用/02-关于.md`);
+
+// 更新文档关于页版本号（英文）
+const aboutPathEn = join(root, "website", "docs_en", "01-Getting-Started", "02-About.md");
+let aboutMdEn = readFileSync(aboutPathEn, "utf-8");
+aboutMdEn = aboutMdEn.replace(
+  /(\|\s*Current Version\s*\|\s*)\d+\.\d+\.\d+(\s*\|)/,
+  `$1${version}$2`
+);
+writeFileSync(aboutPathEn, aboutMdEn);
+console.log(`Updated docs_en/01-Getting-Started/02-About.md`);
 
 console.log(`All versions synced to ${version}`);
