@@ -86,10 +86,12 @@ export default function MediaPicker({ vaultPath, onSelect, onClose }: MediaPicke
   return (
     <QuickOpen
       vault={vaultPath ? { path: vaultPath, name: '' } : null}
+      vaults={vaultPath ? [{ path: vaultPath, name: '' }] : []}
       recentFiles={[]}
       currentFilePath={null}
       files={files}
       onSelect={handleSelect}
+      onSelectVault={onSelect}
       onClose={onClose}
     />
   );

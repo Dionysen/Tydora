@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { EXPORT_FORMATS, type BuiltArtifact, type ExportFormat, saveExportArtifact } from "../export";
+import { type BuiltArtifact, type ExportFormat, saveExportArtifact } from "../export";
 import "./ExportPreviewDialog.css";
 
 interface ExportPreviewDialogProps {
@@ -264,7 +264,6 @@ export function ExportPreviewDialog({ format, artifact, title, onClose, onSaveSu
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const meta = EXPORT_FORMATS[format];
 
   const previewHtml = useMemo(() => {
     if (format === "pdf" && artifact.previewHtml) {

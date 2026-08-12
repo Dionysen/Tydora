@@ -274,7 +274,7 @@ function isExternalOrInline(path: string): boolean {
 /** 统计文件夹改名后受影响的图片路径数 */
 async function countImagePathsAffected(
   oldFolderPath: string,
-  newFolderPath: string,
+  _newFolderPath: string,
   vaultPath: string,
 ): Promise<{ filesCount: number; pathsCount: number }> {
   let filesCount = 0;

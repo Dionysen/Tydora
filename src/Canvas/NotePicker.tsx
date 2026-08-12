@@ -72,10 +72,12 @@ export default function NotePicker({ vaultPath, onSelect, onClose }: NotePickerP
   return (
     <QuickOpen
       vault={vaultPath ? { path: vaultPath, name: '' } : null}
+      vaults={vaultPath ? [{ path: vaultPath, name: '' }] : []}
       recentFiles={[]}
       currentFilePath={null}
       files={files}
       onSelect={handleSelect}
+      onSelectVault={handleSelect}
       onClose={onClose}
     />
   );

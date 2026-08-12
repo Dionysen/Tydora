@@ -368,6 +368,7 @@ function BookmarkContextMenu({
   onNewWindow: (filePath: string) => void;
   onEditTitle: (bookmarkId: string, currentTitle: string) => void;
 }) {
+  const { t } = useTranslation();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {

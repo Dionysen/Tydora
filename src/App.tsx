@@ -2337,12 +2337,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                         <polyline points="21 15 16 10 5 21" />
                       </svg>
                     )}
-                    {fmt === "wechat" && (
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M8.5 19c3.9 0 7-2.5 7-5.5S12.4 8 8.5 8s-7 2.5-7 5.5c0 1.6.8 3 2.1 4l-.6 1.7 2.1-1.1c1 .4 2.1.6 3.3.6" />
-                        <path d="M15.5 14c3.5 0 6.3-2.2 6.3-5S19 4 15.5 4 9.2 6.2 9.2 9c0 1.5.7 2.8 1.9 3.7l-.6 1.8 2-1c.9.3 1.9.5 2.9.5Z" />
-                      </svg>
-                    )}
                   </span>
                   <span className="export-formatpicker-option-label">{t(`app.export.${fmt}`)}</span>
                   <span className="export-formatpicker-option-ext">.{EXPORT_FORMATS[fmt].ext}</span>

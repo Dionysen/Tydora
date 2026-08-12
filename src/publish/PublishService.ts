@@ -87,7 +87,7 @@ export async function publishVault(
 
   // 调用 Rust 后端执行 markdown-publish CLI
   try {
-    const result = await invoke<string>("run_markdown_publish", {
+    await invoke<string>("run_markdown_publish", {
       vaultDir,
       outDir,
       config: JSON.stringify(config),
