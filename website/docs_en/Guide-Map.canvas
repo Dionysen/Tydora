@@ -7,7 +7,7 @@
       "y": 630,
       "width": 580,
       "height": 365,
-      "file": "index.md"
+      "file": "docs_en/index.md"
     },
     {
       "id": "node-1786179311710-k2hq7t",
@@ -16,7 +16,7 @@
       "y": 630,
       "width": 595,
       "height": 365,
-      "file": "05-Navigation-Search/01-Quick-Open.md"
+      "file": "docs_en/05-Navigation-Search/01-Quick-Open.md"
     },
     {
       "id": "node-1786179348688-shod9g",
@@ -25,7 +25,7 @@
       "y": 1125,
       "width": 625,
       "height": 380,
-      "file": "02-Editor/02-Markdown-Syntax.md"
+      "file": "docs_en/02-Editor/02-Markdown-Syntax.md"
     },
     {
       "id": "node-1786179401835-njrtkv",
@@ -34,7 +34,7 @@
       "y": 1125,
       "width": 580,
       "height": 380,
-      "file": "03-Knowledge-Management/01-Wiki-Links.md"
+      "file": "docs_en/03-Knowledge-Management/01-Wiki-Links.md"
     },
     {
       "id": "node-1786179425804-560wu1",
@@ -43,7 +43,7 @@
       "y": 1125,
       "width": 595,
       "height": 380,
-      "file": "03-Knowledge-Management/04-Knowledge-Graph.md"
+      "file": "docs_en/03-Knowledge-Management/04-Knowledge-Graph.md"
     },
     {
       "id": "node-1786179439619-s3ys44",
@@ -52,7 +52,7 @@
       "y": 1575,
       "width": 625,
       "height": 425,
-      "file": "08-Advanced-Features/03-Whiteboard-Canvas.md"
+      "file": "docs_en/08-Advanced-Features/03-Whiteboard-Canvas.md"
     },
     {
       "id": "node-1786179456858-lkxrwd",
@@ -61,7 +61,7 @@
       "y": 1575,
       "width": 595,
       "height": 425,
-      "file": "08-Advanced-Features/01-Publish-Website.md"
+      "file": "docs_en/08-Advanced-Features/01-Publish-Website.md"
     }
   ],
   "edges": [

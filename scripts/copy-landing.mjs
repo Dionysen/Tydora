@@ -3,7 +3,7 @@
  * 从 website/landing/index.html 与 website/landing/en/index.html 读取最新 HTML
  * 在 markdown-publish 构建后运行此脚本
  */
-import { writeFileSync, readFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, readFileSync, mkdirSync, cpSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,7 +24,7 @@ try {
 }
 
 // Copy favicon to site directory
-const faviconSrc = resolve(__dirname, "../dist/favicon.svg");
+const faviconSrc = resolve(landingDir, "favicon.svg");
 const faviconDest = resolve(siteDir, "favicon.svg");
 try {
   writeFileSync(faviconDest, readFileSync(faviconSrc));
@@ -85,6 +85,17 @@ processLanding(
   resolve(siteDir, "en/index.html"),
   "English"
 );
+
+// Copy English landing page images
+const enImagesSrc = resolve(__dirname, "../website/images/en");
+const enImagesDest = resolve(siteDir, "en/images");
+if (existsSync(enImagesSrc)) {
+  mkdirSync(enImagesDest, { recursive: true });
+  cpSync(enImagesSrc, enImagesDest, { recursive: true });
+  console.log("✅ English landing images copied to website/site/en/images/");
+} else {
+  console.log("⚠️ English landing images not found, skipping");
+}
 
 // Fix 404.html redirect: /index -> /index/ (trailing slash for GitHub Pages)
 const notFoundPath = resolve(siteDir, "404.html");
