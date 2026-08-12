@@ -59,7 +59,10 @@ jobs:
         uses: orhun/git-cliff-action@v4
         with:
           config: cliff.toml
-          args: --latest --strip all
+          # tag push: 直接取该 tag 到上一个 tag 的提交（--latest）
+          # workflow_dispatch: 取上个 tag 到当前 HEAD 的未发布提交（--unreleased），
+          # 避免生成上一版（旧 tag）的说明
+          args: ${{ startsWith(github.ref, 'refs/tags/') && '--latest --strip all' || '--unreleased --strip all' }}
         env:
           OUTPUT: RELEASE_NOTES.md
 
