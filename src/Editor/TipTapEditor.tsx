@@ -53,17 +53,20 @@ import { BulletListMindmap } from "./extensions/bullet-list-mindmap";
 import { HardBreakCleanup } from "./extensions/hardbreak-cleanup";
 import { TableFloatingToolbar as TableFloatingToolbarComponent } from "./TableFloatingToolbar";
 import { executeCommand } from "./extensions/custom-commands";
+import { Math } from "./extensions/math";
 import { saveImageToLocal, loadImageSettings, resolveRelativePath, dirName } from "../services";
 import { loadShortcuts, matchShortcut } from "./shortcuts";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import CodeMirrorEditor, { type CodeMirrorEditorHandle } from "./CodeMirrorEditor";
 import { ContextMenu } from "./ContextMenu";
 import { LinkDialog } from "./LinkDialog";
+import { MathDialog } from "./MathDialog";
 import type { ThemeName } from "../themes";
 import type { ImageSettings } from "../services";
 import type { EditorSettings } from "../Settings";
 import type { EditorHandle, EditorMode } from "./types";
 import "./theme.css";
+import "katex/dist/katex.min.css";
 import "../tags/Tag.css";
 
 const lowlight = createLowlight(common);
@@ -116,6 +119,9 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
     const [tableToolbar, setTableToolbar] = useState<{ table: HTMLElement } | null>(null);
     const linkEditRef = useRef<{ from: number; to: number } | null>(null);
     const [linkDialog, setLinkDialog] = useState<{ defaultText: string } | null>(null);
+    const [mathDialog, setMathDialog] = useState<{ latex: string; block: boolean; pos: number | null } | null>(null);
+    const mathDialogRef = useRef(mathDialog);
+    mathDialogRef.current = mathDialog;
 
     onChangeRef.current = onChange;
     onWordCountRef.current = onWordCount;
@@ -316,6 +322,19 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         ...(editorSettings?.callout !== false ? [Callout] : []),
         ...(editorSettings?.mermaid !== false ? [Mermaid] : []),
         ...(editorSettings?.wikiLink !== false ? [WikiLink] : []),
+        ...(editorSettings?.math !== false
+          ? [
+              Math.configure({
+                onClick: (node: any, pos: number) => {
+                  setMathDialog({
+                    latex: node.attrs.latex || "",
+                    block: node.type.name === "blockMath",
+                    pos,
+                  });
+                },
+              }),
+            ]
+          : []),
         Tag,
         SearchHighlight,
         HeadingHighlight,
@@ -512,6 +531,20 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
       return () => window.removeEventListener("link-dialog-open", handleLinkDialogOpen);
     }, []);
 
+    // 监听数学公式弹窗事件
+    useEffect(() => {
+      const handleMathDialogOpen = (e: Event) => {
+        const detail = (e as CustomEvent).detail;
+        setMathDialog({
+          latex: detail?.latex || "",
+          block: detail?.block !== false,
+          pos: null,
+        });
+      };
+      window.addEventListener("math-dialog-open", handleMathDialogOpen);
+      return () => window.removeEventListener("math-dialog-open", handleMathDialogOpen);
+    }, []);
+
     // 编辑器挂载后的静默期（500ms），防止初始化规范化操作触发保存
     useEffect(() => {
       if (!editor) return;
@@ -537,6 +570,42 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         })
         .run();
       setLinkDialog(null);
+    }, [editor]);
+
+    // 数学公式弹窗确认：插入新公式或更新已有公式
+    const handleMathDialogConfirm = useCallback(
+      (latex: string, block: boolean) => {
+        if (!editor) return;
+        const dialog = mathDialogRef.current;
+        if (dialog?.pos != null) {
+          // 编辑已有公式
+          const node = editor.state.doc.nodeAt(dialog.pos);
+          if (node) {
+            if (node.type.name === "blockMath") {
+              editor.chain().focus().updateBlockMath({ latex, pos: dialog.pos }).run();
+            } else if (node.type.name === "inlineMath") {
+              editor.chain().focus().updateInlineMath({ latex, pos: dialog.pos }).run();
+            }
+          }
+        } else {
+          // 插入新公式
+          const from = editor.state.selection.from;
+          if (block) {
+            editor.chain().focus().insertBlockMath({ latex, pos: from }).run();
+          } else {
+            editor.chain().focus().insertInlineMath({ latex, pos: from }).run();
+          }
+        }
+        setMathDialog(null);
+        editor.commands.focus();
+      },
+      [editor]
+    );
+
+    // 数学公式弹窗取消
+    const handleMathDialogCancel = useCallback(() => {
+      setMathDialog(null);
+      editor?.commands.focus();
     }, [editor]);
 
     // 链接弹窗取消
@@ -1047,6 +1116,15 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
             defaultText={linkDialog.defaultText}
             onConfirm={handleLinkDialogConfirm}
             onCancel={handleLinkDialogCancel}
+          />
+        )}
+        {mathDialog && (
+          <MathDialog
+            latex={mathDialog.latex}
+            block={mathDialog.block}
+            lockBlock={mathDialog.pos != null}
+            onConfirm={handleMathDialogConfirm}
+            onCancel={handleMathDialogCancel}
           />
         )}
       </div>

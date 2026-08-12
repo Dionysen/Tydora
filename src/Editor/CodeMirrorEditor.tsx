@@ -1,6 +1,6 @@
 import { useRef, useEffect, forwardRef, useImperativeHandle, useMemo } from "react";
-import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter } from "@codemirror/view";
-import { EditorState, Compartment } from "@codemirror/state";
+import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, Decoration, ViewPlugin } from "@codemirror/view";
+import { EditorState, Compartment, RangeSetBuilder } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { javascript } from "@codemirror/lang-javascript";
@@ -149,6 +149,19 @@ const markdownTheme = EditorView.theme({
     border: "1px solid var(--border, #d0d0d0)",
     color: "var(--text-secondary, #666)",
   },
+  // LaTeX 数学高亮
+  ".cm-math-inline": {
+    backgroundColor: "var(--bg-math, rgba(74, 158, 255, 0.08))",
+    borderRadius: "3px",
+  },
+  ".cm-math-block": {
+    backgroundColor: "var(--bg-math, rgba(74, 158, 255, 0.06))",
+    borderRadius: "3px",
+  },
+  ".cm-math-dollars": {
+    color: "var(--text-math-delim, #7a5af5)",
+    fontWeight: "bold",
+  },
   ".cm-tooltip": {
     border: "1px solid var(--border, #d0d0d0)",
     backgroundColor: "var(--bg-primary, #fff)",
@@ -216,6 +229,118 @@ const codeHighlighting = syntaxHighlighting(
     { tag: tags.className, color: "var(--hljs-built_in, #6f42c1)" },
     { tag: tags.propertyName, color: "var(--hljs-string, #005cc5)" },
   ])
+);
+
+// ── LaTeX 数学高亮（$...$ 行内 / $$...$$ 块级） ──
+const mathInlineMark = Decoration.mark({ class: "cm-math-inline" });
+const mathBlockMark = Decoration.mark({ class: "cm-math-block" });
+const mathDollarMark = Decoration.mark({ class: "cm-math-dollars" });
+
+/** 判断 pos 处是否为合法开分隔符：后一位不能是空格/制表符（行内 $ 也不能是换行或数字） */
+function canOpenMath(text: string, pos: number, isBlock: boolean) {
+  const next = text[pos + (isBlock ? 2 : 1)];
+  if (next === undefined || next === " " || next === "\t") return false;
+  if (!isBlock && (next === "\n" || (next >= "0" && next <= "9"))) return false;
+  return true;
+}
+
+/** 查找不以奇数个反斜杠转义的闭合 $ / $$ */
+function findClosingDollar(text: string, from: number, isBlock: boolean) {
+  const target = isBlock ? "$$" : "$";
+  let i = from;
+  while (i < text.length) {
+    const idx = text.indexOf(target, i);
+    if (idx === -1) return -1;
+    let bs = 0;
+    let k = idx - 1;
+    while (k >= 0 && text[k] === "\\") {
+      bs++;
+      k--;
+    }
+    if (bs % 2 === 0) return idx;
+    i = idx + target.length;
+  }
+  return -1;
+}
+
+/** 构建数学高亮装饰集（跳过代码围栏内的内容） */
+function buildMathDecorations(view: EditorView) {
+  const builder = new RangeSetBuilder<Decoration>();
+  const doc = view.state.doc;
+  const fullText = doc.toString();
+  const len = fullText.length;
+
+  // 计算代码围栏区间，围栏内的 $ 不做数学高亮
+  const fenceRanges: Array<[number, number]> = [];
+  for (let lineNo = 1; lineNo <= doc.lines; ) {
+    const line = doc.line(lineNo);
+    if (/^(```|~~~)/.test(line.text.trim())) {
+      const from = line.from;
+      let closeLine = lineNo + 1;
+      while (closeLine <= doc.lines && !/^(```|~~~)/.test(doc.line(closeLine).text.trim())) {
+        closeLine++;
+      }
+      const to = closeLine <= doc.lines ? doc.line(closeLine).to : doc.length;
+      fenceRanges.push([from, to]);
+      lineNo = closeLine + 1;
+    } else {
+      lineNo++;
+    }
+  }
+  const inFence = (pos: number) => fenceRanges.some(([a, b]) => pos >= a && pos < b);
+
+  let i = 0;
+  while (i < len) {
+    if (fullText[i] !== "$" || inFence(i)) {
+      i++;
+      continue;
+    }
+    const isBlock = fullText[i + 1] === "$";
+    if (!canOpenMath(fullText, i, isBlock)) {
+      i++;
+      continue;
+    }
+
+    const openEnd = i + (isBlock ? 2 : 1);
+    const closeStart = findClosingDollar(fullText, openEnd, isBlock);
+    if (closeStart === -1) {
+      i++;
+      continue;
+    }
+    const content = fullText.slice(openEnd, closeStart);
+    if (!content.trim()) {
+      i++;
+      continue;
+    }
+    // 行内数学不能跨行，且闭合符前不能是空格
+    if (!isBlock && (content.includes("\n") || content[content.length - 1] === " " || content[content.length - 1] === "\t")) {
+      i++;
+      continue;
+    }
+
+    const innerFrom = openEnd;
+    const innerTo = closeStart;
+    builder.add(innerFrom, innerTo, isBlock ? mathBlockMark : mathInlineMark);
+    builder.add(i, innerFrom, mathDollarMark);
+    builder.add(innerTo, innerTo + (isBlock ? 2 : 1), mathDollarMark);
+    i = innerTo + (isBlock ? 2 : 1);
+  }
+  return builder.finish();
+}
+
+const mathHighlighter = ViewPlugin.fromClass(
+  class {
+    decorations: ReturnType<typeof buildMathDecorations>;
+    constructor(view: EditorView) {
+      this.decorations = buildMathDecorations(view);
+    }
+    update(update: { docChanged: boolean; viewportChanged: boolean; view: EditorView }) {
+      if (update.docChanged || update.viewportChanged) {
+        this.decorations = buildMathDecorations(update.view);
+      }
+    }
+  },
+  { decorations: (v) => v.decorations }
 );
 
 interface CodeMirrorEditorProps {
@@ -290,6 +415,9 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       // 根据语言类型选择高亮主题
       const useMarkdownHighlighting = isMarkdownFile(filePathRef.current);
 
+      // Markdown 文件启用 LaTeX 数学高亮
+      const mathExtensions = useMarkdownHighlighting ? [mathHighlighter] : [];
+
       const state = EditorState.create({
         doc: value,
         extensions: [
@@ -305,6 +433,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
           highlightSelectionMatches(),
           languageExtension,
           markdownTheme,
+          ...mathExtensions,
           // 使用 Compartment 包装高亮，支持动态切换
           highlightCompartment.of(
             useMarkdownHighlighting ? markdownHighlighting : codeHighlighting

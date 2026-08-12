@@ -47,6 +47,7 @@ export interface EditorSettings {
   // 扩展功能
   callout: boolean;
   mermaid: boolean;
+  math: boolean;
   wikiLink: boolean;
   frontmatter: boolean;
   tableToolbar: boolean;
@@ -57,6 +58,7 @@ export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
   counterType: "text",
   callout: true,
   mermaid: true,
+  math: true,
   wikiLink: true,
   frontmatter: true,
   tableToolbar: true,
@@ -1567,6 +1569,16 @@ function EditorSettingsContent({
           </div>
           <label className="settings-switch">
             <input type="checkbox" checked={settings.mermaid} onChange={(e) => update("mermaid", e.target.checked)} />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.editor.math")}</span>
+            <span className="canvas-settings-row-desc">$LaTeX$</span>
+          </div>
+          <label className="settings-switch">
+            <input type="checkbox" checked={settings.math} onChange={(e) => update("math", e.target.checked)} />
             <span className="settings-switch-slider" />
           </label>
         </div>

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import MarkdownIt from "markdown-it";
 import { readTextFile } from "@tauri-apps/plugin-fs";
+import katex from "katex";
+import { mathMarkdownItPlugin } from "../Editor/extensions/math";
 import { LinkIndexService } from "./LinkIndexService";
 
 const md = new MarkdownIt({
@@ -9,6 +11,12 @@ const md = new MarkdownIt({
   linkify: true,
   typographer: true,
   breaks: true,
+});
+
+// 数学公式：$...$ 行内 / $$...$$ 块级，使用 KaTeX 渲染
+md.use(mathMarkdownItPlugin, {
+  inline: (latex) => katex.renderToString(latex, { displayMode: false, throwOnError: false }),
+  block: (latex) => katex.renderToString(latex, { displayMode: true, throwOnError: false }),
 });
 
 const htmlCache = new Map<string, string>();

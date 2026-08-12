@@ -249,6 +249,7 @@
       "plainText": "Plain text (text only)",
       "callout": "Callout Block",
       "mermaid": "Mermaid Diagrams",
+      "math": "LaTeX Math",
       "wikilink": "WikiLink Bidirectional Links",
       "yaml": "YAML Frontmatter",
       "tableToolbar": "Table Floating Toolbar",
@@ -647,6 +648,15 @@
       "mergeCells": "Merge Cells",
       "splitCell": "Split Cell",
       "selectTableSize": "Select Table Size"
+    },
+    "mathDialog": {
+      "title": "Insert / Edit Formula",
+      "placeholder": "Enter LaTeX, e.g. E=mc^2 or \\frac{1}{2}",
+      "previewEmpty": "Live preview appears here",
+      "previewError": "Formula syntax error, please check and retry",
+      "block": "Display formula",
+      "cancel": "Cancel",
+      "confirm": "Insert"
     }
   },
   "commandPalette": {

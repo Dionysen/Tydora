@@ -150,9 +150,15 @@ export function executeCommand(name: string, editor: Editor | null) {
     case "footnotes":
       chain.insertContent("[^1]: ").run();
       break;
-    case "math":
-      chain.insertContent("$$\n\n$$").run();
+    case "math": {
+      // 打开公式编辑弹窗（含实时预览），确认后插入块级公式
+      window.dispatchEvent(
+        new CustomEvent("math-dialog-open", {
+          detail: { latex: "", block: true },
+        })
+      );
       break;
+    }
     case "wiki-link": {
       const { from } = editor.state.selection;
       chain.insertContent("[[").run();

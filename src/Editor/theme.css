@@ -1808,3 +1808,107 @@
   color: var(--text-primary, #333);
   background: var(--bg-hover, rgba(0, 0, 0, 0.06));
 }
+
+/* ── 数学公式节点（KaTeX） ── */
+.tiptap-editor .tiptap-mathematics-render {
+  cursor: pointer;
+}
+
+/* 行内公式 */
+.tiptap-editor span.tiptap-mathematics-render {
+  display: inline-block;
+  vertical-align: middle;
+  padding: 1px 4px;
+  margin: 0 1px;
+  border-radius: 4px;
+  background: var(--bg-math, rgba(74, 158, 255, 0.08));
+  transition: background 0.15s ease;
+  line-height: 1.4;
+}
+
+.tiptap-editor span.tiptap-mathematics-render:hover {
+  background: var(--bg-math-hover, rgba(74, 158, 255, 0.16));
+}
+
+.tiptap-editor span.tiptap-mathematics-render.ProseMirror-selectednode {
+  outline: 2px solid var(--accent-color, #4a9eff);
+  outline-offset: 1px;
+}
+
+.tiptap-editor span.tiptap-mathematics-render .inline-math-inner {
+  display: inline-block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  vertical-align: middle;
+}
+
+/* 块级公式 */
+.tiptap-editor div.tiptap-mathematics-render {
+  margin: 12px 0;
+  padding: 14px 12px;
+  border-radius: 8px;
+  background: var(--bg-math, rgba(74, 158, 255, 0.06));
+  border: 1px solid var(--border, transparent);
+  transition: background 0.15s ease, border-color 0.15s ease;
+  text-align: center;
+}
+
+.tiptap-editor div.tiptap-mathematics-render:hover {
+  background: var(--bg-math-hover, rgba(74, 158, 255, 0.1));
+}
+
+.tiptap-editor div.tiptap-mathematics-render.ProseMirror-selectednode {
+  border-color: var(--accent-color, #4a9eff);
+}
+
+.tiptap-editor div.tiptap-mathematics-render .block-math-inner {
+  display: block;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
+
+.tiptap-editor div.tiptap-mathematics-render .katex-display {
+  margin: 0;
+}
+
+/* 公式错误状态（LaTeX 语法错误时显示原始源码） */
+.tiptap-editor .math-error,
+.tiptap-editor .inline-math-error,
+.tiptap-editor .block-math-error {
+  color: #e5484d;
+  font-family: "JetBrains Mono", Consolas, Menlo, monospace;
+  font-size: 0.85em;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.tiptap-editor div.tiptap-mathematics-render .block-math-error {
+  display: block;
+  text-align: left;
+}
+
+/* 只读 / 导出场景 */
+.tiptap-export-content .tiptap-mathematics-render,
+[data-preview] .tiptap-mathematics-render {
+  cursor: default;
+}
+
+.tiptap-export-content span.tiptap-mathematics-render,
+[data-preview] span.tiptap-mathematics-render {
+  background: none;
+  padding: 0;
+}
+
+.tiptap-export-content div.tiptap-mathematics-render,
+[data-preview] div.tiptap-mathematics-render {
+  background: none;
+  border: none;
+  margin: 8px 0;
+}
+
+/* KaTeX 中文上下文间距 */
+.tiptap-editor .katex {
+  font-size: 1.05em;
+}

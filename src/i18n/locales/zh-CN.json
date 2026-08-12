@@ -249,6 +249,7 @@
       "plainText": "纯文本（仅文字）",
       "callout": "Callout 提示块",
       "mermaid": "Mermaid 图表",
+      "math": "LaTeX 数学公式",
       "wikilink": "WikiLink 双向链接",
       "yaml": "YAML Frontmatter",
       "tableToolbar": "表格浮动工具栏",
@@ -647,6 +648,15 @@
       "mergeCells": "合并单元格",
       "splitCell": "拆分单元格",
       "selectTableSize": "选择表格大小"
+    },
+    "mathDialog": {
+      "title": "插入/编辑公式",
+      "placeholder": "输入 LaTeX 公式，如 E=mc^2 或 \\frac{1}{2}",
+      "previewEmpty": "输入公式后实时预览",
+      "previewError": "公式语法错误，请检查后重试",
+      "block": "块级公式",
+      "cancel": "取消",
+      "confirm": "插入"
     }
   },
   "commandPalette": {
