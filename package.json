@@ -14,7 +14,7 @@
     "docs:serve": "node website/site/__preview_server.cjs",
     "docs:clean": "rimraf website/site",
     "copy-landing": "node scripts/copy-landing.mjs",
-    "postdocs:build": "node scripts/copy-landing.mjs",
+    "postdocs:build": "node scripts/copy-landing.mjs && node scripts/inject-analytics.mjs",
     "postinstall": "patch-package",
     "commit": "cz",
     "changelog": "git-cliff -o CHANGELOG.md",
