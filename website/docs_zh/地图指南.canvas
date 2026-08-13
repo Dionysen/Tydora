@@ -7,7 +7,7 @@
       "y": 630,
       "width": 580,
       "height": 365,
-      "file": "index.md"
+      "file": "docs_zh/index.md"
     },
     {
       "id": "node-1786179311710-k2hq7t",
@@ -16,7 +16,7 @@
       "y": 630,
       "width": 595,
       "height": 365,
-      "file": "05-导航与搜索/01-快速打开.md"
+      "file": "docs_zh/05-导航与搜索/01-快速打开.md"
     },
     {
       "id": "node-1786179348688-shod9g",
@@ -25,7 +25,7 @@
       "y": 1125,
       "width": 625,
       "height": 380,
-      "file": "02-编辑器/02-Markdown语法.md"
+      "file": "docs_zh/02-编辑器/02-Markdown语法.md"
     },
     {
       "id": "node-1786179401835-njrtkv",
@@ -34,7 +34,7 @@
       "y": 1125,
       "width": 580,
       "height": 380,
-      "file": "03-知识管理/01-Wiki链接.md"
+      "file": "docs_zh/03-知识管理/01-Wiki链接.md"
     },
     {
       "id": "node-1786179425804-560wu1",
@@ -43,7 +43,7 @@
       "y": 1125,
       "width": 595,
       "height": 380,
-      "file": "03-知识管理/04-知识图谱.md"
+      "file": "docs_zh/03-知识管理/04-知识图谱.md"
     },
     {
       "id": "node-1786179439619-s3ys44",
@@ -52,7 +52,7 @@
       "y": 1575,
       "width": 625,
       "height": 425,
-      "file": "08-高级功能/03-白板画布.md"
+      "file": "docs_zh/08-高级功能/03-白板画布.md"
     },
     {
       "id": "node-1786179456858-lkxrwd",
@@ -61,7 +61,7 @@
       "y": 1575,
       "width": 595,
       "height": 425,
-      "file": "08-高级功能/01-发布网站.md"
+      "file": "docs_zh/08-高级功能/01-发布网站.md"
     }
   ],
   "edges": [
