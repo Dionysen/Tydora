@@ -6,6 +6,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 
 import CanvasView from './CanvasView';
 import { useCanvasStore } from './canvas-store';
+import { track, trackPageview, ANALYTICS_EVENTS } from '../analytics';
 import './canvas.css';
 
 const CANVAS_STORAGE_KEY = 'zmd-canvas-file-path';
@@ -13,6 +14,12 @@ const CANVAS_STORAGE_KEY = 'zmd-canvas-file-path';
 export default function CanvasWindow() {
   const [canvasTitle, setCanvasTitle] = useState('白板');
   const { loadCanvas, saveCanvas, filePath, isModified } = useCanvasStore();
+
+  // 统计：白板窗口打开（主窗口内嵌打开 .canvas 时由 App.tsx 上报）
+  useEffect(() => {
+    track(ANALYTICS_EVENTS.CANVAS_OPEN);
+    trackPageview("/app/canvas");
+  }, []);
 
   // Load canvas file from URL params or localStorage
   useEffect(() => {

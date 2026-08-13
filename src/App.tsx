@@ -40,6 +40,8 @@ import "./tags/TagAutocomplete.css";
 import "./components/FindReplaceDialog.css";
 import shortcutsConfig from "./config/shortcuts.json";
 import { matchShortcut } from "./Editor/shortcuts";
+import { track, trackPageview, hasConsentChoice, isAnalyticsEnabled, setAnalyticsEnabled, ANALYTICS_EVENTS } from "./analytics";
+import { ConsentDialog } from "./analytics/ConsentDialog";
 
 // 错误边界：防止编辑器错误导致整个页面空白
 class EditorErrorBoundary extends Component<
@@ -163,6 +165,24 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const [wordCount, setWordCount] = useState(0);
   const [isCurrentFileMarkdown, setIsCurrentFileMarkdown] = useState(true);
   const codeMirrorRef = useRef<CodeMirrorEditorHandle>(null);
+
+  // 匿名统计：首次启动弹窗征得同意后才会上报（未选择前不发送任何数据）
+  const [consentVisible, setConsentVisible] = useState<boolean>(() => !hasConsentChoice());
+
+  // 用户已同意时，上报应用启动事件（仅统计使用情况，不含文件路径/内容等任何数据）
+  useEffect(() => {
+    if (!consentVisible && isAnalyticsEnabled()) {
+      track(ANALYTICS_EVENTS.LAUNCH, {
+        language: navigator.language,
+      });
+      trackPageview("/app/launch");
+    }
+  }, [consentVisible]);
+
+  const handleConsentDecision = useCallback((granted: boolean) => {
+    setAnalyticsEnabled(granted);
+    setConsentVisible(false);
+  }, []);
 
   // 书签弹窗状态
   const [bookmarkDialogState, setBookmarkDialogState] = useState<{
@@ -329,6 +349,16 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   // 白板文件路径（在主区域显示白板时设置）
   const [canvasFilePath, setCanvasFilePath] = useState<string | null>(null);
 
+  // 统计：进入白板视图（主窗口内嵌模式；仅 null → 有值 的转换，切换画布文件不重复上报）
+  const prevCanvasPathRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (canvasFilePath && !prevCanvasPathRef.current) {
+      track(ANALYTICS_EVENTS.CANVAS_OPEN);
+      trackPageview("/app/canvas");
+    }
+    prevCanvasPathRef.current = canvasFilePath;
+  }, [canvasFilePath]);
+
   // 加载白板文件并同步保存状态到顶部红绿灯
   useEffect(() => {
     if (!canvasFilePath) return;
@@ -376,6 +406,14 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   // 知识图谱状态
   const [graphViewOpen, setGraphViewOpen] = useState(false);
+
+  // 统计：打开关系图谱（主窗口内嵌模式；新窗口模式由 GraphWindow 上报）
+  useEffect(() => {
+    if (graphViewOpen) {
+      track(ANALYTICS_EVENTS.GRAPH_OPEN);
+      trackPageview("/app/graph");
+    }
+  }, [graphViewOpen]);
 
   // 发布状态
   const [publishOpen, setPublishOpen] = useState(false);
@@ -982,6 +1020,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       setPreviewFilePath(null); // 关闭预览模式
       setCanvasFilePath(null); // 关闭白板模式
       setIsCurrentFileMarkdown(isMarkdownFile(path));
+
+      // 匿名统计：打开文档计为一次页面浏览（不含文件名等隐私信息）
+      track(ANALYTICS_EVENTS.FILE_OPEN);
+      trackPageview("/file");
 
       // 跳转到指定行并高亮搜索结果
       if (line != null || query) {
@@ -1628,6 +1670,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   // ── 导出 ──
   const handleExport = async (format: ExportFormat) => {
     if (exporting || viewMode === "sv") return;
+    track(`export.${format}`);
     setShowExportFormatPicker(false);
     setExporting(true);
     try {
@@ -1654,6 +1697,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     if (!markdown) return;
     try {
       await navigator.clipboard.writeText(markdown);
+      track(ANALYTICS_EVENTS.EXPORT_MARKDOWN);
       setMarkdownCopied(true);
       // 短暂显示"已复制"反馈后关闭弹框
       setTimeout(() => {
@@ -1875,6 +1919,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                   disabled={viewMode === "sv" || exporting}
                   onClick={() => {
                     if (viewMode === "sv" || exporting) return;
+                    track(ANALYTICS_EVENTS.EXPORT_OPEN);
                     setMarkdownCopied(false);
                     setShowExportFormatPicker(true);
                   }}
@@ -1957,9 +2002,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       onClick={() => { if (!fileName) return; handleNewWindow(fileName); setMoreMenuOpen(false); }}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                        <line x1="3" y1="9" x2="21" y2="9" />
-                        <line x1="9" y1="21" x2="9" y2="9" />
+                        <rect x="2.5" y="3" width="14.5" height="16" rx="3" />
+                        <rect x="7.5" y="6" width="13.5" height="13" rx="3" />
+                        <line x1="9.5" y1="15.8" x2="19.5" y2="15.8" strokeWidth="1.5" />
                       </svg>
                       <span className="editor-topbar-more-menu-label">{t("app.menu.openInNewWindow")}</span>
                     </div>
@@ -2071,6 +2116,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       className={`editor-topbar-more-menu-item${viewMode === "sv" || exporting ? ' disabled' : ''}`}
                       onClick={() => {
                         if (viewMode === "sv" || exporting) return;
+                        track(ANALYTICS_EVENTS.EXPORT_OPEN);
                         setMoreMenuOpen(false);
                         setMarkdownCopied(false);
                         setShowExportFormatPicker(true);
@@ -2421,6 +2467,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           onClose={() => setPublishOpen(false)}
         />
       )}
+
+      {/* 首次启动：匿名统计同意弹窗 */}
+      {consentVisible && <ConsentDialog onDecide={handleConsentDecision} />}
     </div>
   );
 }

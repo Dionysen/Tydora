@@ -1341,6 +1341,13 @@
   font-weight: 500;
 }
 
+.settings-item-vertical .settings-item-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 /* ── Code Theme Settings ──────────────────────────────────────── */
 
 .settings-code-theme-row {

@@ -26,7 +26,34 @@
       "autoHideTopbarOnCollapse": "Auto-hide Top Bar When Sidebar Collapsed",
       "autoHideTopbarOnCollapseDesc": "When enabled, the top bar auto-hides when the sidebar is collapsed. When disabled, the top bar remains visible.",
       "language": "Language",
-      "languageDesc": "Interface display language."
+      "languageDesc": "Interface display language.",
+      "analytics": "Together, we'll go the distance 🌿",
+      "analyticsDesc": "A steadier journey together. Anonymously collects usage & error data to improve the app. Your privacy stays untouched; you can turn it off anytime."
+    },
+    "consent": {
+      "title": "Together, we'll go the distance 🌿",
+      "description": "We have a simple wish: for this app to stay with you for the long run, growing steadier with every step.\n\nAlong the way, it may stumble from time to time. And we'd like to be the one who gently helps it back up.\nThat's why we want to collect a little crash log — just the technical details from the moment something goes wrong, so we can find the issue and keep moving forward.\n\nRest assured: your privacy stays completely untouched.\n\nThese logs are used only to improve your experience, and you can turn them off anytime in Settings → About.\n\nIf you have any thoughts or run into any trouble, feel free to write to us at [zuorn@qq.com](mailto:zuorn@qq.com).\nEvery word you share means a lot to us.",
+      "accept": "Sure, let's go",
+      "decline": "No thanks",
+      "privacy": "View Privacy Policy",
+      "privacyBack": "Back",
+      "privacyPolicy": {
+        "title": "Tydora Privacy Policy",
+        "updated": "Last updated: August 13, 2026",
+        "intro": "This policy explains what data Tydora collects, why we collect it, and how you can manage it.",
+        "collectTitle": "1. What We Collect",
+        "collectBody": "After you opt in, Tydora anonymously collects the following usage data:\n• Feature usage events: app launch/exit, theme switches, editor modes, exports and publishing, opening mind maps/graphs/canvas, bookmark and tag operations, etc.\n• Device technical info: operating system, app version, and UI language.\n• A randomly generated installation instance ID: used to approximate unique visitor counts. It contains no personal information.",
+        "notCollectTitle": "2. What We Never Collect",
+        "notCollectBody": "We never collect your note contents, file names, file paths, images or attachment contents, nor any personally identifiable information such as your name, email, account, location, or contacts.",
+        "whyTitle": "3. Why We Collect",
+        "whyBody": "This data helps us understand which features are used most and where problems occur, so we can prioritize improvements to stability and reduce crashes and lag.",
+        "storageTitle": "4. Storage & Sharing",
+        "storageBody": "Statistics are sent over an encrypted connection to the Umami cloud analytics service (cloud.umami.is). Umami is an open-source, privacy-friendly analytics tool. We never sell or share this data with any third party.",
+        "controlTitle": "5. How to Disable",
+        "controlBody": "You can turn off analytics anytime in Settings → About → Together, we'll go the distance. Once disabled, the app sends no further data; previously collected statistics are not retroactively deleted.",
+        "contactTitle": "6. Contact Us",
+        "contactBody": "If you have any questions about this privacy policy, feel free to write to us at [zuorn@qq.com](mailto:zuorn@qq.com), or open an issue in the [GitHub repository zuorn/Tydora](https://github.com/zuorn/Tydora)."
+      }
     },
     "tabs": {
       "groupGeneral": "General",

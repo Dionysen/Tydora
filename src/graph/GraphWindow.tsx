@@ -3,6 +3,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
 import { LinkIndexService } from "../wikilink";
 import { useVaultWatcher } from "../services";
+import { track, trackPageview, ANALYTICS_EVENTS } from "../analytics";
 import { GraphView } from "./GraphView";
 import { matchShortcut } from "../Editor/shortcuts";
 import shortcutsConfig from "../config/shortcuts.json";
@@ -31,6 +32,12 @@ export default function GraphWindow() {
     }
   });
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // 统计：图谱窗口打开（新窗口模式；内嵌模式由 App.tsx 上报）
+  useEffect(() => {
+    track(ANALYTICS_EVENTS.GRAPH_OPEN);
+    trackPageview("/app/graph");
+  }, []);
 
   const vaultPath = activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null;
 

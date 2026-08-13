@@ -9,6 +9,7 @@ import MindmapView, { type MindmapViewHandle } from "./MindmapView";
 import { MINDMAP_SETTINGS_KEY, DEFAULT_MINDMAP } from "../Settings";
 import { matchShortcut } from "../Editor/shortcuts";
 import shortcutsConfig from "../config/shortcuts.json";
+import { track, trackPageview, ANALYTICS_EVENTS } from "../analytics";
 import "./MindmapWindow.css";
 
 const MINDMAP_CONTENT_KEY = "zmd-mindmap-content";
@@ -36,6 +37,12 @@ export default function MindmapWindow() {
   const [expandLevel, setExpandLevel] = useState(getInitialExpandLevel);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const mindmapViewRef = useRef<MindmapViewHandle>(null);
+
+  // 统计：思维导图窗口打开
+  useEffect(() => {
+    track(ANALYTICS_EVENTS.MINDMAP_OPEN);
+    trackPageview("/app/mindmap");
+  }, []);
 
   // Listen for real-time updates from main window
   useEffect(() => {

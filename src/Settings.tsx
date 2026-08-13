@@ -19,6 +19,7 @@ import appIcon from "./assets/icon.png";
 import { useLanguage } from "./i18n/LanguageContext";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "./i18n";
 import shortcutsConfig from "./config/shortcuts.json";
+import { isAnalyticsEnabled, setAnalyticsEnabled, track, trackPageview, ANALYTICS_EVENTS } from "./analytics";
 import "./Settings.css";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -1901,6 +1902,7 @@ function AboutSettingsContent() {
   const [updateResult, setUpdateResult] = useState<{ available: boolean; info?: UpdateInfo } | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<{ downloaded: number; total: number | null }>({ downloaded: 0, total: null });
+  const [analyticsEnabled, setAnalyticsState] = useState<boolean>(() => isAnalyticsEnabled());
 
   useEffect(() => {
     invoke<string>("get_app_version").then(setVersion).catch(() => setVersion(""));
@@ -1944,6 +1946,25 @@ function AboutSettingsContent() {
       <div className="settings-item">
         <label className="settings-item-label">{t("settings.about.versionInfo")}</label>
         <span className="settings-about-value">{version ? `v${version}` : t("settings.about.loading")}</span>
+      </div>
+
+      <div className="settings-item-vertical">
+        <label className="settings-label">{t("settings.appearance.analytics")}</label>
+        <div className="settings-item-inline">
+          <span className="canvas-settings-row-desc">{t("settings.appearance.analyticsDesc")}</span>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={analyticsEnabled}
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                setAnalyticsEnabled(enabled);
+                setAnalyticsState(enabled);
+              }}
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
       </div>
 
       <div className="settings-item">
@@ -2009,6 +2030,12 @@ export default function Settings() {
     return "general";
   });
   const { theme, setTheme } = useTheme();
+
+  // 统计：设置窗口打开（所有入口最终都会挂载此窗口，窗口已打开时只聚焦不重复上报）
+  useEffect(() => {
+    track(ANALYTICS_EVENTS.SETTINGS_OPEN);
+    trackPageview("/app/settings");
+  }, []);
 
   // ── 窗口位置/大小记忆 ──
   const saveWindowStateRef = useRef<() => Promise<void>>(async () => {});
