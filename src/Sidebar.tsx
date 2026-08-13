@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
+import { useState, useEffect, useCallback, useRef, useLayoutEffect, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "./i18n";
 import { createPortal } from "react-dom";
@@ -49,6 +49,7 @@ interface SidebarProps {
 
 interface ContextMenuItem {
   label: string;
+  icon?: ReactNode;
   onClick: () => void;
   disabled?: boolean;
   danger?: boolean;
@@ -492,6 +493,7 @@ function ContextMenu({
               }
             }}
           >
+            {item.icon && <span className="context-menu-icon">{item.icon}</span>}
             {item.label}
           </div>
         </div>
@@ -519,47 +521,137 @@ interface FileActions {
   onMoveTo: () => void;
 }
 
+// 右键菜单图标（线条风格，与顶部栏菜单保持一致）
+const menuIcon = (children: ReactNode): ReactNode => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    {children}
+  </svg>
+);
+
+const MENU_ICONS = {
+  open: menuIcon(
+    <>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+    </>,
+  ),
+  newWindow: menuIcon(
+    <>
+      <rect x="2.5" y="3" width="14.5" height="16" rx="3" />
+      <rect x="7.5" y="6" width="13.5" height="13" rx="3" />
+      <line x1="9.5" y1="15.8" x2="19.5" y2="15.8" strokeWidth="1.5" />
+    </>,
+  ),
+  favorite: menuIcon(<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />),
+  newFile: menuIcon(
+    <>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="12" y1="18" x2="12" y2="12" />
+      <line x1="9" y1="15" x2="15" y2="15" />
+    </>,
+  ),
+  newCanvas: menuIcon(
+    <>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+    </>,
+  ),
+  newFolder: menuIcon(
+    <>
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+      <line x1="12" y1="11" x2="12" y2="17" />
+      <line x1="9" y1="14" x2="15" y2="14" />
+    </>,
+  ),
+  search: menuIcon(
+    <>
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </>,
+  ),
+  rename: menuIcon(<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />),
+  duplicate: menuIcon(
+    <>
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </>,
+  ),
+  moveTo: menuIcon(
+    <>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="12" y1="18" x2="12" y2="12" />
+      <polyline points="9 15 12 18 15 15" />
+    </>,
+  ),
+  delete: menuIcon(
+    <>
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <line x1="10" y1="11" x2="10" y2="17" />
+      <line x1="14" y1="11" x2="14" y2="17" />
+    </>,
+  ),
+  copyPath: menuIcon(
+    <>
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </>,
+  ),
+  openLocation: menuIcon(
+    <path d="m6 14 1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2" />,
+  ),
+};
+
 function getFileMenuItems(actions: FileActions, t: (key: string) => string): ContextMenuItem[] {
   return [
-    { label: t("sidebar.contextMenu.open"), onClick: actions.onOpen },
-    { label: t("sidebar.contextMenu.openInNewWindow"), onClick: actions.onNewWindow },
-    { label: t("sidebar.contextMenu.favorite"), onClick: actions.onBookmark },
-    { label: t("sidebar.contextMenu.newFile"), onClick: actions.onNewFile, separator: true },
-    { label: t("sidebar.contextMenu.newCanvas"), onClick: actions.onNewWhiteboard },
-    { label: t("sidebar.contextMenu.newFolder"), onClick: actions.onNewFolder },
-    { label: t("sidebar.contextMenu.search"), onClick: actions.onSearch },
-    { label: t("sidebar.contextMenu.rename"), onClick: actions.onRename, separator: true },
-    { label: t("sidebar.contextMenu.duplicate"), onClick: actions.onDuplicate },
-    { label: t("sidebar.contextMenu.moveTo"), onClick: actions.onMoveTo },
-    { label: t("sidebar.contextMenu.delete"), onClick: actions.onDelete, danger: true, separator: true },
-    { label: t("sidebar.contextMenu.copyPath"), onClick: actions.onCopyPath, separator: true },
-    { label: t("sidebar.contextMenu.openLocation"), onClick: actions.onOpenLocation },
+    { label: t("sidebar.contextMenu.newFile"), icon: MENU_ICONS.newFile, onClick: actions.onNewFile },
+    { label: t("sidebar.contextMenu.newCanvas"), icon: MENU_ICONS.newCanvas, onClick: actions.onNewWhiteboard },
+    { label: t("sidebar.contextMenu.newFolder"), icon: MENU_ICONS.newFolder, onClick: actions.onNewFolder, separator: true },
+    { label: t("sidebar.contextMenu.openInNewWindow"), icon: MENU_ICONS.newWindow, onClick: actions.onNewWindow },
+    { label: t("sidebar.contextMenu.favorite"), icon: MENU_ICONS.favorite, onClick: actions.onBookmark },
+    { label: t("sidebar.contextMenu.rename"), icon: MENU_ICONS.rename, onClick: actions.onRename, separator: true },
+    { label: t("sidebar.contextMenu.duplicate"), icon: MENU_ICONS.duplicate, onClick: actions.onDuplicate },
+    { label: t("sidebar.contextMenu.moveTo"), icon: MENU_ICONS.moveTo, onClick: actions.onMoveTo },
+    { label: t("sidebar.contextMenu.delete"), icon: MENU_ICONS.delete, onClick: actions.onDelete, danger: true, separator: true },
+    { label: t("sidebar.contextMenu.copyPath"), icon: MENU_ICONS.copyPath, onClick: actions.onCopyPath, separator: true },
+    { label: t("sidebar.contextMenu.openLocation"), icon: MENU_ICONS.openLocation, onClick: actions.onOpenLocation },
   ];
 }
 
 function getFolderMenuItems(actions: FileActions, t: (key: string) => string): ContextMenuItem[] {
   return [
-    { label: t("sidebar.contextMenu.newFile"), onClick: actions.onNewFile },
-    { label: t("sidebar.contextMenu.newCanvas"), onClick: actions.onNewWhiteboard },
-    { label: t("sidebar.contextMenu.newFolder"), onClick: actions.onNewFolder },
-    { label: t("sidebar.contextMenu.favorite"), onClick: actions.onBookmark },
-    { label: t("sidebar.contextMenu.search"), onClick: actions.onSearch },
-    { label: t("sidebar.contextMenu.rename"), onClick: actions.onRename, separator: true },
-    { label: t("sidebar.contextMenu.moveTo"), onClick: actions.onMoveTo },
-    { label: t("sidebar.contextMenu.delete"), onClick: actions.onDelete, danger: true, separator: true },
-    { label: t("sidebar.contextMenu.copyPath"), onClick: actions.onCopyPath },
-    { label: t("sidebar.contextMenu.openLocation"), onClick: actions.onOpenLocation },
+    { label: t("sidebar.contextMenu.newFile"), icon: MENU_ICONS.newFile, onClick: actions.onNewFile },
+    { label: t("sidebar.contextMenu.newCanvas"), icon: MENU_ICONS.newCanvas, onClick: actions.onNewWhiteboard },
+    { label: t("sidebar.contextMenu.newFolder"), icon: MENU_ICONS.newFolder, onClick: actions.onNewFolder, separator: true },
+    { label: t("sidebar.contextMenu.favorite"), icon: MENU_ICONS.favorite, onClick: actions.onBookmark },
+    { label: t("sidebar.contextMenu.rename"), icon: MENU_ICONS.rename, onClick: actions.onRename, separator: true },
+    { label: t("sidebar.contextMenu.moveTo"), icon: MENU_ICONS.moveTo, onClick: actions.onMoveTo },
+    { label: t("sidebar.contextMenu.delete"), icon: MENU_ICONS.delete, onClick: actions.onDelete, danger: true, separator: true },
+    { label: t("sidebar.contextMenu.copyPath"), icon: MENU_ICONS.copyPath, onClick: actions.onCopyPath },
+    { label: t("sidebar.contextMenu.openLocation"), icon: MENU_ICONS.openLocation, onClick: actions.onOpenLocation },
   ];
 }
 
 function getBlankMenuItems(actions: FileActions, t: (key: string) => string): ContextMenuItem[] {
   return [
-    { label: t("sidebar.contextMenu.newFile"), onClick: actions.onNewFile },
-    { label: t("sidebar.contextMenu.newCanvas"), onClick: actions.onNewWhiteboard },
-    { label: t("sidebar.contextMenu.newFolder"), onClick: actions.onNewFolder },
-    { label: t("sidebar.contextMenu.search"), onClick: actions.onSearch },
-    { label: t("sidebar.contextMenu.copyPath"), onClick: actions.onCopyPath },
-    { label: t("sidebar.contextMenu.openLocation"), onClick: actions.onOpenLocation },
+    { label: t("sidebar.contextMenu.newFile"), icon: MENU_ICONS.newFile, onClick: actions.onNewFile },
+    { label: t("sidebar.contextMenu.newCanvas"), icon: MENU_ICONS.newCanvas, onClick: actions.onNewWhiteboard },
+    { label: t("sidebar.contextMenu.newFolder"), icon: MENU_ICONS.newFolder, onClick: actions.onNewFolder, separator: true },
+    { label: t("sidebar.contextMenu.copyPath"), icon: MENU_ICONS.copyPath, onClick: actions.onCopyPath },
+    { label: t("sidebar.contextMenu.openLocation"), icon: MENU_ICONS.openLocation, onClick: actions.onOpenLocation },
   ];
 }
 

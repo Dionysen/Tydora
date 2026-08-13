@@ -508,6 +508,15 @@
   color: var(--text-primary);
   transition: background 0.1s ease;
   white-space: nowrap;
+  gap: 8px;
+}
+
+.context-menu-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-secondary);
 }
 
 .context-menu-item:hover {
