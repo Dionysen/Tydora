@@ -140,16 +140,21 @@
         .publish-step h4{font-size:1rem;margin-bottom:4px}
         .publish-step p{font-size:.85rem;color:var(--c-text-dim)}
 
+        /* ===== mobile-only menu items ===== */
+        .nav-menu-only{display:none}
+        .nav-menu-lang{display:flex;gap:8px;margin-top:2px}
+        .nav-menu-lang a{padding:8px 12px;border-radius:var(--radius-sm);color:var(--c-text-dim)}
+        .nav-menu-lang a:hover{background:var(--c-border)}
+        .nav-menu-lang a.active{color:var(--c-accent);font-weight:600;background:rgba(108,92,231,.08)}
+
         /* ===== responsive ===== */
-        @media(max-width:768px){
-            .showcase-row{grid-template-columns:1fr;gap:24px}
-            .showcase-row.reverse{direction:ltr}
-            .hero{padding:48px 20px 32px}
-            .cards{grid-template-columns:1fr}
-            .h-card{width:300px}
+        @media(max-width:960px){
             .nav-links{display:none}
             .nav-toggle{display:block}
             .nav-right{margin-left:auto}
+            .nav-lang{display:none}
+            .nav-github{display:none}
+            .nav-menu-only{display:block}
             .nav-links.active{
                 display:flex;
                 flex-direction:column;
@@ -167,6 +172,37 @@
             .nav-links.active a{padding:8px 12px;border-radius:var(--radius-sm)}
             .nav-links.active a:hover{background:var(--c-border)}
             .nav-inner{padding:0 16px;gap:16px}
+            .showcase-row{grid-template-columns:1fr;gap:24px}
+            .showcase-row.reverse{direction:ltr}
+            .cards{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+            .h-card{width:min(360px,82vw)}
+            .publish-steps{grid-template-columns:1fr 1fr}
+        }
+        @media(max-width:768px){
+            .hero{padding:48px 20px 32px}
+            .hero h1{font-size:clamp(2rem,9vw,2.7rem)}
+            .hero p{font-size:1rem}
+            .section{padding:56px 20px}
+            .section-head{margin-bottom:40px}
+            .section-head h2{font-size:1.6rem}
+            .screenshot{padding:0 20px;margin-bottom:48px}
+            .showcase-grid{gap:48px}
+            .showcase-text h3{font-size:1.35rem}
+            .cta{padding:56px 20px 72px}
+            .cta h2{font-size:1.7rem}
+            .publish-section{padding:56px 20px}
+            .footer{padding:32px 20px}
+            .footer-inner{flex-direction:column;text-align:center;justify-content:center}
+        }
+        @media(max-width:480px){
+            .nav-inner{gap:8px}
+            .nav-right{gap:8px}
+            .nav-right .btn{padding:9px 14px;font-size:.85rem}
+            .hero-actions{flex-direction:column;align-items:stretch}
+            .hero-actions .btn{justify-content:center;width:100%}
+            .cta .btn{width:100%;justify-content:center}
+            .publish-steps{grid-template-columns:1fr}
+            .h-card{width:86vw}
         }
     </style>
 </head>
@@ -182,6 +218,11 @@
                 <a href="#features">Features</a>
                 <a href="#showcase">Showcase</a>
                 <a href="#publish">Publish</a>
+                <a href="https://github.com/zuorn/Tydora" class="nav-menu-only" target="_blank" rel="noopener">GitHub</a>
+                <div class="nav-menu-lang nav-menu-only">
+                    <a href="../">中文</a>
+                    <a href="." class="active">EN</a>
+                </div>
             </div>
             <div class="nav-right">
                 <div class="nav-lang">

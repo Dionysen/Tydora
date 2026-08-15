@@ -491,7 +491,8 @@
   flex-shrink: 0;
   display: flex;
   align-items: flex-start;
-  padding-top: 1px;
+  /* 18px 复选框 SVG 与第一行文字（行高 1.8em）垂直中线对齐 */
+  margin-top: calc((1.8em - 18px) / 2);
 }
 /* 隐藏 TipTap 内置的 checkboxStyler 空 span（不影响导出 SVG 替换） */
 .tiptap-export-content ul[data-type="taskList"] li > label > span:not(.export-checkbox-svg) {
