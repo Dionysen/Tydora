@@ -4,11 +4,11 @@ import { PhysicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import { availableMonitors } from "@tauri-apps/api/window";
 import { clampWindowToMonitor } from "./services/windowState";
 import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
+import { ask, open } from "@tauri-apps/plugin-dialog";
 import { useTranslation } from "react-i18next";
 import { useTheme, type ThemeName } from "./themes";
 import { loadImageSettings, saveImageSettings, type ImageSettings, type StorageMode, type FilenameFormat } from "./services";
-import { checkForUpdate, downloadAndInstall, relaunchApp, type UpdateInfo } from "./services";
+import { checkForUpdate, downloadAndInstall, relaunchApp, exitApp, isStoreVersion, type UpdateInfo } from "./services";
 import { PublishSettings } from "./publish";
 import { loadCanvasSettings, saveCanvasSettings, type CanvasSettings } from "./Canvas/canvas-settings";
 import { parseCssVariables, extractPreviewColors, type ThemeVariable, type ThemeManifest } from "./themes/CustomThemeManager";
@@ -1898,6 +1898,7 @@ function CanvasSettingsContent({
 function AboutSettingsContent() {
   const { t } = useTranslation();
   const [version, setVersion] = useState<string>("");
+  const [storeVersion, setStoreVersion] = useState(false);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateResult, setUpdateResult] = useState<{ available: boolean; info?: UpdateInfo } | null>(null);
   const [downloading, setDownloading] = useState(false);
@@ -1906,6 +1907,8 @@ function AboutSettingsContent() {
 
   useEffect(() => {
     invoke<string>("get_app_version").then(setVersion).catch(() => setVersion(""));
+    // 是否为微软商店版本：商店版检测 GitHub 更高版本，切换通道更新
+    isStoreVersion().then(setStoreVersion).catch(() => setStoreVersion(false));
   }, []);
 
   const handleCheckUpdate = useCallback(async () => {
@@ -1922,18 +1925,28 @@ function AboutSettingsContent() {
 
   const handleDownload = useCallback(async () => {
     if (!updateResult?.info) return;
+    // 商店版切换到 GitHub 版会先卸载商店包（不可逆，之后改由 GitHub 更新），需确认
+    if (storeVersion) {
+      const ok = await ask(t("settings.about.switchConfirm"), { title: "Tydora", kind: "warning" });
+      if (!ok) return;
+    }
     setDownloading(true);
     setDownloadProgress({ downloaded: 0, total: null });
     try {
       await downloadAndInstall((downloaded, total) => {
         setDownloadProgress({ downloaded, total });
       });
-      await relaunchApp();
+      if (storeVersion) {
+        // 切换完成：应用退出，后台脚本随后卸载商店版并安装 GitHub 版
+        await exitApp();
+      } else {
+        await relaunchApp();
+      }
     } catch (e) {
       console.error(`${t("settings.about.updateFailed")}`, e);
       setDownloading(false);
     }
-  }, [updateResult, t]);
+  }, [updateResult, t, storeVersion]);
 
   return (
     <div className="settings-section">
@@ -1947,6 +1960,13 @@ function AboutSettingsContent() {
         <label className="settings-item-label">{t("settings.about.versionInfo")}</label>
         <span className="settings-about-value">{version ? `v${version}` : t("settings.about.loading")}</span>
       </div>
+
+      {storeVersion && (
+        <div className="settings-item">
+          <label className="settings-item-label">{t("settings.about.storeSource")}</label>
+          <span className="settings-about-value">{t("settings.about.storeVersionHint")}</span>
+        </div>
+      )}
 
       <div className="settings-item-vertical">
         <label className="settings-label">{t("settings.appearance.analytics")}</label>

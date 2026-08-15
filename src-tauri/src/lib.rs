@@ -865,12 +865,221 @@ async fn stop_preview(state: State<'_, PreviewServer>) -> Result<(), String> {
     Ok(())
 }
 
+/// 检测当前是否运行在微软商店（MSIX）安装中。
+///
+/// MSIX 包总是被系统安装并运行于 `C:\Program Files\WindowsApps` 目录，
+/// 该目录只读且由系统（微软商店/Windows Update）托管，应用只能通过商店更新。
+/// 若商店版本仍启用内置更新器，下载的 NSIS 安装包会装到其他位置形成第二份副本，
+/// 而系统启动时仍解析到 MSIX 注册的旧版本，表现为"更新后重启又回退"。
+#[cfg(target_os = "windows")]
+fn is_msix() -> bool {
+    std::env::current_exe()
+        .map(|p| p.to_string_lossy().to_lowercase().contains("windowsapps"))
+        .unwrap_or(false)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn is_msix() -> bool {
+    false
+}
+
+/// 当前是否为微软商店（MSIX）版本。
+#[tauri::command]
+fn is_store_version() -> bool {
+    is_msix()
+}
+
+/// GitHub 发布信息（商店版切换通道使用）。
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct GithubUpdateInfo {
+    version: String,
+    body: String,
+    date: String,
+    url: String,
+}
+
+#[derive(serde::Deserialize)]
+struct GithubRelease {
+    tag_name: String,
+    body: Option<String>,
+    published_at: Option<String>,
+    assets: Vec<GithubAsset>,
+}
+
+#[derive(serde::Deserialize)]
+struct GithubAsset {
+    name: String,
+    browser_download_url: String,
+}
+
+/// 解析形如 "0.1.7" / "v0.2.0" 的版本号为数字段（最多 4 段）
+fn parse_version(s: &str) -> Vec<u64> {
+    s.trim()
+        .split(|c: char| !c.is_ascii_digit())
+        .filter(|p| !p.is_empty())
+        .map(|p| p.parse::<u64>().unwrap_or(0))
+        .take(4)
+        .collect()
+}
+
+/// 比较两个版本号：a > b 返回 Greater
+fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
+    let va = parse_version(a);
+    let vb = parse_version(b);
+    for i in 0..4 {
+        let x = va.get(i).copied().unwrap_or(0);
+        let y = vb.get(i).copied().unwrap_or(0);
+        match x.cmp(&y) {
+            std::cmp::Ordering::Equal => continue,
+            other => return other,
+        }
+    }
+    std::cmp::Ordering::Equal
+}
+
+/// 构建带 User-Agent 的 HTTP 客户端（GitHub API 强制要求）
+fn github_http_client() -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
+        .user_agent(format!("Tydora/{}", env!("CARGO_PKG_VERSION")))
+        .build()
+        .map_err(|e| format!("创建 HTTP 客户端失败: {e}"))
+}
+
+/// 检查 GitHub 最新发布版本。仅商店版（MSIX）调用：
+/// 当 GitHub 版本高于当前运行版本时返回更新信息（含 NSIS 安装包下载地址），
+/// 否则返回 None。非商店版走 tauri updater 插件，不经过此命令。
+#[tauri::command]
+async fn check_github_update() -> Result<Option<GithubUpdateInfo>, String> {
+    let client = github_http_client()?;
+    let resp = client
+        .get("https://api.github.com/repos/zuorn/Tydora/releases/latest")
+        .send()
+        .await
+        .map_err(|e| format!("请求 GitHub 失败: {e}"))?;
+    if !resp.status().is_success() {
+        return Ok(None);
+    }
+    let release: GithubRelease = resp
+        .json()
+        .await
+        .map_err(|e| format!("解析 GitHub 响应失败: {e}"))?;
+
+    let version = release.tag_name.trim_start_matches('v').to_string();
+    if version.is_empty() {
+        return Ok(None);
+    }
+    // 仅当 GitHub 版本高于当前版本时才提示更新
+    if compare_versions(&version, env!("CARGO_PKG_VERSION")) != std::cmp::Ordering::Greater {
+        return Ok(None);
+    }
+    // 挑选 NSIS 安装包（.exe，优先含 "setup"）
+    let asset = release
+        .assets
+        .iter()
+        .filter(|a| a.name.to_lowercase().ends_with(".exe"))
+        .min_by_key(|a| if a.name.to_lowercase().contains("setup") { 0 } else { 1 })
+        .or_else(|| {
+            release
+                .assets
+                .iter()
+                .filter(|a| a.name.to_lowercase().ends_with(".exe"))
+                .max_by_key(|a| a.name.len())
+        });
+    let Some(asset) = asset else {
+        return Ok(None);
+    };
+
+    Ok(Some(GithubUpdateInfo {
+        version,
+        body: release.body.unwrap_or_default(),
+        date: release.published_at.unwrap_or_default(),
+        url: asset.browser_download_url.clone(),
+    }))
+}
+
+/// 从微软商店版切换到 GitHub 版（NSIS）：
+/// 1. 下载 NSIS 安装包到临时目录（通过事件报告进度）
+/// 2. 生成并启动后台 PowerShell 脚本（隐藏窗口）：
+///    等待应用退出 → 先静默安装 GitHub 版 → 安装成功后卸载商店版 → 启动新版
+/// 3. 返回后前端退出应用，由后台脚本接管完成切换。
+///    由于商店版（MSIX）已被卸载，重新启动的必是 GitHub 版，解决"更新后回退"。
+#[tauri::command]
+async fn switch_to_github_update(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    let client = github_http_client()?;
+    let mut resp = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("下载安装包失败: {e}"))?;
+    let total = resp.content_length();
+
+    let installer_path = std::env::temp_dir().join("tydora-github-setup.exe");
+    let mut file =
+        std::fs::File::create(&installer_path).map_err(|e| format!("创建临时文件失败: {e}"))?;
+    let mut downloaded: u64 = 0;
+    while let Some(chunk) = resp.chunk().await.map_err(|e| format!("下载中断: {e}"))? {
+        use std::io::Write;
+        file.write_all(&chunk).map_err(|e| format!("写入失败: {e}"))?;
+        downloaded += chunk.len() as u64;
+        let _ = app.emit(
+            "github-update-progress",
+            serde_json::json!({ "downloaded": downloaded, "total": total }),
+        );
+    }
+    file.flush().map_err(|e| format!("写入失败: {e}"))?;
+    drop(file);
+
+    // 后台切换脚本（顺序很关键）：
+    // 1. 等应用退出（前端已 exit）
+    // 2. 先静默安装 GitHub 版（NSIS 装到 %LOCALAPPDATA%\Programs\Tydora）
+    // 3. 仅当新版安装成功（exe 存在）才卸载商店版，否则保留商店版避免用户丢失应用
+    // 4. 启动新版
+    let script = format!(
+        "$ErrorActionPreference = 'Continue'\n\
+         Start-Sleep -Seconds 3\n\
+         Start-Process -FilePath '{installer}' -ArgumentList '/S' -Wait\n\
+         $newExe = \"$env:LOCALAPPDATA\\Programs\\Tydora\\Tydora.exe\"\n\
+         if (Test-Path $newExe) {{\n\
+         \x20   Get-AppxPackage *Tydora* | Remove-AppxPackage\n\
+         \x20   Start-Process $newExe\n\
+         }}\n",
+        installer = installer_path.display()
+    );
+    let script_path = std::env::temp_dir().join("tydora-switch-to-github.ps1");
+    std::fs::write(&script_path, script).map_err(|e| format!("写入脚本失败: {e}"))?;
+
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        Command::new("powershell")
+            .args([
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-WindowStyle",
+                "Hidden",
+                "-File",
+            ])
+            .arg(&script_path)
+            .creation_flags(CREATE_NO_WINDOW)
+            .spawn()
+            .map_err(|e| format!("启动切换脚本失败: {e}"))?;
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = script_path;
+    }
+
+    Ok(())
+}
+
 pub fn run() {
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_window_state::Builder::new().build())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
@@ -922,11 +1131,25 @@ pub fn run() {
                     .body(Vec::new())
                     .unwrap()
             }
-        })
+        });
+
+    // 微软商店（MSIX）版本不注册 tauri updater 插件：
+    // MSIX 包只读且由系统托管，内置更新器（NSIS）会把新版本装到其他位置形成
+    // 第二份副本，重启后系统仍启动商店旧版本。商店版改用自定义 GitHub 切换通道
+    // （check_github_update / switch_to_github_update）：下载后先卸载商店版再安装
+    // GitHub 版，保证重新打开的就是新版本。非商店版继续使用内置更新器。
+    if !is_msix() {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+
+    builder
         .invoke_handler(tauri::generate_handler![
             get_default_content,
             take_pending_files,
             get_app_version,
+            is_store_version,
+            check_github_update,
+            switch_to_github_update,
             get_cwd,
             open_settings_window,
             open_file_in_new_window,

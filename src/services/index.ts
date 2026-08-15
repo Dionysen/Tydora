@@ -1,4 +1,4 @@
-export { checkForUpdate, downloadAndInstall, relaunchApp } from "./Updater";
+export { checkForUpdate, downloadAndInstall, relaunchApp, exitApp, isStoreVersion } from "./Updater";
 export type { UpdateInfo } from "./Updater";
 export {
   loadImageSettings,

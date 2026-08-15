@@ -13,7 +13,12 @@ export default defineConfig({
     strictPort: true,
     watch: {
       // 监听 src-tauri 目录变化会触发不必要的重建
-      ignored: ["**/src-tauri/**"],
+      ignored: [
+        "**/src-tauri/**",
+        // website 目录仅用于文档与 README 图片，
+        // Windows 下被外部程序锁定的图片（EBUSY）会导致 fs.watch 崩溃
+        "**/website/**",
+      ],
     },
   },
 });
