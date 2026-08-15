@@ -15,6 +15,7 @@ import { useTheme } from "./themes";
 import { ConfirmDialog } from "./components";
 import { buildExportArtifact, EXPORT_FORMATS, type ExportFormat, type BuiltArtifact } from "./export";
 import { ExportPreviewDialog } from "./components/ExportPreviewDialog";
+import { XhsPreviewPanel } from "./export/xiaohongshu";
 import { emit, listen } from "@tauri-apps/api/event";
 import { loadImageSettings, type ImageSettings } from "./services";
 import { loadEditorSettings, type EditorSettings, EDITOR_SETTINGS_KEY, SHORTCUTS_KEY, GRAPH_SETTINGS_KEY, DEFAULT_GRAPH } from "./Settings";
@@ -76,6 +77,7 @@ class EditorErrorBoundary extends Component<
 const VAULTS_KEY = "zmd-vaults";
 const ACTIVE_VAULT_KEY = "zmd-active-vault";
 const SIDEBAR_WIDTH_KEY = "zmd-sidebar-width";
+const XHS_PREVIEW_WIDTH_KEY = "zmd-xhs-preview-width";
 const WINDOW_STATE_KEY = "zmd-window-state";
 const RECENT_FILES_KEY = "zmd-recent-files";
 const PINNED_ITEMS_KEY = "zmd-pinned-toolbar-items";
@@ -312,6 +314,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
   });
   const [sidebarOpen, setSidebarOpen] = useState(!initialFilePath);
+  // 外部启动（双击 .md 文件）解析状态：resolved = 已确认是否存在外部文件
+  const [externalLaunchResolved, setExternalLaunchResolved] = useState(false);
+  const [hasExternalFile, setHasExternalFile] = useState(false);
   const [autoHideTopbar, setAutoHideTopbar] = useState(() => {
     try {
       const raw = localStorage.getItem("zmd-general-settings");
@@ -434,6 +439,17 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const [exportPreview, setExportPreview] = useState<{ format: ExportFormat; artifact: BuiltArtifact } | null>(null);
   const [findReplaceDialogMode, setFindReplaceDialogMode] = useState<"find" | "replace" | null>(null);
 
+  // 小红书图文导出分栏
+  const [xhsPreviewOpen, setXhsPreviewOpen] = useState(false);
+  const [xhsPreviewWidth, setXhsPreviewWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(XHS_PREVIEW_WIDTH_KEY);
+      return saved ? parseInt(saved) : 440;
+    } catch {
+      return 440;
+    }
+  });
+
   // 顶部栏固定项（思维导图、关系图谱、导出）
   const [pinnedItems, setPinnedItems] = useState<{ mindmap: boolean; graph: boolean; export: boolean }>(() => {
     try {
@@ -512,11 +528,12 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   }, [initialVaultPath, vaults]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 启动时如果没有仓库，自动打开管理仓库窗口
+  // （通过文件关联启动打开文件时不弹出，等外部文件解析完成且确实没有文件时才弹）
   useEffect(() => {
-    if (vaults.length === 0 && !initialFilePath) {
+    if (vaults.length === 0 && !initialFilePath && externalLaunchResolved && !hasExternalFile) {
       invoke("open_vault_manager_window");
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [externalLaunchResolved, hasExternalFile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 构建链接索引和标签索引
   useEffect(() => {
@@ -542,6 +559,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth));
   }, [sidebarWidth]);
 
+  useEffect(() => {
+    localStorage.setItem(XHS_PREVIEW_WIDTH_KEY, String(xhsPreviewWidth));
+  }, [xhsPreviewWidth]);
+
   // 启动时自动检查更新
   useEffect(() => {
     checkForUpdate().then((info) => {
@@ -550,14 +571,15 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   }, []);
 
   // 将文件内容推送到编辑器（绕过 React state → useEffect 同步链的不可靠性）
-  const pushContentToEditor = useCallback((text: string, retries = 8) => {
+  // 冷启动时编辑器挂载可能较慢，延长重试窗口避免内容推送失败导致空编辑器
+  const pushContentToEditor = useCallback((text: string, retries = 40) => {
     const tryPush = (remaining: number) => {
       if (editorHandleRef.current) {
         editorHandleRef.current.setValue(text);
         return;
       }
       if (remaining > 0) {
-        setTimeout(() => tryPush(remaining - 1), 50);
+        setTimeout(() => tryPush(remaining - 1), 100);
       }
     };
     tryPush(retries);
@@ -597,55 +619,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         setFileName(initialFilePath);
         pushContentToEditor(errText);
       });
-  }, []);
-
-  // 备用方案：当 URL 参数未携带文件路径时，通过 Tauri Event 接收
-  useEffect(() => {
-    if (initialFilePath) return;
-    let unlisten: (() => void) | undefined;
-    (async () => {
-      try {
-        const { listen } = await import("@tauri-apps/api/event");
-        unlisten = await listen<unknown>("open-file", (event) => {
-          const payload = event.payload;
-          const filePath = typeof payload === "string"
-            ? payload
-            : typeof payload === "object" && payload !== null && "path" in payload
-              ? String((payload as { path: unknown }).path)
-              : typeof payload === "object" && payload !== null
-                ? JSON.stringify(payload)
-                : String(payload ?? "");
-          // .canvas 文件：在主区域显示白板
-          if (filePath.endsWith('.canvas')) {
-            setCanvasFilePath(filePath);
-            setFileName(filePath);
-            setPreviewFilePath(null);
-            setModified(false);
-            setContent("");
-            return;
-          }
-          readTextFile(filePath)
-            .then((text) => {
-              savedContentRef.current = text;
-              setContent(text);
-              setFileName(filePath);
-              setModified(false);
-              setSaveStatus("idle");
-               pushContentToEditor(text);
-            })
-            .catch((e) => {
-              console.error(t("app.error.openFileFailedEvent"), e);
-              const errText = `> 打开文件失败: ${String(e)}\n\n路径: ${filePath}`;
-              setContent(errText);
-              setFileName(filePath);
-              pushContentToEditor(errText);
-            });
-        });
-      } catch (e) {
-        console.error(t("app.error.listenEventFailed"), e);
-      }
-    })();
-    return () => { unlisten?.(); };
   }, []);
 
   // 侧栏宽度变化后通知编辑器重新计算尺寸
@@ -990,6 +963,74 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       openFile(path, line, query);
     }
   }, [modified]);
+
+  // 处理系统文件关联打开（双击 .md 文件）：
+  // 折叠侧栏（与新窗口打开体验一致），激活文件所属仓库，然后打开文件
+  const handleExternalOpenFile = useCallback((filePath: string) => {
+    // 折叠侧栏
+    setSidebarOpen(false);
+
+    // 如果文件位于已注册仓库内，激活对应仓库（文件树选中状态、链接索引等随之生效）
+    const normalize = (p: string) => p.replace(/\\/g, "/").replace(/\/+$/, "");
+    const normPath = normalize(filePath);
+    const matchingIndex = vaults.findIndex((v) => {
+      const vp = normalize(v.path);
+      return normPath === vp || normPath.startsWith(vp + "/");
+    });
+    if (matchingIndex >= 0) {
+      setActiveVaultIndex(matchingIndex);
+    }
+
+    handleSelectFile(filePath);
+  }, [vaults, handleSelectFile]);
+
+  // 拉取并处理外部打开文件队列（双击 .md 文件），返回是否处理了文件。
+  // 后端不再定时发事件，改为前端就绪后拉取，彻底消除事件竞态导致的"打开为空"问题
+  const processPendingFiles = useCallback(async (): Promise<boolean> => {
+    try {
+      const files = await invoke<string[]>("take_pending_files");
+      // 同时选中多个文件时打开最后一个（与原事件逐个触发、最终显示最后一个的行为一致）
+      const last = files[files.length - 1];
+      if (last) {
+        setHasExternalFile(true);
+        handleExternalOpenFile(last);
+        return true;
+      }
+    } catch (e) {
+      console.error(t("app.error.openFileFailed"), e);
+    }
+    return false;
+  }, [handleExternalOpenFile, t]);
+
+  // 通过文件关联启动（双击 .md 文件）：冷启动时主动拉取队列，
+  // 并延迟二次拉取兜底（应用启动初期的外部打开请求可能落在首次拉取之后、事件监听注册之前）
+  useEffect(() => {
+    if (initialFilePath) {
+      // 新窗口模式（window=editor）：文件路径来自 URL 参数，不走外部队列
+      setExternalLaunchResolved(true);
+      return;
+    }
+    (async () => {
+      await processPendingFiles();
+      setExternalLaunchResolved(true);
+      setTimeout(() => { processPendingFiles(); }, 1200);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 应用已运行时双击 .md 文件：接收单实例插件转发的外部打开事件，
+  // 以队列为准拉取（事件负载仅作兜底），配合后端的延迟二次拉取确保文件不丢失
+  useEffect(() => {
+    if (initialFilePath) return;
+    const unlisten = listen<string>("open-file-external", async (event) => {
+      const opened = await processPendingFiles();
+      if (!opened) {
+        const filePath = typeof event.payload === "string" ? event.payload : String(event.payload ?? "");
+        if (filePath) handleExternalOpenFile(filePath);
+      }
+    });
+    return () => { unlisten.then(fn => fn()); };
+  }, [processPendingFiles, handleExternalOpenFile]);
 
   const isNavigatingHistoryRef = useRef(false);
 
@@ -1690,6 +1731,16 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const handleExportRef = useRef(handleExport);
   handleExportRef.current = handleExport;
 
+  // 打开小红书图文分栏预览（源码模式下自动切到 IR）
+  const handleOpenXhs = useCallback(() => {
+    if (viewMode === "sv") {
+      setViewMode("ir");
+    }
+    setShowExportFormatPicker(false);
+    setXhsPreviewOpen(true);
+    track(ANALYTICS_EVENTS.EXPORT_XHS);
+  }, [viewMode]);
+
   // 复制为 Markdown — 直接获取编辑器 Markdown 源码并写入剪贴板，无需预览
   const [markdownCopied, setMarkdownCopied] = useState(false);
   const handleCopyAsMarkdown = useCallback(async () => {
@@ -1757,6 +1808,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "export-html", label: t("app.command.labels.exportHtml"), category: t("app.command.categories.export"), aliases: t("app.command.aliases.exportHtml").split(", "), action: () => handleExportRef.current("html") },
     { id: "export-docx", label: t("app.command.labels.exportWord"), category: t("app.command.categories.export"), aliases: t("app.command.aliases.exportWord").split(", "), action: () => handleExportRef.current("docx") },
     { id: "export-png", label: t("app.command.labels.exportImage"), category: t("app.command.categories.export"), aliases: t("app.command.aliases.exportImage").split(", "), action: () => handleExportRef.current("png") },
+    { id: "export-xiaohongshu", label: t("app.command.labels.exportXhs"), category: t("app.command.categories.export"), aliases: t("app.command.aliases.exportXhs").split(", "), action: handleOpenXhs },
 
     // 编辑模式
     { id: "mode-ir", label: viewMode === "ir" ? t("app.command.labels.irModeActive") : t("app.command.labels.irMode"), category: t("app.command.categories.mode"), aliases: t("app.command.aliases.irMode").split(", "), action: () => setViewMode("ir") },
@@ -1808,7 +1860,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "settings-image", label: t("app.command.labels.imageSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.imageSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "image"); invoke("open_settings_window"); } },
     { id: "settings-canvas", label: t("app.command.labels.canvasSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.canvasSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "canvas"); invoke("open_settings_window"); } },
     { id: "settings-about", label: t("app.command.labels.about"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.about").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "about"); invoke("open_settings_window"); } },
-  ], [t, handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, setViewMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings]);
+  ], [t, handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, setViewMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings, handleOpenXhs]);
 
   return (
     <div className="app">
@@ -2166,7 +2218,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
             </div>
           </div>
 
-          {/* 编辑器面板 */}
+          {/* 编辑器面板 + 小红书预览分栏 */}
+          <div className="editor-body">
           <div className="editor-panel">
             {findReplaceDialogMode && isCurrentFileMarkdown && (
               <FindReplaceDialog
@@ -2228,6 +2281,20 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                 />
               </EditorErrorBoundary>
             )}
+          </div>
+
+          {xhsPreviewOpen && isCurrentFileMarkdown && !canvasFilePath && !graphViewOpen && !previewFilePath && (
+            <XhsPreviewPanel
+              title={title.replace(/\.[^.]+$/, "")}
+              content={content}
+              viewMode={viewMode}
+              getContentElement={() => editorHandleRef.current?.getContentElement() ?? null}
+              editorTheme={theme}
+              width={xhsPreviewWidth}
+              onWidthChange={setXhsPreviewWidth}
+              onClose={() => setXhsPreviewOpen(false)}
+            />
+          )}
           </div>
 
           {/* 底部浮动控件 */}
@@ -2344,6 +2411,21 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
               </button>
               {/* 分隔线 */}
               <div className="export-formatpicker-separator" />
+              {/* 小红书图文：进入右侧分栏实时预览 */}
+              <button
+                className="export-formatpicker-option export-formatpicker-option-xhs"
+                onClick={handleOpenXhs}
+                disabled={exporting}
+              >
+                <span className="export-formatpicker-option-icon">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                  </svg>
+                </span>
+                <span className="export-formatpicker-option-label">{t("app.export.xiaohongshu")}</span>
+                <span className="export-formatpicker-option-ext">{t("app.export.xhsBadge")}</span>
+              </button>
               {/* 第二行起：导出格式 */}
               {(Object.keys(EXPORT_FORMATS) as ExportFormat[]).filter(fmt => fmt !== "wechat").map((fmt) => (
                 <button

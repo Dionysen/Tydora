@@ -18,7 +18,7 @@
   --font-mono: "Cascadia Code", "JetBrains Mono", "Fira Code", "Consolas", monospace;
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --editor-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --editor-font-size: 15px;
+  --editor-font-size: 16px;
 }
 
 /* ── 白色主题 ── */
@@ -99,7 +99,7 @@
   --font-mono: "Cascadia Code", "JetBrains Mono", "Fira Code", "Consolas", monospace;
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --editor-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --editor-font-size: 15px;
+  --editor-font-size: 16px;
 }
 
 /* ── Purple 主题（浅色） ── */
@@ -120,7 +120,7 @@
   --font-mono: "Cascadia Code", "JetBrains Mono", "Fira Code", "Consolas", monospace;
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --editor-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --editor-font-size: 15px;
+  --editor-font-size: 16px;
 }
 
 /* ── Hermes 主题（浅色，Nous Research 风格） ── */
@@ -141,7 +141,7 @@
   --font-mono: "Cascadia Code", "JetBrains Mono", "Fira Code", "Consolas", monospace;
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --editor-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --editor-font-size: 15px;
+  --editor-font-size: 16px;
 }
 
 /* ── NexT 主题（浅色，Hexo NexT Pisces 风格） ── */
@@ -162,7 +162,7 @@
   --font-mono: Consolas, Menlo, monospace, "PingFang SC", "Microsoft YaHei";
   --font-ui: "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --editor-font: "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --editor-font-size: 15px;
+  --editor-font-size: 16px;
 }
 
 /* ── Slate 主题（浅色，石墨灰简约风格） ── */
@@ -183,7 +183,7 @@
   --font-mono: "Cascadia Code", "JetBrains Mono", "Fira Code", "Consolas", monospace;
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --editor-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --editor-font-size: 15px;
+  --editor-font-size: 16px;
 }
 
 /* ── Ocean 主题（浅色，海洋冷色调） ── */
@@ -204,5 +204,5 @@
   --font-mono: "Cascadia Code", "JetBrains Mono", "Fira Code", "Consolas", monospace;
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --editor-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --editor-font-size: 15px;
+  --editor-font-size: 16px;
 }

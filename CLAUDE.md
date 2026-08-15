@@ -122,35 +122,49 @@ src-tauri/src/
     └── watcher_commands.rs    # 文件监听命令（notify crate）
 ```
 
-**Tauri 插件**（5 个）:
+**Tauri 插件**（6 个）:
 
-| 插件                          | 用途      |
-| --------------------------- | ------- |
-| `tauri-plugin-fs`           | 文件系统访问  |
-| `tauri-plugin-dialog`       | 系统对话框   |
-| `tauri-plugin-window-state` | 窗口状态持久化 |
-| `tauri-plugin-updater`      | 应用自动更新  |
-| `tauri-plugin-process`      | 进程管理    |
+| 插件                             | 用途                |
+| ------------------------------ | ----------------- |
+| `tauri-plugin-fs`              | 文件系统访问            |
+| `tauri-plugin-dialog`          | 系统对话框             |
+| `tauri-plugin-window-state`    | 窗口状态持久化           |
+| `tauri-plugin-updater`         | 应用自动更新            |
+| `tauri-plugin-process`         | 进程管理              |
+| `tauri-plugin-single-instance` | 单实例运行，转发文件关联打开请求 |
 
-**自定义 Tauri 命令**（15 个）:
+**自定义 Tauri 命令**（28 个）:
 
 | 命令                        | 用途                                              |
 | ------------------------- | ----------------------------------------------- |
 | `get_default_content`     | 获取默认编辑器内容                                       |
+| `take_pending_files`      | 取出文件关联启动时待打开的文件队列（取出后清空，前端就绪后拉取）               |
 | `get_app_version`         | 获取应用版本号                                         |
 | `get_cwd`                 | 获取当前工作目录                                        |
 | `open_settings_window`    | 打开设置窗口（800×600，无装饰）                             |
 | `open_file_in_new_window` | 在新窗口打开文件（1200×800）                              |
 | `open_file_location`      | 在系统文件管理器中定位文件                                   |
 | `open_file`               | 用系统默认应用打开文件                                     |
+| `open_url`                | 用系统默认浏览器打开 URL                                  |
 | `open_directory`          | 在系统文件管理器中打开目录                                   |
 | `open_mindmap_window`     | 打开思维导图窗口（900×600）                               |
 | `open_graph_window`       | 打开知识图谱窗口（1000×700）                              |
+| `open_canvas_window`      | 打开白板窗口                                          |
+| `open_canvas_in_new_window` | 在新窗口打开白板（非单例）                                |
+| `open_vault_manager_window` | 打开管理仓库窗口                                      |
+| `close_all_editor_windows`  | 关闭所有编辑器窗口（保留主窗口）                              |
+| `open_vault_in_new_window`  | 在新窗口打开仓库                                      |
+| `move_vault`              | 移动仓库（复制目录内容）                                    |
 | `watch_vault`             | 启动仓库文件系统监听                                      |
 | `unwatch_vault`           | 停止仓库文件系统监听                                      |
 | `run_markdown_publish`    | 调用 `@abstractwebunit/markdown-publish` CLI 发布网站 |
 | `preview_site`            | 启动 HTTP 服务器预览已发布站点                              |
 | `stop_preview`            | 停止预览 HTTP 服务器                                   |
+| `fetch_remote_image`      | 下载远程图片到本地                                      |
+| `start_proxy_server`      | 启动本地代理服务器                                      |
+| `fetch_page_title`        | 获取网页标题                                          |
+| `create_export_file`      | 创建/截断导出文件（分块写入第一步）                             |
+| `append_export_file`      | 追加写入导出文件（分块写入）                                 |
 
 **状态管理**（lib.rs）:
 
@@ -178,6 +192,15 @@ Tydora 采用多窗口架构，主进程通过 Tauri Window API 管理多个独�
 | 思维导图窗口 | `open_mindmap_window`     | 900×600  | 思维导图可视化      |
 
 各独立窗口（如 GraphWindow、MindmapWindow）渲染各自的 React 组件树，通过序列化的 JSON 数据（如 LinkIndexService 序列化的链接索引）与主窗口共享状态。
+
+### 文件关联打开（双击 .md 文件）
+
+通过 `tauri-plugin-single-instance` + `PendingFiles` 队列实现，避免固定延迟发事件与前端监听注册之间的竞态：
+
+- **冷启动**：`setup()` 过滤命令行参数中的 .md/.markdown/.mdx 路径并放入 `PendingFiles` 队列；前端 App 挂载后调用 `take_pending_files` 主动拉取（取出即清空），并在 1.2s 后二次拉取兜底
+- **已运行时**：单实例插件回调聚焦主窗口、把路径推入队列并发 `open-file-external` 事件；前端收到事件后以队列为准拉取（事件负载仅作兜底）
+- **前端处理**（`App.tsx` 的 `handleExternalOpenFile`）：折叠侧栏（与新窗口体验一致）、激活文件所属仓库、走 `handleSelectFile` 正常打开流程
+- 无仓库时自动弹出管理仓库窗口的逻辑会等待外部文件解析完成，存在外部文件时不弹窗
 
 ### Tauri 配置 (tauri.conf.json)
 

@@ -84,6 +84,25 @@ lowlight.register("tcl", tclLang);
 lowlight.register("properties", propertiesLang);
 lowlight.register("mermaid", mermaidHljsLang);
 
+// 图片源码编辑面板：同一时刻只允许一个（所有图片 node view 共享）
+let activeImageSourceEditorClose: (() => void) | null = null;
+// 图片预览弹层：同一时刻只允许一个（所有图片 node view 共享）
+let activeImagePreviewClose: (() => void) | null = null;
+
+/** 将图片节点属性序列化为 Markdown 源码（与 addStorage.serialize 一致） */
+function imageNodeToMarkdown(attrs: Record<string, any>): string {
+  const src = (attrs.src as string) || "";
+  if (!src) return "";
+  const escAlt = (s: string) => s.replace(/[`*\\~[\]_]/g, "\\$&");
+  const alt = escAlt((attrs.alt as string) || "") + (attrs.width ? `|${attrs.width}` : "");
+  return (
+    "![" + alt + "](" +
+    src.replace(/[()]/g, "\\$&") +
+    (attrs.title ? ' "' + String(attrs.title).replace(/"/g, '\\"') + '"' : "") +
+    ")"
+  );
+}
+
 interface TipTapEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -239,6 +258,20 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
             return {
               src: { default: null },
               alt: { default: null },
+              title: { default: null },
+              width: {
+                default: null,
+                parseHTML: (element) => {
+                  const w = element.getAttribute("width");
+                  if (!w) return null;
+                  const n = parseInt(w, 10);
+                  return Number.isFinite(n) && n > 0 ? n : null;
+                },
+                renderHTML: (attributes) => {
+                  if (!attributes.width) return {};
+                  return { width: String(attributes.width) };
+                },
+              },
               "data-abs-path": { default: null },
             };
           },
@@ -248,19 +281,48 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
                 serialize(state: any, node: any) {
                   const src = node.attrs.src;
                   if (!src) return;
+                  // 缩放宽度以 Obsidian 风格 `![alt|300](src)` 持久化到 Markdown
+                  const alt = (node.attrs.alt || "") + (node.attrs.width ? `|${node.attrs.width}` : "");
                   state.write(
-                    "![" + state.esc(node.attrs.alt || "") + "](" +
+                    "![" + state.esc(alt) + "](" +
                     src.replace(/[\(\)]/g, "\\$&") +
                     (node.attrs.title ? ' "' + node.attrs.title.replace(/"/g, '\\"') + '"' : "") +
                     ")"
                   );
                 },
-                parse: {},
+                parse: {
+                  // 解析 `![alt|300](src)` 中的宽度（Obsidian 风格）
+                  setup(md: any) {
+                    if ((md as any).__tydoraImageWidthPatched) return;
+                    (md as any).__tydoraImageWidthPatched = true;
+                    const esc = (v: string) =>
+                      String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    md.renderer.rules.image = (tokens: any[], idx: number) => {
+                      const token = tokens[idx];
+                      const src = token.attrGet("src") || "";
+                      const alt = token.content || "";
+                      const m = alt.match(/^(.*)\|(\d+)$/);
+                      const width = m && m[1] !== "" ? m[2] : null;
+                      const realAlt = width ? m[1] : alt;
+                      const title = token.attrGet("title");
+                      let html = `<img src="${esc(src)}" alt="${esc(realAlt)}"`;
+                      if (title) html += ` title="${esc(title)}"`;
+                      if (width) html += ` width="${width}"`;
+                      return html + ">";
+                    };
+                  },
+                },
               },
             };
           },
           addNodeView() {
-            return ({ node }) => {
+            return ({ node, editor, getPos }) => {
+              const wrapper = document.createElement("div");
+              wrapper.className = "image-node-view";
+              wrapper.style.display = "inline-block";
+              wrapper.style.position = "relative";
+              wrapper.style.lineHeight = "0";
+
               const dom = document.createElement("img");
               const absPath = node.attrs["data-abs-path"] as string | null;
               const src = node.attrs.src as string;
@@ -268,6 +330,12 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
               dom.style.maxWidth = "100%";
               dom.style.height = "auto";
               dom.loading = "lazy";
+
+              const initialWidth = node.attrs.width ? Number(node.attrs.width) : null;
+              if (initialWidth) {
+                dom.style.width = `${initialWidth}px`;
+                dom.setAttribute("width", String(initialWidth));
+              }
 
               if (absPath) {
                 dom.setAttribute("data-abs-path", absPath);
@@ -290,7 +358,297 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
               } else {
                 dom.src = src;
               }
-              return { dom };
+
+              wrapper.appendChild(dom);
+
+              // 右下角缩放手柄：悬停或选中图片时显示，拖动调整大小（L 形拐角）
+              const handle = document.createElement("div");
+              handle.className = "image-resize-handle";
+              handle.title = "拖动调整图片大小";
+              wrapper.appendChild(handle);
+
+              // 右上角工具栏：预览 / 源码（图标按钮）
+              const toolbar = document.createElement("div");
+              toolbar.className = "image-hover-toolbar";
+              const previewBtn = document.createElement("button");
+              previewBtn.type = "button";
+              previewBtn.className = "image-toolbar-btn";
+              previewBtn.title = "预览图片";
+              previewBtn.innerHTML =
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+              const sourceBtn = document.createElement("button");
+              sourceBtn.type = "button";
+              sourceBtn.className = "image-toolbar-btn";
+              sourceBtn.title = "编辑图片源码";
+              sourceBtn.innerHTML =
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
+              toolbar.appendChild(previewBtn);
+              toolbar.appendChild(sourceBtn);
+              wrapper.appendChild(toolbar);
+
+              const getPosSafe = (): number | null => {
+                try {
+                  return getPos() ?? null;
+                } catch {
+                  return null;
+                }
+              };
+
+              // ---------- 预览：弹出大图 ----------
+              previewBtn.addEventListener("click", () => {
+                activeImagePreviewClose?.();
+                const overlay = document.createElement("div");
+                overlay.className = "image-preview-overlay";
+                const previewImg = document.createElement("img");
+                previewImg.src = dom.currentSrc || dom.src;
+                previewImg.alt = dom.alt || "";
+                const closeBtn = document.createElement("button");
+                closeBtn.type = "button";
+                closeBtn.className = "image-preview-close";
+                closeBtn.textContent = "✕";
+                closeBtn.title = "关闭预览";
+                const closeSelf = () => {
+                  overlay.removeEventListener("click", onOverlayClick);
+                  document.removeEventListener("keydown", onKey);
+                  overlay.remove();
+                  if (activeImagePreviewClose === closeSelf) activeImagePreviewClose = null;
+                };
+                const onOverlayClick = (e: MouseEvent) => {
+                  if (e.target === overlay || e.target === closeBtn) closeSelf();
+                };
+                const onKey = (e: KeyboardEvent) => {
+                  if (e.key === "Escape") closeSelf();
+                };
+                overlay.addEventListener("click", onOverlayClick);
+                document.addEventListener("keydown", onKey);
+                overlay.appendChild(previewImg);
+                overlay.appendChild(closeBtn);
+                document.body.appendChild(overlay);
+                activeImagePreviewClose = closeSelf;
+              });
+
+              // ---------- 源码编辑：图片上方显示可编辑的 Markdown 源码 ----------
+              let sourceBox: HTMLDivElement | null = null;
+              let sourceClosed = false;
+
+              const closeSourceEditor = () => {
+                if (sourceClosed) return;
+                sourceClosed = true;
+                if (sourceBox) {
+                  sourceBox.remove();
+                  sourceBox = null;
+                }
+                if (activeImageSourceEditorClose === closeSourceEditor) {
+                  activeImageSourceEditorClose = null;
+                }
+              };
+
+              const confirmSourceEdit = () => {
+                if (!sourceBox) return;
+                const ta = sourceBox.querySelector("textarea");
+                if (!ta) return;
+                const pos = getPosSafe();
+                if (pos == null) return;
+                const text = ta.value.trim();
+                if (!text) {
+                  ta.classList.add("error");
+                  return;
+                }
+                try {
+                  const parsedHtml = (editor.storage as Record<string, any>).markdown.parser.parse(text, {
+                    inline: true,
+                  });
+                  const tmp = document.createElement("div");
+                  tmp.innerHTML = parsedHtml;
+                  const imgs = Array.from(tmp.querySelectorAll("img"));
+                  const hasText = Array.from(tmp.childNodes).some(
+                    (n) => n.nodeType === Node.TEXT_NODE && (n.textContent || "").trim() !== ""
+                  );
+                  const otherEls = Array.from(tmp.children).filter(
+                    (el) => el.tagName !== "IMG" && el.tagName !== "BR"
+                  );
+                  if (imgs.length !== 1 || hasText || otherEls.length > 0) {
+                    ta.classList.add("error");
+                    return;
+                  }
+                  const el = imgs[0];
+                  const rawWidth = el.getAttribute("width");
+                  const widthNum = rawWidth ? parseInt(rawWidth, 10) : null;
+                  const currentAtPos = editor.state.doc.nodeAt(pos);
+                  if (!currentAtPos || currentAtPos.type.name !== "image") {
+                    closeSourceEditor();
+                    return;
+                  }
+                  editor.view.dispatch(
+                    editor.view.state.tr.setNodeMarkup(pos, undefined, {
+                      src: el.getAttribute("src"),
+                      alt: el.getAttribute("alt") || null,
+                      title: el.getAttribute("title") || null,
+                      width: widthNum && Number.isFinite(widthNum) && widthNum > 0 ? widthNum : null,
+                      "data-abs-path": null,
+                    })
+                  );
+                  closeSourceEditor();
+                } catch {
+                  ta.classList.add("error");
+                }
+              };
+
+              const openSourceEditor = () => {
+                // 再次点击源码按钮：关闭
+                if (sourceBox) {
+                  closeSourceEditor();
+                  return;
+                }
+                const pos = getPosSafe();
+                if (pos == null) return;
+                const current = editor.state.doc.nodeAt(pos);
+                if (!current || current.type.name !== "image") return;
+
+                activeImageSourceEditorClose?.();
+                activeImageSourceEditorClose = closeSourceEditor;
+
+                sourceClosed = false;
+                sourceBox = document.createElement("div");
+                sourceBox.className = "image-source-editor";
+
+                const ta = document.createElement("textarea");
+                ta.className = "image-source-input";
+                ta.value = imageNodeToMarkdown(current.attrs);
+                ta.rows = 2;
+                ta.spellcheck = false;
+                ta.placeholder = "![描述|宽度](路径)";
+
+                const actions = document.createElement("div");
+                actions.className = "image-source-actions";
+                const okBtn = document.createElement("button");
+                okBtn.type = "button";
+                okBtn.className = "primary";
+                okBtn.textContent = "确定";
+                const cancelBtn = document.createElement("button");
+                cancelBtn.type = "button";
+                cancelBtn.textContent = "取消";
+                actions.appendChild(okBtn);
+                actions.appendChild(cancelBtn);
+
+                const stopEvent = (e: Event) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                };
+                sourceBox.addEventListener("mousedown", stopEvent);
+                sourceBox.addEventListener("click", stopEvent);
+                sourceBox.addEventListener("dblclick", stopEvent);
+                // textarea 只阻止冒泡、不阻止默认行为，保证点击能获得焦点
+                ta.addEventListener("mousedown", (e: MouseEvent) => {
+                  e.stopPropagation();
+                });
+                const closeAndFocus = () => {
+                  closeSourceEditor();
+                  editor.commands.focus();
+                };
+                ta.addEventListener("keydown", (e: KeyboardEvent) => {
+                  e.stopPropagation();
+                  if (e.key === "Escape") {
+                    closeAndFocus();
+                  } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    confirmSourceEdit();
+                    if (!sourceBox) editor.commands.focus();
+                  }
+                });
+                ta.addEventListener("input", () => {
+                  ta.classList.remove("error");
+                });
+                okBtn.addEventListener("click", () => {
+                  confirmSourceEdit();
+                  if (!sourceBox) editor.commands.focus();
+                });
+                cancelBtn.addEventListener("click", closeAndFocus);
+
+                sourceBox.appendChild(ta);
+                sourceBox.appendChild(actions);
+                wrapper.appendChild(sourceBox);
+
+                // 图片顶部空间不足时，面板显示在图片下方
+                requestAnimationFrame(() => {
+                  if (!sourceBox) return;
+                  const rect = wrapper.getBoundingClientRect();
+                  if (rect.top < 160) sourceBox.classList.add("below");
+                });
+
+                ta.focus();
+              };
+              sourceBtn.addEventListener("click", openSourceEditor);
+
+              // 阻止工具栏点击触发编辑器选区变化
+              const stopToolbarEvent = (e: Event) => {
+                e.preventDefault();
+                e.stopPropagation();
+              };
+              toolbar.addEventListener("mousedown", stopToolbarEvent);
+              toolbar.addEventListener("click", stopToolbarEvent);
+
+              let dragging = false;
+              let startX = 0;
+              let startWidth = 0;
+              let moveHandler: ((e: MouseEvent) => void) | null = null;
+              let upHandler: ((e: MouseEvent) => void) | null = null;
+
+              const stopDrag = () => {
+                dragging = false;
+                wrapper.classList.remove("image-resizing");
+                if (moveHandler) document.removeEventListener("mousemove", moveHandler);
+                if (upHandler) document.removeEventListener("mouseup", upHandler);
+                moveHandler = null;
+                upHandler = null;
+              };
+
+              handle.addEventListener("mousedown", (e: MouseEvent) => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                e.stopPropagation();
+                dragging = true;
+                wrapper.classList.add("image-resizing");
+                startX = e.clientX;
+                startWidth =
+                  dom.getBoundingClientRect().width ||
+                  dom.naturalWidth ||
+                  initialWidth ||
+                  100;
+
+                moveHandler = (ev: MouseEvent) => {
+                  ev.preventDefault();
+                  if (!dragging) return;
+                  const w = Math.max(20, Math.round(startWidth + (ev.clientX - startX)));
+                  dom.style.width = `${w}px`;
+                  dom.style.height = "auto";
+                };
+                upHandler = (ev: MouseEvent) => {
+                  if (!dragging) return;
+                  const w = Math.max(20, Math.round(startWidth + (ev.clientX - startX)));
+                  stopDrag();
+                  dom.style.width = `${w}px`;
+                  dom.setAttribute("width", String(w));
+
+                  const pos = getPosSafe();
+                  if (pos == null) return;
+                  const current = editor.state.doc.nodeAt(pos);
+                  if (!current || current.type.name !== "image") return;
+                  editor.view.dispatch(
+                    editor.view.state.tr.setNodeMarkup(pos, undefined, { ...current.attrs, width: w })
+                  );
+                };
+                document.addEventListener("mousemove", moveHandler);
+                document.addEventListener("mouseup", upHandler);
+              });
+
+              return {
+                dom: wrapper,
+                destroy: () => {
+                  stopDrag();
+                  closeSourceEditor();
+                },
+              };
             };
           },
         }).configure({

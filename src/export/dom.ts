@@ -41,15 +41,82 @@ function mimeFromPath(path: string): string {
     bmp: "image/bmp",
     svg: "image/svg+xml",
     ico: "image/x-icon",
+    avif: "image/avif",
   };
   return map[ext] || "application/octet-stream";
 }
 
-/** 读取本地图片文件并转为 data: URI */
+/** 根据文件头魔数识别图片 MIME，避免扩展名未知/缺失时 data URL 无法被浏览器解码为图片 */
+function detectImageMime(bytes: Uint8Array, fallbackPath: string): string {
+  if (bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    return "image/png";
+  }
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "image/jpeg";
+  }
+  if (bytes.length >= 6 && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) {
+    return "image/gif";
+  }
+  if (bytes.length >= 12 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+    return "image/webp";
+  }
+  if (bytes.length >= 4 && bytes[0] === 0x42 && bytes[1] === 0x4d) {
+    return "image/bmp";
+  }
+  if (bytes.length >= 4 && bytes[0] === 0x00 && bytes[1] === 0x00 && bytes[2] === 0x01 && bytes[3] === 0x00) {
+    return "image/x-icon";
+  }
+  // SVG 是文本格式，检测 <svg 声明
+  if (bytes.length >= 4) {
+    const head = new TextDecoder().decode(bytes.subarray(0, 512)).replace(/^\uFEFF/, "").trimStart();
+    if (head.startsWith("<svg") || head.startsWith("<?xml") || head.startsWith("<!--")) {
+      if (head.toLowerCase().includes("<svg")) return "image/svg+xml";
+    }
+  }
+  return mimeFromPath(fallbackPath);
+}
+
+/**
+ * 本地图片文件 → data URL 缓存。
+ * 导出内容每次变化都会触发重新构建，若每次都重新读文件 + base64 编码，大图会显著拖慢速度；
+ * 同一路径的图片在 TTL 内复用缓存，避免重复导出时反复读文件（图片文件变更后可调用 clearInlineImageCache 立即清除）。
+ */
+const localImageDataUrlCache = new Map<string, { dataUrl: string; ts: number }>();
+const LOCAL_IMAGE_CACHE_TTL = 60_000;
+
+/** 清空本地图片 data URL 缓存（图片文件变更后可调用） */
+export function clearInlineImageCache(): void {
+  localImageDataUrlCache.clear();
+}
+
+/** 读取本地图片文件并转为 data: URI（带短时缓存，避免重复导出时反复读文件） */
 async function readLocalImageAsDataUrl(path: string): Promise<string> {
+  const cached = localImageDataUrlCache.get(path);
+  if (cached && Date.now() - cached.ts < LOCAL_IMAGE_CACHE_TTL) return cached.dataUrl;
   const data = await readFile(path);
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data as ArrayBuffer);
-  return `data:${mimeFromPath(path)};base64,${uint8ToBase64(bytes)}`;
+  const dataUrl = `data:${detectImageMime(bytes, path)};base64,${uint8ToBase64(bytes)}`;
+  localImageDataUrlCache.set(path, { dataUrl, ts: Date.now() });
+  return dataUrl;
+}
+
+/** 等待单个 <img> 加载完成（load/error），超时兜底，避免图片未就绪导致测量/渲染异常 */
+function waitForImageLoad(img: HTMLImageElement, timeoutMs = 10000): Promise<void> {
+  return new Promise((resolve) => {
+    if (img.complete) {
+      resolve();
+      return;
+    }
+    const timer = window.setTimeout(done, timeoutMs);
+    function done() {
+      window.clearTimeout(timer);
+      img.removeEventListener("load", done);
+      img.removeEventListener("error", done);
+      resolve();
+    }
+    img.addEventListener("load", done);
+    img.addEventListener("error", done);
+  });
 }
 
 /** 解析 Tauri asset:// 协议 URL，得到本地绝对路径 */
@@ -75,29 +142,39 @@ function blobToDataUrl(blob: Blob): Promise<string> {
  */
 export async function inlineImages(root: HTMLElement): Promise<void> {
   const imgs = Array.from(root.querySelectorAll("img"));
-  for (const img of imgs) {
-    const abs = img.getAttribute("data-abs-path");
-    const src = img.getAttribute("src") || "";
-    try {
-      if (abs) {
-        img.src = await readLocalImageAsDataUrl(abs);
-      } else if (src.startsWith("asset://")) {
-        img.src = await readLocalImageAsDataUrl(decodeAssetUrl(src));
-      } else if (src.startsWith("http://") || src.startsWith("https://")) {
-        const dataUrl = await invoke<string>("fetch_remote_image", { url: src });
-        img.src = dataUrl;
-      } else if (!src.startsWith("data:")) {
-        // 处理相对路径、Vite 资源路径等本地资源，通过 fetch 转为 data URI
-        const response = await fetch(src);
-        if (response.ok) {
-          const blob = await response.blob();
-          img.src = await blobToDataUrl(blob);
+  // 并行处理所有图片：文件读取、远程下载、图片解码可以同时进行，多图时显著提速
+  await Promise.all(
+    imgs.map(async (img) => {
+      const abs = img.getAttribute("data-abs-path");
+      const src = img.getAttribute("src") || "";
+      try {
+        if (abs) {
+          img.src = await readLocalImageAsDataUrl(abs);
+        } else if (src.startsWith("asset://")) {
+          img.src = await readLocalImageAsDataUrl(decodeAssetUrl(src));
+        } else if (src.startsWith("http://") || src.startsWith("https://")) {
+          if (/^https?:\/\/asset\.localhost\//.test(src)) {
+            // protocol-asset 下 convertFileSrc 返回的 http://asset.localhost/... 格式：解析为本地路径
+            img.src = await readLocalImageAsDataUrl(decodeAssetUrl(src.replace(/^https?:\/\/asset\.localhost\//, "asset://")));
+          } else {
+            const dataUrl = await invoke<string>("fetch_remote_image", { url: src });
+            img.src = dataUrl;
+          }
+        } else if (!src.startsWith("data:")) {
+          // 处理相对路径、Vite 资源路径等本地资源，通过 fetch 转为 data URI
+          const response = await fetch(src);
+          if (response.ok) {
+            const blob = await response.blob();
+            img.src = await blobToDataUrl(blob);
+          }
         }
+        // 设置 data URL 后等待图片真正加载完成，确保后续分页测量 / 渲染时图片已就绪（高度非 0）
+        await waitForImageLoad(img);
+      } catch (e) {
+        console.warn("[export] 内联图片失败:", { src, abs }, e);
       }
-    } catch (e) {
-      console.warn("[export] 内联图片失败:", src, e);
-    }
-  }
+    }),
+  );
 }
 
 /**
@@ -239,8 +316,13 @@ export function prepareExportElement(
   // 清理编辑器专属 DOM
   raw.removeAttribute("contenteditable");
   raw.classList.add("tiptap-export-content");
-  // 移除工具栏和源码区，避免它们出现在导出内容中
-  raw.querySelectorAll(".mermaid-toolbar, .mermaid-source, .code-block-toolbar, .bullet-list-mindmap-icon").forEach((el) => el.remove());
+  // 移除工具栏、源码区和图片编辑 UI（缩放手柄/预览源码按钮），避免它们出现在导出内容中
+  raw
+    .querySelectorAll(
+      ".mermaid-toolbar, .mermaid-source, .code-block-toolbar, .bullet-list-mindmap-icon, " +
+        ".image-resize-handle, .image-hover-toolbar, .image-source-editor",
+    )
+    .forEach((el) => el.remove());
   raw
     .querySelectorAll(".ProseMirror-selectednode, .has-focus, .cm-editor")
     .forEach((el) => el.classList.remove("ProseMirror-selectednode", "has-focus"));

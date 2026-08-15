@@ -395,6 +395,14 @@ body {
   position: relative;
 }
 
+/* 编辑器 + 小红书预览分栏的横向容器 */
+.editor-body {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
 /* 确保编辑器填满面板宽度 */
 .editor-panel .editor,
 .editor-panel .cm-editor {
@@ -1802,6 +1810,15 @@ body {
 .export-formatpicker-option-ext {
   font-size: 12px;
   color: var(--text-secondary, #999);
+}
+
+/* 小红书图文入口：品牌红 accent 突出显示 */
+.export-formatpicker-option-xhs .export-formatpicker-option-icon {
+  background: rgba(255, 44, 66, 0.1);
+  color: #ff2c42;
+}
+.export-formatpicker-option-xhs:hover {
+  border-color: #ff2c42;
 }
 
 /* ── 匿名统计同意弹窗 ── */

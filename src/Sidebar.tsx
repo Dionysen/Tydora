@@ -1811,8 +1811,8 @@ function Outline({
   if (items.length === 0) {
     return (
       <div className="sidebar-tree">
-        <div className="tree-empty">无标题</div>
-        <div className="tree-empty-hint">使用 # 标题语法来创建大纲</div>
+        <div className="tree-empty">{i18n.t("sidebar.outline.untitled")}</div>
+        <div className="tree-empty-hint">{i18n.t("sidebar.outline.hint")}</div>
       </div>
     );
   }
@@ -2166,8 +2166,8 @@ export default function Sidebar({
           />
         ) : (
           <div className="sidebar-tree">
-            <div className="tree-empty">尚未打开仓库</div>
-            <div className="tree-empty-hint">点击底部按钮打开一个文件夹</div>
+            <div className="tree-empty">{i18n.t("sidebar.empty.noVault")}</div>
+            <div className="tree-empty-hint">{i18n.t("sidebar.empty.openVaultHint")}</div>
           </div>
         )
       )}
@@ -2187,7 +2187,7 @@ export default function Sidebar({
             />
           ) : (
             <div className="sidebar-tree">
-              <div className="tree-empty">输入关键词搜索文件</div>
+              <div className="tree-empty">{i18n.t("sidebar.search.hint")}</div>
             </div>
           )}
         </>

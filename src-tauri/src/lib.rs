@@ -10,6 +10,22 @@ use commands::proxy::{start_proxy_server, fetch_page_title};
 
 struct PreviewServer(Mutex<Option<std::process::Child>>);
 
+/// 通过文件关联（双击 .md 文件）启动时待打开的文件队列。
+/// 前端加载完成后通过 `take_pending_files` 主动拉取，
+/// 避免固定延迟发事件与前端监听注册之间的竞态导致文件打开为空。
+pub struct PendingFiles(Mutex<Vec<String>>);
+
+/// 过滤命令行参数中的 Markdown 文件路径
+fn filter_markdown_paths(args: &[String]) -> Vec<String> {
+    args.iter()
+        .filter(|p| {
+            let lower = p.to_lowercase();
+            lower.ends_with(".md") || lower.ends_with(".markdown") || lower.ends_with(".mdx")
+        })
+        .cloned()
+        .collect()
+}
+
 /// URL 百分号解码，将 %XX 转换为对应字节，最终返回解码后的字符串
 fn percent_decode(s: &str) -> String {
     let mut bytes = Vec::with_capacity(s.len());
@@ -62,6 +78,12 @@ fn get_default_content() -> String {
     String::new()
 }
 
+/// 取出通过文件关联启动时待打开的文件（取出后清空，避免重复打开）
+#[tauri::command]
+fn take_pending_files(state: State<'_, PendingFiles>) -> Vec<String> {
+    std::mem::take(&mut *state.0.lock().unwrap())
+}
+
 /// 获取应用版本号（从 tauri.conf.json 读取，单一版本源）
 #[tauri::command]
 fn get_app_version(app: tauri::AppHandle) -> String {
@@ -98,11 +120,10 @@ async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
     }
 }
 
-/// 在新窗口中打开文件
-#[tauri::command]
-async fn open_file_in_new_window(
-    app: tauri::AppHandle,
-    file_path: String,
+/// 创建编辑器窗口并在其中打开文件（URL 参数 + 延迟事件双通道）
+fn spawn_editor_window(
+    app: &tauri::AppHandle,
+    file_path: &str,
     width: Option<f64>,
     height: Option<f64>,
 ) -> Result<(), String> {
@@ -128,7 +149,7 @@ async fn open_file_in_new_window(
     let title = format!("{} - Tydora", file_name);
 
     let window = WebviewWindowBuilder::new(
-        &app,
+        app,
         &label,
         tauri::WebviewUrl::App(url.into()),
     )
@@ -143,7 +164,7 @@ async fn open_file_in_new_window(
     match window {
         Ok(_) => {
             let app_handle = app.clone();
-            let fp = file_path.clone();
+            let fp = file_path.to_string();
             let lbl = label.clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_millis(500));
@@ -153,6 +174,17 @@ async fn open_file_in_new_window(
         }
         Err(e) => Err(e.to_string()),
     }
+}
+
+/// 在新窗口中打开文件
+#[tauri::command]
+async fn open_file_in_new_window(
+    app: tauri::AppHandle,
+    file_path: String,
+    width: Option<f64>,
+    height: Option<f64>,
+) -> Result<(), String> {
+    spawn_editor_window(&app, &file_path, width, height)
 }
 
 /// 打开思维导图窗口
@@ -841,6 +873,26 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            // 应用已运行时双击 .md 文件：把文件路径转发给主窗口
+            let md_paths = filter_markdown_paths(&args);
+            if let Some(path) = md_paths.last() {
+                if let Some(win) = app.get_webview_window("main") {
+                    // 聚焦主窗口，确保用户能看到打开的文件
+                    let _ = win.unminimize();
+                    let _ = win.set_focus();
+                    // 同时放入待打开队列：若事件发出时前端监听尚未注册（应用启动初期），
+                    // 由前端的延迟二次拉取接管，确保文件不丢失
+                    if let Some(state) = app.try_state::<PendingFiles>() {
+                        state.0.lock().unwrap().push(path.clone());
+                    }
+                    let _ = app.emit_to("main", "open-file-external", path);
+                } else {
+                    // 主窗口已关闭（仍有其他窗口存活）：在新编辑器窗口中打开文件
+                    let _ = spawn_editor_window(app, path, None, None);
+                }
+            }
+        }))
         .register_uri_scheme_protocol("local-file", |_ctx, request| {
             // request.uri().path() 返回类似 "/D%3A%2Fpath%2Fto%2Ffile.png" 的路径
             // 跳过开头的 "/" 并进行百分号解码
@@ -873,6 +925,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_default_content,
+            take_pending_files,
             get_app_version,
             get_cwd,
             open_settings_window,
@@ -905,31 +958,18 @@ pub fn run() {
             app.manage(WatcherState(std::sync::Mutex::new(None)));
             app.manage(PreviewServer(std::sync::Mutex::new(None)));
             app.manage(HttpClientState::new());
+            app.manage(PendingFiles(std::sync::Mutex::new(Vec::new())));
 
-            // 处理命令行参数（从文件管理器"打开方式"启动时传入的文件路径）
+            // 处理命令行参数（从文件管理器"打开方式"启动时传入的文件路径）：
+            // 放入待打开队列，由前端加载完成后通过 take_pending_files 主动拉取
             let args: Vec<String> = std::env::args().collect();
-            if args.len() > 1 {
-                let file_paths: Vec<String> = args[1..]
-                    .iter()
-                    .filter(|p| {
-                        let lower = p.to_lowercase();
-                        lower.ends_with(".md")
-                            || lower.ends_with(".markdown")
-                            || lower.ends_with(".mdx")
-                    })
-                    .cloned()
-                    .collect();
-
-                if !file_paths.is_empty() {
-                    let app_handle = app.handle().clone();
-                    std::thread::spawn(move || {
-                        // 等待前端加载完成后再发送事件
-                        std::thread::sleep(std::time::Duration::from_millis(800));
-                        for path in &file_paths {
-                            let _ = app_handle.emit_to("main", "open-file", path);
-                        }
-                    });
-                }
+            let file_paths = filter_markdown_paths(&args);
+            if !file_paths.is_empty() {
+                app.state::<PendingFiles>()
+                    .0
+                    .lock()
+                    .unwrap()
+                    .extend(file_paths);
             }
 
             #[cfg(debug_assertions)]

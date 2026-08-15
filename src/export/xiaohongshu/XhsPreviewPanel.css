@@ -1,0 +1,462 @@
+/* 小红书预览分栏（右侧） */
+.xhs-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: var(--font-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+}
+
+.xhs-resize-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 5;
+}
+.xhs-panel.resizing {
+  user-select: none;
+}
+.xhs-panel.resizing .xhs-resize-handle {
+  background: var(--accent);
+  opacity: 0.3;
+}
+
+.xhs-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 6px;
+  flex-shrink: 0;
+}
+.xhs-panel-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+.xhs-panel-icon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+/* 关闭按钮；在状态栏中作为内联按钮使用 */
+.xhs-close {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.xhs-close:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--bg-surface);
+  border-color: var(--danger);
+}
+.xhs-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.xhs-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 2px 12px 6px;
+  padding: 8px 10px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+.xhs-toolbar-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+
+.xhs-select {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  padding: 5px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  min-width: 0;
+  flex-shrink: 0;
+}
+.xhs-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.xhs-segmented {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.xhs-segmented button {
+  background: var(--bg-primary);
+  border: none;
+  color: var(--text-secondary);
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.xhs-segmented button + button {
+  border-left: 1px solid var(--border);
+}
+.xhs-segmented button.active {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+.xhs-segmented button:hover:not(:disabled):not(.active) {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+.xhs-segmented button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.xhs-check {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+  color: var(--text-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.xhs-check input {
+  cursor: pointer;
+}
+
+.xhs-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.xhs-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.xhs-status .xhs-status-close {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+.xhs-status .xhs-status-close:hover:not(:disabled) {
+  color: var(--accent);
+  background: transparent;
+  border-color: transparent;
+  opacity: 1;
+}
+.xhs-status-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.xhs-status-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.xhs-help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary);
+  opacity: 0.8;
+  cursor: pointer;
+}
+.xhs-help-btn:hover {
+  color: var(--accent);
+  opacity: 1;
+}
+.xhs-status-hint {
+  color: var(--accent);
+}
+.xhs-status-building {
+  color: var(--text-secondary);
+}
+.xhs-status-error {
+  color: var(--danger);
+}
+
+.xhs-cards {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.xhs-card-item {
+  position: relative;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: zoom-in;
+  width: 100%;
+  max-width: 260px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+.xhs-card-item img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.xhs-card-download {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.xhs-card-item:hover .xhs-card-download {
+  opacity: 1;
+}
+.xhs-card-download:hover {
+  background: rgba(0, 0, 0, 0.78);
+}
+
+.xhs-action-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.xhs-action-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--bg-primary);
+  border-color: var(--accent);
+}
+.xhs-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.xhs-action-primary {
+  background: var(--accent);
+  color: var(--bg-primary);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.xhs-action-primary:hover:not(:disabled) {
+  opacity: 0.88;
+}
+.xhs-action-error {
+  color: var(--danger);
+  font-size: 12px;
+  width: 100%;
+}
+.xhs-action-ok {
+  color: var(--accent);
+  font-size: 12px;
+  width: 100%;
+}
+
+.xhs-zoom-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.6);
+  overflow: auto;
+}
+/* flex 居中容器：让卡片始终保持在遮罩中央（含滚动时） */
+.xhs-zoom-body {
+  display: flex;
+  min-height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  box-sizing: border-box;
+}
+.xhs-zoom-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.xhs-zoom-stage img {
+  display: block;
+  max-width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+/* 关闭按钮位于卡片图片上方、与图片右缘对齐，不遮挡图片 */
+.xhs-zoom-close {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 10px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+.xhs-zoom-close:hover {
+  background: rgba(0, 0, 0, 0.78);
+}
+/* 页码位于卡片图片下方居中 */
+.xhs-zoom-page {
+  align-self: center;
+  margin-top: 12px;
+  padding: 3px 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.6;
+  font-family: var(--font-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+}
+
+/* ── 使用说明弹窗 ── */
+.xhs-help-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.xhs-help-body {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 460px;
+  max-height: 100%;
+  border-radius: 12px;
+  background: var(--bg-secondary, #ffffff);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 44px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+.xhs-help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.xhs-help-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+.xhs-help-close {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+}
+.xhs-help-close:hover {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.06));
+  color: var(--danger);
+}
+.xhs-help-content {
+  padding: 14px 16px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+.xhs-help-content p {
+  margin: 0 0 10px;
+}
+.xhs-help-content h4 {
+  margin: 12px 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.xhs-help-content ul {
+  margin: 0 0 4px;
+  padding-left: 18px;
+}
+.xhs-help-content li {
+  margin-bottom: 4px;
+}
+.xhs-help-example {
+  margin: 6px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-code, rgba(0, 0, 0, 0.05));
+  border: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono, ui-monospace, "Cascadia Code", Consolas, monospace);
+  color: var(--text-primary);
+}
+.xhs-help-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+}
+

@@ -100,7 +100,7 @@ interface ShortcutItem {
 
 const DEFAULT_GENERAL: GeneralSettings = {
   appearance: "system",
-  fontSize: 14,
+  fontSize: 16,
   editorFont: "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
   autoSave: true,
   autoHideTopbar: true,

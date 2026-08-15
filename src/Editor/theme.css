@@ -802,6 +802,205 @@
   -webkit-touch-callout: none;
 }
 
+/* 图片节点视图：悬停/选中时右下角显示缩放手柄 */
+.tiptap-editor .image-node-view {
+  margin: 0.5em 0;
+}
+
+.tiptap-editor .image-node-view img {
+  display: block;
+  margin: 0;
+  border-radius: 4px;
+}
+
+.tiptap-editor .image-node-view .image-resize-handle {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  background: transparent;
+  border: 2px solid rgba(0, 0, 0, 0.55);
+  border-top-color: transparent;
+  border-left-color: transparent;
+  border-radius: 0 0 2px 0;
+  cursor: nwse-resize;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 3;
+}
+
+.tiptap-editor .image-node-view:hover .image-resize-handle,
+.tiptap-editor .image-node-view.image-resizing .image-resize-handle,
+.tiptap-editor .image-node-view.ProseMirror-selectednode .image-resize-handle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tiptap-editor .image-node-view.ProseMirror-selectednode img {
+  outline: 2px solid var(--accent, #2563eb);
+  outline-offset: 2px;
+}
+
+/* 图片右上角工具栏（预览 / 源码） */
+.tiptap-editor .image-node-view .image-hover-toolbar {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 3;
+}
+
+.tiptap-editor .image-node-view:hover .image-hover-toolbar,
+.tiptap-editor .image-node-view.ProseMirror-selectednode .image-hover-toolbar {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tiptap-editor .image-node-view .image-toolbar-btn {
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border: none;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+
+.tiptap-editor .image-node-view .image-toolbar-btn:hover {
+  background: rgba(0, 0, 0, 0.78);
+}
+
+/* 图片源码编辑面板（图片上方悬浮） */
+.tiptap-editor .image-node-view .image-source-editor {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  margin-bottom: 8px;
+  width: 320px;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border, #d1d9e6);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  z-index: 5;
+}
+
+.tiptap-editor .image-node-view .image-source-editor.below {
+  bottom: auto;
+  top: 100%;
+  margin-bottom: 0;
+  margin-top: 8px;
+}
+
+.tiptap-editor .image-node-view .image-source-editor textarea {
+  width: 100%;
+  min-height: 44px;
+  resize: vertical;
+  font-family: Consolas, "Courier New", ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 6px 8px;
+  border: 1px solid var(--border, #d1d9e6);
+  border-radius: 6px;
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #1e293b);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.tiptap-editor .image-node-view .image-source-editor textarea:focus {
+  border-color: var(--accent, #2563eb);
+}
+
+.tiptap-editor .image-node-view .image-source-editor textarea.error {
+  border-color: #e74c3c;
+  box-shadow: 0 0 0 1px rgba(231, 76, 60, 0.3);
+}
+
+.tiptap-editor .image-node-view .image-source-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.tiptap-editor .image-node-view .image-source-actions button {
+  padding: 2px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  border-radius: 4px;
+  border: 1px solid var(--border, #d1d9e6);
+  background: var(--bg-secondary, #f5f7fa);
+  color: var(--text-primary, #1e293b);
+  cursor: pointer;
+}
+
+.tiptap-editor .image-node-view .image-source-actions button.primary {
+  background: var(--accent, #2563eb);
+  border-color: var(--accent, #2563eb);
+  color: #fff;
+}
+
+/* 图片预览弹层（全屏遮罩） */
+.image-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  cursor: zoom-out;
+  animation: image-preview-fade 0.15s ease;
+}
+
+.image-preview-overlay img {
+  max-width: 92vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  cursor: default;
+}
+
+.image-preview-close {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-preview-close:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+@keyframes image-preview-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* 链接 */
 .tiptap-editor a {
   color: var(--text-link, #0969da);

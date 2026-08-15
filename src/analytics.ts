@@ -53,6 +53,7 @@ export const ANALYTICS_EVENTS = {
   EXPORT_HTML: "export.html",
   EXPORT_MARKDOWN: "export.markdown",
   EXPORT_PNG: "export.png",
+  EXPORT_XHS: "export.xiaohongshu",
   PUBLISH_BUILD: "publish.build",
   PUBLISH_PREVIEW: "publish.preview",
   IMAGE_PASTE: "image.paste",
