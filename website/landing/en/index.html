@@ -142,7 +142,7 @@
 
         /* ===== mobile-only menu items ===== */
         .nav-menu-only{display:none}
-        .nav-menu-lang{display:flex;gap:8px;margin-top:2px}
+        .nav-menu-lang{gap:8px;margin-top:2px}
         .nav-menu-lang a{padding:8px 12px;border-radius:var(--radius-sm);color:var(--c-text-dim)}
         .nav-menu-lang a:hover{background:var(--c-border)}
         .nav-menu-lang a.active{color:var(--c-accent);font-weight:600;background:rgba(108,92,231,.08)}
@@ -154,7 +154,8 @@
             .nav-right{margin-left:auto}
             .nav-lang{display:none}
             .nav-github{display:none}
-            .nav-menu-only{display:block}
+            .nav-links.active .nav-menu-only{display:block}
+            .nav-links.active .nav-menu-lang{display:flex}
             .nav-links.active{
                 display:flex;
                 flex-direction:column;

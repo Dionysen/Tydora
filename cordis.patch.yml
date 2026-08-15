@@ -1,0 +1,6 @@
+# Tydora 的 DSH 组合包补丁层。
+# 被 package.json 的 dsh.bundle.patch 引用；用户执行 `dsh plugin add` 时应用此层。
+# name 指向仓库内的插件入口（相对本文件）。
+- insert:
+    - id: tydora
+      name: './dsh/index.ts'

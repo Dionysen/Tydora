@@ -3,6 +3,11 @@
   "private": true,
   "version": "0.1.7",
   "type": "module",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
