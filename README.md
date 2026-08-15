@@ -1,113 +1,92 @@
-# Tydora
-
-> A modern desktop Markdown editor
-
 [![GitHub Stars](https://img.shields.io/github/stars/zuorn/Tydora?style=flat-square)](https://github.com/zuorn/Tydora)
 [![Release](https://img.shields.io/github/v/release/zuorn/Tydora?style=flat-square)](https://github.com/zuorn/Tydora/releases)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)]()
+[![License](<https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square>)](LICENSE)
+[![Platform](<https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square>)]()
 [![Tauri](https://img.shields.io/badge/Tauri-v2-blue?style=flat-square)](https://v2.tauri.app/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square)](https://react.dev/)
 
 [中文](README_ZH.md) | English
 
-<br />
+![image.png](website/assets/image-20260815-221141.png)
 
-<table>
-  <tr>
-    <td align="center" width="50%"><img src="website/images/en/01.png" alt="Screenshot 1" width="100%" /></td>
-    <td align="center" width="50%"><img src="website/images/en/02.png" alt="Screenshot 2" width="100%" /></td>
-  </tr>
-  <tr>
-    <td align="center" width="50%"><img src="website/images/en/03.png" alt="Screenshot 3" width="100%" /></td>
-    <td align="center" width="50%"><img src="website/images/en/04.png" alt="Screenshot 4" width="100%" /></td>
-  </tr>
-</table>
+---
 
-## Core Features
+I spent a long time settling into focused writing in **Typora**, organizing my thoughts before the graphs of **Obsidian**. Yet somewhere deep down, I always felt something was missing —
+a touch of <mark>absolute smoothness</mark> when your fingertips meet your thoughts, and the <mark>freedom</mark> to let knowledge unfold directly onto a canvas.
 
-- **Dual-Mode Editing** — Seamlessly switch between WYSIWYG (TipTap) and Source mode (CodeMirror 6)
-- **WikiLink Bidirectional Links** — Obsidian-style `[[backlinks]]` with backlink panel and autocomplete
-- **Knowledge Graph** — D3.js force-directed graph visualizing relationships between documents
-- **Mind Map** — Auto-generated interactive mind map from Markdown heading hierarchy
-- **Infinite Canvas** — Whiteboard canvas supporting text, notes, media, URL, and more node types
-- **Rich Theming** — 8 built-in themes + custom CSS import + 11 code highlighting color schemes
-- **One-Click Publish** — Publish your vault as a static website with a built-in preview server
-- **Multi-Window Architecture** — Settings, graph, mind map, and canvas in independent windows with multi-monitor support
+So I decided to build one myself. Its name is **Tydora**.
 
-## Tech Stack
+It's a **Markdown editor** I crafted alone through countless quiet nights — confident enough to stand in for **Typora**, ambitious enough to challenge **Obsidian**. It's more than a tool; it's a <mark>desk for fellow travelers</mark> — **clean and quiet, yet holding a world within**.
 
-| Layer      | Technology                                                    |
-| ---------- | ------------------------------------------------------------- |
-| Frontend   | React 19 + TypeScript + Vite 6                                |
-| Editor     | TipTap 3.x (WYSIWYG) + CodeMirror 6 (Source)                  |
-| Backend    | Rust (Tauri v2)                                               |
-| Visual     | D3.js (Graph) + markmap (Mind Map) + React Flow (Canvas)      |
-| Plugins    | tauri-plugin-fs / dialog / window-state / updater / process   |
+---
+
+## **✒️ Writing Should Flow Like Breathing**
+
+The <mark>ultimate writing experience</mark>: WYSIWYG, with an interface so <mark>clean</mark> that only the words remain. Not a single unnecessary **distraction**; wherever the cursor lands, your **thoughts** land directly on the screen. I poured every ounce of my obsession with "<mark>the feel of writing</mark>" into it, letting the tool fully **recede** — leaving only you and the <mark>river of thought</mark>.
+
+![image.png](website/assets/image-20260815-171029.png)
+
+---
+
+## **🪐 Knowledge Is Not an Island — It's a Constellation**
+
+**Relationship graphs** form between notes — the <mark>gravitational lines of thought</mark>. And the **infinite whiteboard canvas** lets you personally guide these <mark>stars</mark>, <mark>connecting them freely</mark>, <mark>restructuring logic</mark>. Going beyond the graph — here, <mark>your cognition knows no bounds</mark>.
+
+![image.png](website/assets/image-20260815-171200.png)
+
+---
+
+## **🌳 From Line to Tree, See the Forest in One Step**
+
+Turn any document into a **mind map** with one click. Linear text instantly unfolds into a **structure** of clear branches — hierarchy and connections at a glance. Outlining, dissecting books, reviewing ideas — no need to switch tools, the <mark>flow</mark> never breaks. What you see is <mark>the very shape of thought</mark>.
+
+![image.png](website/assets/image-20260815-171446.png)
+
+---
+
+## **🌸 Let Your Knowledge Garden Bloom Quietly on the Web**
+
+**Publish your local knowledge repository as a static website with one click.** Blogs, documentation, personal wikis. Sharing knowledge has finally become <mark>clean and dignified</mark>.
+
+![image.png](website/assets/image-20260815-172124.png)
+
+---
+
+It is the answer I offer — and an invitation to fellow travelers.
+If you're also looking for a <mark>writing companion</mark> that understands you better, come and sit with **Tydora**.
+
+🔗 [Tydora — Let Thoughts Flow Freely](https://zuorn.github.io/Tydora/)
+
+If there's anything you'd like it to do, tell me — I'll keep refining it, until it becomes the <mark>ideal version in our hearts</mark>.
 
 ## Quick Start
 
-### Prerequisites
+1. Download and install Tydora from the [Release](https://github.com/zuorn/Tydora/releases) page.
 
-- [Node.js](https://nodejs.org/) >= 18
-- [Rust](https://www.rust-lang.org/tools/install) >= 1.75
-- Tauri v2 system dependencies (see [Tauri Prerequisites](https://v2.tauri.app/start/prerequisites/))
-
-### Install & Run
+## **Run from Source**
 
 ```bash
-# Clone the repository
 git clone https://github.com/zuorn/Tydora.git
 cd Tydora
-
-# Install dependencies
 npm install
 
-# Start development mode
-npm run tauri
-```
-
-### Build
-
-```bash
-# Build for production
+npm run tauri dev
 npm run tauri build
 ```
 
-Build artifacts are located in `src-tauri/target/release/bundle/`.
+## Tech Stack
 
-## Project Structure
-
-```
-Tydora/
-├── src/                        # Frontend source
-│   ├── App.tsx                 # Main component & state management
-│   ├── Editor/                 # Editor module
-│   │   ├── TipTapEditor.tsx    # WYSIWYG editor
-│   │   └── SourceEditor.tsx    # Source code editor
-│   ├── wikilink/               # WikiLink bidirectional link system
-│   ├── graph/                  # Knowledge graph
-│   ├── mindmap/                # Mind map
-│   ├── Canvas/                 # Infinite canvas
-│   ├── components/             # Shared UI components
-│   ├── publish/                # Publishing system
-│   └── themes/                 # Theme system
-├── src-tauri/                  # Rust backend
-│   └── src/
-│       ├── lib.rs              # Tauri commands & plugins
-│       └── commands/           # Modular commands
-├── docs/                       # Project documentation
-└── website/                    # MkDocs documentation site
-```
-
-## Documentation
-
-- [Technical Architecture](docs/technical-architecture.md) (Chinese)
-- [Product Design](docs/product-design.md) (Chinese)
+| Layer         | Technology                                                  |
+| ------------- | ----------------------------------------------------------- |
+| Frontend      | React 19 + TypeScript + Vite 6                              |
+| Editor        | TipTap 3.x (WYSIWYG) + CodeMirror 6 (Source)                |
+| Backend       | Rust (Tauri v2)                                             |
+| Visualization | D3.js (Graph) + markmap (Mind Map) + React Flow (Canvas)    |
+| Plugins       | tauri-plugin-fs / dialog / window-state / updater / process |
 
 ## Contributing
 
-Issues and pull requests are welcome! Please read the project documentation to understand the architecture first.
+Issues and pull requests are welcome!
 
 ## License
 

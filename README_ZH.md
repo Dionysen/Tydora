@@ -1,7 +1,3 @@
-# Tydora
-
-> 一个现代的桌面 Markdown 编辑器
-
 [![GitHub Stars](https://img.shields.io/github/stars/zuorn/Tydora?style=flat-square)](https://github.com/zuorn/Tydora)
 [![Release](https://img.shields.io/github/v/release/zuorn/Tydora?style=flat-square)](https://github.com/zuorn/Tydora/releases)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
@@ -9,105 +5,88 @@
 [![Tauri](https://img.shields.io/badge/Tauri-v2-blue?style=flat-square)](https://v2.tauri.app/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square)](https://react.dev/)
 
-中文 | [English](README_EN.md)
+[中文](README_ZH.md) | English
 
-<br />
+![image.png](website/assets/image-20260815-172948.png)
 
-<table>
-  <tr>
-    <td align="center" width="50%"><img src="website/images/zh/01.png" alt="Screenshot 1" width="100%" /></td>
-    <td align="center" width="50%"><img src="website/images/zh/02.png" alt="Screenshot 2" width="100%" /></td>
-  </tr>
-  <tr>
-    <td align="center" width="50%"><img src="website/images/zh/03.png" alt="Screenshot 3" width="100%" /></td>
-    <td align="center" width="50%"><img src="website/images/zh/04.png" alt="Screenshot 4" width="100%" /></td>
-  </tr>
-</table>
+---
 
-## 核心特性
+我曾长久地在 **Typora** 里安放专注，在 **Obsidian** 的图谱前整理思绪。但心底始终觉得，还缺少些什么——  
+少一些指尖触及思想时的<mark>绝对顺滑</mark>，少一些让知识直接铺展成画布的<mark>自由</mark>。
 
-- **双模式编辑** —— WYSIWYG 即时渲染模式（TipTap）与源码模式（CodeMirror 6）无缝切换
-- **WikiLink 双向链接** —— Obsidian 风格的 `[[双向链接]]`，支持反向链接面板和自动补全
-- **知识图谱** —— 基于 D3.js 的力导向图，可视化文档间的链接关系
-- **思维导图** —— 从 Markdown 标题层级自动生成交互式思维导图
-- **白板画布** —— 支持文本、笔记、媒体、URL 等多种节点类型的无限画布
-- **丰富主题** —— 8 种内置主题 + 自定义 CSS 主题导入 + 11 种代码高亮配色
-- **一键发布** —— 将 Vault 发布为静态网站，内置预览服务器
-- **多窗口架构** —— 设置、图谱、思维导图、画布等独立窗口，支持多显示器
+于是，我决定自己写一个。它的名字叫 **Tydora**。
 
-## 技术栈
+这是我用无数个安静的深夜独自打磨出的 **Markdown 编辑器**，有平替 **Typora** 的底气，也有叫板 **Obsidian** 的野心。它不只是工具，更像是一张递给<mark>同路人的书桌</mark>——**干净、安静，却暗藏山河**。
 
-| 层级  | 技术                                                          |
-| --- | ----------------------------------------------------------- |
-| 前端  | React 19 + TypeScript + Vite 6                              |
-| 编辑器 | TipTap 3.x (WYSIWYG) + CodeMirror 6 (源码)                    |
-| 后端  | Rust (Tauri v2)                                             |
-| 可视化 | D3.js (图谱) + markmap (思维导图) + React Flow (画布)               |
-| 插件  | tauri-plugin-fs / dialog / window-state / updater / process |
+---
+
+## **✒️书写，应如呼吸**
+
+<mark>极致的书写体验</mark>，所见即所得，界面<mark>纯净</mark>到只剩文字本身。没有一丝多余的**干扰**，光标所至，**思绪**便直接落在屏幕上。我把自己对“<mark>写作手感</mark>”的所有**执念**都写了进去，让工具彻底**隐退**，只留你与<mark>思想的河流</mark>。
+
+![image.png](website/assets/image-20260815-171029.png)
+
+---
+
+## **🪐知识不是孤岛，是星座**
+
+笔记之间生成**关系图谱**，那是<mark>思想的引力线</mark>。而**无限白板画布**，则允许你亲手牵引这些<mark>星辰</mark>，<mark>自由连线</mark>、<mark>重组逻辑</mark>。比图谱更进一步 —— 在这里，<mark>你的认知可以不设边界</mark>。
+
+![image.png](website/assets/image-20260815-171200.png)
+
+---
+
+## **🌳从线到树，一步见林**
+
+一键将文档转为**思维导图**。线性文字倏然展开成枝干分明的**结构**，层级、脉络一览无余。写大纲、拆书、复盘思考，无需切换任何工具，<mark>心流</mark>始终不断。你看见的，即是<mark>思维本身的形状</mark>**。**
+
+![image.png](website/assets/image-20260815-171446.png)
+
+---
+
+## **🌸让知识花园，静默盛放于网络**
+
+**本地知识仓库，一键发布为静态网页**。博客、文档库、个人 Wiki。分享知识这件事，终于变得<mark>干净而体面</mark>。
+
+![image.png](website/assets/image-20260815-172124.png)
+
+---
+
+它是我交出的答案，也是递给同路人的一份邀请。  
+如果你也在寻找更懂你的<mark>书写伴侣</mark>，不妨来 **Tydora** 坐坐。
+
+🔗 [Tydora — 让思想自由流动](https://zuorn.github.io/Tydora/)
+
+有任何想让它做到的事，请告诉我——我继续打磨，直到它成为我们<mark>心中理想的样子</mark>。
 
 ## 快速开始
 
-### 环境要求
+1. 请从 [Release ](https://github.com/zuorn/Tydora/releases)下载并安装Tydora
 
-- [Node.js](https://nodejs.org/) >= 18
-- [Rust](https://www.rust-lang.org/tools/install) >= 1.75
-- Tauri v2 系统依赖（参考 [Tauri Prerequisites](https://v2.tauri.app/start/prerequisites/)）
-
-### 安装与运行
+## **从源码运行**
 
 ```bash
-# 克隆仓库
 git clone https://github.com/zuorn/Tydora.git
 cd Tydora
-
-# 安装依赖
 npm install
 
-# 启动开发模式
-npm run tauri
-```
-
-### 构建
-
-```bash
-# 构建生产版本
+npm run tauri dev
 npm run tauri build
 ```
 
-构建产物位于 `src-tauri/target/release/bundle/`。
+## 技术栈
 
-## 项目结构
-
-```
-Tydora/
-├── src/                        # 前端源码
-│   ├── App.tsx                 # 主组件，状态管理
-│   ├── Editor/                 # 编辑器模块
-│   │   ├── TipTapEditor.tsx    # WYSIWYG 编辑器
-│   │   └── SourceEditor.tsx    # 源码编辑器
-│   ├── wikilink/               # WikiLink 双向链接系统
-│   ├── graph/                  # 知识图谱
-│   ├── mindmap/                # 思维导图
-│   ├── Canvas/                 # 白板画布
-│   ├── components/             # 共享 UI 组件
-│   ├── publish/                # 发布系统
-│   └── themes/                 # 主题系统
-├── src-tauri/                  # Rust 后端
-│   └── src/
-│       ├── lib.rs              # Tauri 命令与插件
-│       └── commands/           # 模块化命令
-├── docs/                       # 项目文档
-└── website/                    # MkDocs 文档站点
-```
-
-## 相关文档
-
-- [技术架构文档](docs/technical-architecture.md)
-- [产品设计文档](docs/product-design.md)
+| 层级 | 技术 |
+| --- | --- |
+| 前端 | React 19 + TypeScript + Vite 6 |
+| 编辑器 | TipTap 3.x (WYSIWYG) + CodeMirror 6 (源码) |
+| 后端 | Rust (Tauri v2) |
+| 可视化 | D3.js (图谱) + markmap (思维导图) + React Flow (画布) |
+| 插件 | tauri-plugin-fs / dialog / window-state / updater / process |
 
 ## 贡献
 
-欢迎提交 Issue 和 Pull Request！请先阅读项目文档了解架构设计。
+欢迎提交 Issue 和 Pull Request！
 
 ## 许可证
 
