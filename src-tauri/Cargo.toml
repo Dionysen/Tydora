@@ -35,3 +35,10 @@ lto = true
 codegen-units = 1
 strip = true
 opt-level = "z"
+
+# 本地 patch wry：修复 Windows 上窗口销毁瞬间仍有 WebResourceRequested
+# 回调在途时，wry 向已失效窗口句柄 PostMessageW 失败并打印误导性错误
+# （"PostMessage failed; is the messages queue full?" 0x80070578）的问题。
+# 参见 vendor/wry/src/webview2/mod.rs 的 dispatch_handler。
+[patch.crates-io]
+wry = { path = "vendor/wry" }

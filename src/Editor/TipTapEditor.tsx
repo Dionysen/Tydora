@@ -54,7 +54,7 @@ import { HardBreakCleanup } from "./extensions/hardbreak-cleanup";
 import { TableFloatingToolbar as TableFloatingToolbarComponent } from "./TableFloatingToolbar";
 import { executeCommand } from "./extensions/custom-commands";
 import { Math as MathExtension } from "./extensions/math";
-import { saveImageToLocal, loadImageSettings, resolveRelativePath, dirName } from "../services";
+import { saveImageToLocal, loadImageSettings, resolveRelativePath, dirName, ImageSaveCancelledError } from "../services";
 import { loadShortcuts, matchShortcut } from "./shortcuts";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import CodeMirrorEditor, { type CodeMirrorEditorHandle } from "./CodeMirrorEditor";
@@ -863,6 +863,8 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
           "data-abs-path": result.savedPath,
         } as any).run();
       } catch (e) {
+        // 用户取消了目录选择，静默忽略
+        if (e instanceof ImageSaveCancelledError) return;
         console.error("[ImageUpload] save failed:", e);
       }
     }, [editor]);

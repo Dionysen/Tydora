@@ -7,6 +7,8 @@ export interface UpdateInfo {
   version: string;
   body: string;
   date: string;
+  /** GitHub 版 NSIS 安装包下载地址（仅商店版切换通道返回） */
+  url?: string | null;
 }
 
 let cachedUpdate: Update | null = null;

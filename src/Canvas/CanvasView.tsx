@@ -33,7 +33,7 @@ import AlignmentToolbar from './AlignmentToolbar';
 import AlignmentGuides from './AlignmentGuides';
 import UndoRedoPanel from './UndoRedoPanel';
 import { useCanvasStore, scheduleAutoSave } from './canvas-store';
-import { saveImageToLocal, loadImageSettings, type ImageSettings } from '../services';
+import { saveImageToLocal, loadImageSettings, ImageSaveCancelledError, type ImageSettings } from '../services';
 import { matchShortcut } from '../Editor/shortcuts';
 import shortcutsConfig from '../config/shortcuts.json';
 
@@ -583,6 +583,8 @@ export default function CanvasView({ onNodeClick }: CanvasViewProps) {
         file: result.savedPath,
       });
     } catch (err) {
+      // 用户取消了目录选择，静默忽略
+      if (err instanceof ImageSaveCancelledError) return;
       console.error('Failed to save pasted image:', err);
       alert(t('canvas.saveImageFailed') + ': ' + (err as Error).message);
     }

@@ -1,4 +1,6 @@
 import { writeFile, mkdir, exists } from "@tauri-apps/plugin-fs";
+import { open } from "@tauri-apps/plugin-dialog";
+import i18n from "../i18n";
 
 export type StorageMode = "vault-assets" | "fixed-directory" | "image-bed";
 export type FilenameFormat = "original" | "timestamp" | "both";
@@ -199,6 +201,14 @@ export interface SaveImageResult {
   markdownRef: string;
 }
 
+/** 用户取消目录选择时抛出的错误（调用方应静默忽略） */
+export class ImageSaveCancelledError extends Error {
+  constructor() {
+    super("cancelled");
+    this.name = "ImageSaveCancelledError";
+  }
+}
+
 export async function saveImageToLocal(
   file: File,
   settings: ImageSettings,
@@ -214,7 +224,19 @@ export async function saveImageToLocal(
       if (settings.fixedDirectory.path) {
         return saveToFixedDirectory(uint8, file.name, settings, null);
       }
-      throw new Error("未打开任何仓库，请在设置中配置固定存储目录");
+      // 未打开仓库且未配置固定目录：弹出目录选择器让用户指定图片保存位置，
+      // 并记住该目录，之后未打开仓库时直接保存到此处
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: i18n.t("imageManager.selectSaveDir"),
+      });
+      if (!selected || typeof selected !== "string") {
+        throw new ImageSaveCancelledError();
+      }
+      const newSettings = { ...settings, fixedDirectory: { path: selected } };
+      saveImageSettings(newSettings);
+      return saveToFixedDirectory(uint8, file.name, newSettings, null);
     }
 
     const assetsDir = joinPath(vaultPath, "assets");

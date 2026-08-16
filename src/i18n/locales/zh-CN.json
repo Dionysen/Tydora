@@ -811,7 +811,8 @@
   },
   "imageManager": {
     "noVault": "未打开任何仓库，请在设置中配置固定存储目录",
-    "noFixedDir": "未配置固定存储目录，请在设置中配置"
+    "noFixedDir": "未配置固定存储目录，请在设置中配置",
+    "selectSaveDir": "未打开仓库，请选择图片保存目录"
   },
   "publish": {
     "title": "发布为网站",

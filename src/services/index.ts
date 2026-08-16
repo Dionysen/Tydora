@@ -6,6 +6,7 @@ export {
   saveImageToLocal,
   resolveRelativePath,
   dirName,
+  ImageSaveCancelledError,
 } from "./ImageManager";
 export type { ImageSettings, StorageMode, FilenameFormat } from "./ImageManager";
 export { useVaultWatcher } from "./useVaultWatcher";

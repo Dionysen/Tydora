@@ -811,7 +811,8 @@
   },
   "imageManager": {
     "noVault": "No vault is open. Please configure a fixed storage directory in settings.",
-    "noFixedDir": "No fixed storage directory configured. Please configure it in settings."
+    "noFixedDir": "No fixed storage directory configured. Please configure it in settings.",
+    "selectSaveDir": "No vault is open. Choose a folder to save images"
   },
   "publish": {
     "title": "Publish as Website",

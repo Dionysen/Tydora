@@ -15,6 +15,37 @@ struct PreviewServer(Mutex<Option<std::process::Child>>);
 /// 避免固定延迟发事件与前端监听注册之间的竞态导致文件打开为空。
 pub struct PendingFiles(Mutex<Vec<String>>);
 
+/// 主窗口即将关闭标记：前端在关闭主窗口前先调用 `notify_main_closing` 置位。
+/// 单实例回调据此判断"主窗口正在销毁"，避免向已销毁的窗口句柄调用
+/// show/emit 触发 Windows "PostMessage failed（0x80070578 无效的窗口句柄）"。
+/// （tauri 2 的 WebviewWindow 没有 is_destroyed() API，窗口 close() 后到
+/// 从窗口集合移除之间有一段无法用 get_webview_window 判空的竞态窗口期。）
+pub struct MainWindowClosing(std::sync::atomic::AtomicBool);
+
+impl Default for MainWindowClosing {
+    fn default() -> Self {
+        Self(std::sync::atomic::AtomicBool::new(false))
+    }
+}
+
+/// 主窗口是否仍然有效（未关闭且未被标记为正在关闭）
+fn is_main_window_alive(app: &tauri::AppHandle) -> bool {
+    if let Some(state) = app.try_state::<MainWindowClosing>() {
+        if state.0.load(std::sync::atomic::Ordering::SeqCst) {
+            return false;
+        }
+    }
+    app.get_webview_window("main").is_some()
+}
+
+/// 前端关闭主窗口前调用，通知后端"主窗口即将销毁"。
+#[tauri::command]
+fn notify_main_closing(app: tauri::AppHandle) {
+    if let Some(state) = app.try_state::<MainWindowClosing>() {
+        state.0.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
 /// 过滤命令行参数中的 Markdown 文件路径
 fn filter_markdown_paths(args: &[String]) -> Vec<String> {
     args.iter()
@@ -168,7 +199,11 @@ fn spawn_editor_window(
             let lbl = label.clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_millis(500));
-                let _ = app_handle.emit_to(&lbl, "open-file", &fp);
+                // 延迟期间窗口可能已被关闭（关闭后 get_webview_window 返回 None），
+                // 向已销毁窗口 emit 会触发 "PostMessage failed（0x80070578 无效的窗口句柄）"
+                if app_handle.get_webview_window(&lbl).is_some() {
+                    let _ = app_handle.emit_to(&lbl, "open-file", &fp);
+                }
             });
             Ok(())
         }
@@ -340,7 +375,11 @@ async fn open_canvas_in_new_window(
             let lbl = label.clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_millis(500));
-                let _ = app_handle.emit_to(&lbl, "canvas-file-open", &cp);
+                // 延迟期间窗口可能已被关闭（关闭后 get_webview_window 返回 None），
+                // 向已销毁窗口 emit 会触发 "PostMessage failed（0x80070578 无效的窗口句柄）"
+                if app_handle.get_webview_window(&lbl).is_some() {
+                    let _ = app_handle.emit_to(&lbl, "canvas-file-open", &cp);
+                }
             });
             Ok(())
         }
@@ -1015,11 +1054,11 @@ async fn switch_to_github_update(app: tauri::AppHandle, url: String) -> Result<(
     let total = resp.content_length();
 
     let installer_path = std::env::temp_dir().join("tydora-github-setup.exe");
+    use std::io::Write;
     let mut file =
         std::fs::File::create(&installer_path).map_err(|e| format!("创建临时文件失败: {e}"))?;
     let mut downloaded: u64 = 0;
     while let Some(chunk) = resp.chunk().await.map_err(|e| format!("下载中断: {e}"))? {
-        use std::io::Write;
         file.write_all(&chunk).map_err(|e| format!("写入失败: {e}"))?;
         downloaded += chunk.len() as u64;
         let _ = app.emit(
@@ -1079,25 +1118,42 @@ pub fn run() {
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_window_state::Builder::new().build())
+        .plugin(
+            tauri_plugin_window_state::Builder::new()
+                // 窗口可见性由前端启动逻辑控制（无仓库时主窗口隐藏、只显示管理仓库窗口），
+                // 因此不恢复/保存可见性状态，避免插件把主窗口强制显示出来
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::all()
+                        ^ tauri_plugin_window_state::StateFlags::VISIBLE,
+                )
+                .build(),
+        )
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             // 应用已运行时双击 .md 文件：把文件路径转发给主窗口
             let md_paths = filter_markdown_paths(&args);
             if let Some(path) = md_paths.last() {
-                if let Some(win) = app.get_webview_window("main") {
-                    // 聚焦主窗口，确保用户能看到打开的文件
-                    let _ = win.unminimize();
-                    let _ = win.set_focus();
-                    // 同时放入待打开队列：若事件发出时前端监听尚未注册（应用启动初期），
-                    // 由前端的延迟二次拉取接管，确保文件不丢失
-                    if let Some(state) = app.try_state::<PendingFiles>() {
-                        state.0.lock().unwrap().push(path.clone());
+                // 主窗口可能正在销毁（无仓库时前端已调用 close 并标记
+                // MainWindowClosing）。此时调用 show/emit 会触发 Windows
+                // "PostMessage failed（0x80070578 无效的窗口句柄）"，
+                // 必须先用 is_main_window_alive() 判断窗口是否仍然有效
+                if is_main_window_alive(app) {
+                    if let Some(win) = app.get_webview_window("main") {
+                        // 主窗口可能处于隐藏状态（启动初期或无仓库时），先显示再聚焦，
+                        // 确保用户能看到打开的文件
+                        let _ = win.show();
+                        let _ = win.unminimize();
+                        let _ = win.set_focus();
+                        // 同时放入待打开队列：若事件发出时前端监听尚未注册（应用启动初期），
+                        // 由前端的延迟二次拉取接管，确保文件不丢失
+                        if let Some(state) = app.try_state::<PendingFiles>() {
+                            state.0.lock().unwrap().push(path.clone());
+                        }
+                        let _ = app.emit_to("main", "open-file-external", path);
                     }
-                    let _ = app.emit_to("main", "open-file-external", path);
                 } else {
-                    // 主窗口已关闭（仍有其他窗口存活）：在新编辑器窗口中打开文件
+                    // 主窗口已关闭或正在销毁（仍有其他窗口存活）：在新编辑器窗口中打开文件
                     let _ = spawn_editor_window(app, path, None, None);
                 }
             }
@@ -1174,7 +1230,8 @@ pub fn run() {
             start_proxy_server,
             fetch_page_title,
             create_export_file,
-            append_export_file
+            append_export_file,
+            notify_main_closing
         ])
         .setup(|app| {
             // 初始化文件监听器状态
@@ -1182,6 +1239,7 @@ pub fn run() {
             app.manage(PreviewServer(std::sync::Mutex::new(None)));
             app.manage(HttpClientState::new());
             app.manage(PendingFiles(std::sync::Mutex::new(Vec::new())));
+            app.manage(MainWindowClosing::default());
 
             // 处理命令行参数（从文件管理器"打开方式"启动时传入的文件路径）：
             // 放入待打开队列，由前端加载完成后通过 take_pending_files 主动拉取

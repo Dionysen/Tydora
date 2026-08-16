@@ -314,8 +314,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
   });
   const [sidebarOpen, setSidebarOpen] = useState(!initialFilePath);
-  // 外部启动（双击 .md 文件）解析状态：resolved = 已确认是否存在外部文件
-  const [externalLaunchResolved, setExternalLaunchResolved] = useState(false);
+  // 外部启动（双击 .md 文件）解析状态：settled = 外部文件二次拉取兜底已完成，
+  // 可以最终决定主窗口可见性（避免竞态提前关闭）
+  const [externalLaunchSettled, setExternalLaunchSettled] = useState(false);
   const [hasExternalFile, setHasExternalFile] = useState(false);
   const [autoHideTopbar, setAutoHideTopbar] = useState(() => {
     try {
@@ -527,13 +528,37 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
   }, [initialVaultPath, vaults]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 启动时如果没有仓库，自动打开管理仓库窗口
-  // （通过文件关联启动打开文件时不弹出，等外部文件解析完成且确实没有文件时才弹）
+  // 启动时窗口可见性策略：
+  // - 无仓库且无外部文件（未通过双击 .md 打开文件）：只显示管理仓库窗口，
+  //   并关闭当前主窗口，用户必须新建或打开仓库后才能进入编辑窗口
+  // - 有仓库或有外部文件：显示当前窗口正常使用
   useEffect(() => {
-    if (vaults.length === 0 && !initialFilePath && externalLaunchResolved && !hasExternalFile) {
-      invoke("open_vault_manager_window");
+    // 等待外部文件二次拉取兜底完成后才决定，避免竞态（首次拉取可能遗漏启动初期的事件）
+    if (!externalLaunchSettled) return;
+    if (vaults.length === 0 && !initialFilePath && !hasExternalFile) {
+      // 先确保管理仓库窗口成功打开，再关闭主窗口，避免应用无窗口退出。
+      // 关闭前通知 Rust 标记主窗口即将销毁，防止单实例回调向正在销毁的
+      // 窗口发消息触发 "PostMessage failed（0x80070578 无效的窗口句柄）"
+      (async () => {
+        try {
+          document.title = "DBG:S1-open";
+          await invoke("open_vault_manager_window");
+          document.title = "DBG:S2-notify";
+          await invoke("notify_main_closing");
+          document.title = "DBG:S3-close";
+          await getCurrentWindow().close();
+          document.title = "DBG:S4-closed";
+        } catch (e) {
+          document.title = "DBG:CATCH-" + String(e);
+          console.error("打开管理仓库窗口失败", e);
+          getCurrentWindow().show();
+        }
+      })();
+    } else {
+      document.title = "DBG:ELSE-SHOW";
+      getCurrentWindow().show();
     }
-  }, [externalLaunchResolved, hasExternalFile]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [externalLaunchSettled, hasExternalFile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 构建链接索引和标签索引
   useEffect(() => {
@@ -1007,13 +1032,14 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   useEffect(() => {
     if (initialFilePath) {
       // 新窗口模式（window=editor）：文件路径来自 URL 参数，不走外部队列
-      setExternalLaunchResolved(true);
+      setExternalLaunchSettled(true);
       return;
     }
     (async () => {
       await processPendingFiles();
-      setExternalLaunchResolved(true);
-      setTimeout(() => { processPendingFiles(); }, 1200);
+      setTimeout(() => {
+        processPendingFiles().then(() => setExternalLaunchSettled(true));
+      }, 1200);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1298,6 +1324,11 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   const handleClose = useCallback(async () => {
     await saveWindowStateRef.current();
+    // 关闭主窗口前通知 Rust 标记其即将销毁，避免单实例回调向正在销毁的
+    // 窗口发消息触发 "PostMessage failed（0x80070578 无效的窗口句柄）"
+    if (getCurrentWindow().label === "main") {
+      invoke("notify_main_closing");
+    }
     getCurrentWindow().close();
   }, []);
 
