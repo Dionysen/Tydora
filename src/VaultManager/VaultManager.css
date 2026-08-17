@@ -395,35 +395,45 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 80px 40px 40px;
+  padding: 32px 40px 28px;
   overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+/* 垂直方向安全居中：空间充足时上下留白均分（避免图标悬顶/底部空旷），
+   空间不足时内容顶部可正常滚动、不被裁剪 */
+.vault-manager-content::before,
+.vault-manager-content::after {
+  content: "";
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 .vault-manager-icon {
-  width: 120px;
-  height: 120px;
-  margin-bottom: 16px;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 12px;
   filter: drop-shadow(0 4px 12px rgba(137, 180, 250, 0.3));
 }
 
 .vault-manager-title {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
-  margin: 0 0 4px;
+  margin: 0 0 2px;
   color: var(--text-secondary, #a6adc8);
 }
 
 .vault-manager-version {
   font-size: 14px;
   color: var(--text-secondary, #a6adc8);
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   opacity: 0.7;
 }
 
 .vault-manager-subtitle {
   font-size: 15px;
   color: var(--text-secondary, #a6adc8);
-  margin: 0 0 32px;
+  margin: 0 0 20px;
   text-align: center;
 }
 
@@ -509,6 +519,8 @@
   font-size: 13px;
   outline: none;
   cursor: pointer;
+  flex-shrink: 0;
+  min-width: 120px;
 }
 
 .vault-manager-language-select:hover {

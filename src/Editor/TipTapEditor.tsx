@@ -1,5 +1,6 @@
 import { useRef, useEffect, forwardRef, useImperativeHandle, useCallback, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
+import { markInputRule } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Paragraph from "@tiptap/extension-paragraph";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -186,9 +187,37 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
           },
           addKeyboardShortcuts() { return {}; },
         }),
-        Bold.extend({ addKeyboardShortcuts() { return {}; } }),
-        Italic.extend({ addKeyboardShortcuts() { return {}; } }),
-        Strike.extend({ addKeyboardShortcuts() { return {}; } }),
+        // 以下 Markdown 输入规则移除了官方正则中的 (?:^|\s) 前缀限制，
+        // 使 `**加粗**`、`*斜体*`、`~~删除线~~` 在行中（前面有字）也能即时渲染，
+        // 与行首输入行为保持一致（Obsidian 即时渲染同款行为）
+        Bold.extend({
+          addKeyboardShortcuts() { return {}; },
+          addInputRules() {
+            return [
+              markInputRule({ find: /(\*\*(?!\s+\*\*)((?:[^*]+))\*\*(?!\s+\*\*))$/, type: this.type }),
+              markInputRule({ find: /(__(?!\s+__)((?:[^_]+))__(?!\s+__))$/, type: this.type }),
+            ];
+          },
+        }),
+        Italic.extend({
+          addKeyboardShortcuts() { return {}; },
+          addInputRules() {
+            return [
+              // (?<!\*) / (?<!_) 保证 * / _ 前面不能是相同的星号/下划线，
+              // 避免输入 **加粗** 时中间状态 **加粗* 被斜体规则从第二个星号处提前匹配为 *加粗*
+              markInputRule({ find: /(?<!\*)(\*(?!\s+\*)((?:[^*]+))\*(?!\s+\*))$/, type: this.type }),
+              markInputRule({ find: /(?<!_)(_(?!\s+_)((?:[^_]+))_(?!\s+_))$/, type: this.type }),
+            ];
+          },
+        }),
+        Strike.extend({
+          addKeyboardShortcuts() { return {}; },
+          addInputRules() {
+            return [
+              markInputRule({ find: /(~~(?!\s+~~)((?:[^~]+))~~(?!\s+~~))$/, type: this.type }),
+            ];
+          },
+        }),
         Code.extend({ addKeyboardShortcuts() { return {}; } }),
         Blockquote.extend({ addKeyboardShortcuts() { return {}; } }).extend({
           addStorage() {
@@ -706,7 +735,14 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         TaskItem.configure({
           nested: true,
         }),
-        Highlight,
+        // 高亮标记（==text==）同样去掉 (?:^|\s) 前缀限制，支持行中即时渲染
+        Highlight.extend({
+          addInputRules() {
+            return [
+              markInputRule({ find: /(==(?!\s+==)((?:[^=]+))==(?!\s+==))$/, type: this.type }),
+            ];
+          },
+        }),
         Typography,
         Markdown.configure({
           html: true,

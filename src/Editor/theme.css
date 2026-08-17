@@ -749,10 +749,12 @@
 .tiptap-export-content .callout-title-quote     { color: #9d9d9d; }
 .tiptap-export-content .callout-title-faq       { color: #0969da; }
 
-/* 列表思维导图图标 — heading 绝对定位到右侧 */
-.tiptap-editor .bullet-list-mindmap-heading {
-  position: relative;
-  counter-increment: line;
+/* 列表思维导图图标 — 按钮定位到行号列（与行号同列，替代该行行号） */
+
+/* 有思维导图按钮的标题行：不再显示行号，由按钮替代。
+   widget 渲染为 h1 的直接子元素；用 :has() 精准匹配（不依赖会被丢弃的节点 class） */
+.tiptap-editor .tiptap :is(h1, h2, h3, h4, h5, h6):has(> .bullet-list-mindmap-icon)::before {
+  content: none;
 }
 
 .bullet-list-mindmap-icon {
@@ -778,18 +780,20 @@
   height: 14px;
 }
 
-/* 有 heading 时：绝对定位到 heading 行最右侧 */
+/* 有 heading 时：icon 是 heading 的 inline widget（渲染为 <h1> 子元素），
+   相对 h1 绝对定位到行号列（right: -2.25rem 与行号 ::before 同一列） */
 .bullet-list-mindmap-icon.heading-icon {
   position: absolute;
-  right: 0;
+  right: -2.25rem;
   top: 0;
   z-index: 1;
 }
 
-/* 无 heading 时（bulletList widget）：绝对定位到第一个 listItem 右上侧 */
+/* 无 heading 时（bulletList/taskList widget）：icon 相对列表容器（ul, position:relative）
+   绝对定位到第一行的行号列 */
 .bullet-list-mindmap-icon.list-icon {
   position: absolute;
-  right: 0;
+  right: -2.25rem;
   top: 0;
   z-index: 1;
 }
@@ -797,6 +801,11 @@
 /* 无 heading 时：给列表容器添加 position:relative，让 list-icon 正确定位 */
 .tiptap-editor .bullet-list-mindmap-list-container {
   position: relative;
+}
+
+/* 有按钮的列表第一行：不再显示行号，由按钮替代 */
+.tiptap-editor .bullet-list-mindmap-list-container:has(> .bullet-list-mindmap-icon) > li:first-child::before {
+  content: none;
 }
 
 /* 表格 */

@@ -82,3 +82,9 @@ ehthumbs.db
 Thumbs.db
 ```
 
+
+# Tencent Cloud EdgeOne
+.env
+.edgeone/*
+.tef_dist/*
+  

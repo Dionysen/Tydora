@@ -79,6 +79,9 @@ const ACTIVE_VAULT_KEY = "zmd-active-vault";
 const SIDEBAR_WIDTH_KEY = "zmd-sidebar-width";
 const XHS_PREVIEW_WIDTH_KEY = "zmd-xhs-preview-width";
 const WINDOW_STATE_KEY = "zmd-window-state";
+// 编辑窗口（顶部栏"在新窗口打开"、新窗口打开仓库）使用独立状态 key，
+// 避免与主窗口互相覆盖位置/尺寸
+const EDITOR_WINDOW_STATE_KEY = "zmd-editor-window-state";
 const RECENT_FILES_KEY = "zmd-recent-files";
 const PINNED_ITEMS_KEY = "zmd-pinned-toolbar-items";
 
@@ -254,6 +257,33 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     };
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
+  // Ctrl + 滚轮：在编辑区调整字号（范围与设置面板一致 10-24px，持久化到 zmd-general-settings）
+  useEffect(() => {
+    const container = document.querySelector<HTMLElement>(".editor-container");
+    if (!container) return;
+    // React 的 onWheel 是被动监听、无法 preventDefault，这里用原生非被动监听器
+    // 避免触发 Chromium 默认的 Ctrl+滚轮页面缩放
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      if (e.altKey || e.shiftKey) return;
+      e.preventDefault();
+      const dir = e.deltaY < 0 ? 1 : -1; // 向上滚动放大，向下滚动缩小
+      try {
+        // 从 localStorage 读取当前字号并更新（generalSettings 状态在设置窗口 Settings.tsx 中管理）
+        const raw = localStorage.getItem("zmd-general-settings");
+        const settings = raw ? JSON.parse(raw) : {};
+        const current = typeof settings.fontSize === "number" ? settings.fontSize : 16;
+        const next = Math.min(24, Math.max(10, Math.round(current) + dir));
+        if (next === current) return;
+        settings.fontSize = next;
+        localStorage.setItem("zmd-general-settings", JSON.stringify(settings));
+        document.documentElement.style.setProperty("--editor-font-size", next + "px");
+      } catch {}
+    };
+    container.addEventListener("wheel", onWheel, { passive: false });
+    return () => container.removeEventListener("wheel", onWheel);
   }, []);
 
   // 滚动条自动隐藏：滚动时立即显示，停止滚动 400ms 后快速隐藏
@@ -666,6 +696,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   useEffect(() => {
     if (!(window as any).__TAURI_INTERNALS__) return;
     const win = getCurrentWindow();
+    // 编辑窗口（window=editor，标签以 "editor-" 开头）使用独立状态 key，
+    // 首次打开时不做任何覆盖，保留 Rust 端按编辑区尺寸创建的窗口大小与居中位置
+    const isEditorWindow = win.label.startsWith("editor-");
+    const stateKey = isEditorWindow ? EDITOR_WINDOW_STATE_KEY : WINDOW_STATE_KEY;
 
     // 保存当前窗口状态到 localStorage
     const saveWindowState = async () => {
@@ -675,12 +709,22 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         if (!maximized) {
           const pos = await win.outerPosition();
           const size = await win.outerSize();
-          state.x = pos.x;
-          state.y = pos.y;
-          state.width = size.width;
-          state.height = size.height;
+          if (isEditorWindow) {
+            // 编辑窗口保存逻辑坐标（物理坐标 / scaleFactor），
+            // Rust 创建新窗口时可直接用 position(x, y) 在该位置打开，避免 DPI 偏移
+            const scale = await win.scaleFactor();
+            state.x = pos.x / scale;
+            state.y = pos.y / scale;
+            state.width = size.width / scale;
+            state.height = size.height / scale;
+          } else {
+            state.x = pos.x;
+            state.y = pos.y;
+            state.width = size.width;
+            state.height = size.height;
+          }
         }
-        localStorage.setItem(WINDOW_STATE_KEY, JSON.stringify(state));
+        localStorage.setItem(stateKey, JSON.stringify(state));
       } catch {
         // 忽略保存错误
       }
@@ -690,7 +734,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     // 恢复保存的窗口状态
     (async () => {
       try {
-        const saved = localStorage.getItem(WINDOW_STATE_KEY);
+        const saved = localStorage.getItem(stateKey);
         if (!saved) return;
         const state = JSON.parse(saved) as {
           x: number; y: number; width: number; height: number; maximized: boolean;
@@ -703,10 +747,15 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
             { x: state.x ?? 0, y: state.y ?? 0, width: state.width, height: state.height },
             monitors
           );
-          await win.setSize(new PhysicalSize(clamped.width, clamped.height));
-          await win.setPosition(new PhysicalPosition(clamped.x, clamped.y));
+          // 编辑窗口：位置/尺寸在 Rust 创建窗口时已按保存状态直接设置（或按编辑区尺寸居中），
+          // 前端不再二次移动，避免"先打开窗口再移动"的跳动；仅主窗口需要恢复
+          if (!isEditorWindow) {
+            await win.setSize(new PhysicalSize(clamped.width, clamped.height));
+            await win.setPosition(new PhysicalPosition(clamped.x, clamped.y));
+          }
         }
-        if (state.maximized) {
+        // 编辑窗口不恢复最大化，保证新窗口宽度始终等于编辑区宽度
+        if (state.maximized && !isEditorWindow) {
           await win.maximize();
         }
       } catch {
@@ -1254,10 +1303,25 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       const el = document.querySelector('.editor-container');
       const width = el ? el.clientWidth : 800;
       const height = el ? el.clientHeight : 600;
+      // 读取上次编辑窗口保存的位置，直接在该位置打开窗口（避免先居中再移动的跳动）
+      let posX: number | undefined;
+      let posY: number | undefined;
+      try {
+        const saved = localStorage.getItem(EDITOR_WINDOW_STATE_KEY);
+        if (saved) {
+          const state = JSON.parse(saved) as Record<string, unknown>;
+          if (typeof state.x === "number" && typeof state.y === "number") {
+            posX = state.x;
+            posY = state.y;
+          }
+        }
+      } catch {}
       await invoke("open_file_in_new_window", {
         filePath,
         width,
         height,
+        posX,
+        posY,
       });
     } catch (err) {
       console.error(t("app.error.openNewWindowFailed"), err);

@@ -50,6 +50,15 @@ function countListItems(node: ProsemirrorNode): number {
   return count;
 }
 
+// ── 计算首个代码点的 UTF-16 宽度（emoji=2，普通字符=1） ──
+// widget 若放在文本内部会切断文本节点；放在“首个完整代码点之后”既不切断 emoji 代理对，
+// 又能保证 widget 渲染为 heading 的子元素（可绝对定位到行号列）
+function firstCodePointWidth(text: string): number {
+  if (!text) return 0;
+  const c = text.charCodeAt(0);
+  return c >= 0xd800 && c <= 0xdbff ? 2 : 1;
+}
+
 // ── 查找列表上方紧邻的 heading（仅当中间无其他有效块级元素时关联） ──
 function findNearestHeading(
   doc: ProsemirrorNode,
@@ -160,19 +169,18 @@ function createBulletListDecorations(doc: ProsemirrorNode): DecorationSet {
     if (itemCount <= 2) return;
 
     const heading = findNearestHeading(doc, pos);
+    const w = heading ? firstCodePointWidth(heading.text) : 0;
+    // 空标题 / 单代码点标题（单个 emoji 或单字符）：找不到“完整代码点之后”的安全位置，
+    // 降级为列表图标（挂在列表容器上）
+    const headingUsable = !!heading && w > 0 && heading.text.length > w;
 
-    if (heading) {
-      // 给 heading 添加 class（position:relative 已由行号 CSS 提供，此 class 用于标识/扩展）
+    if (headingUsable) {
+      // icon 作为 heading 的 inline widget，放在“首个完整代码点之后”：
+      // 渲染为 <h1> 的子元素（可相对 h1 绝对定位到行号列），且不会切断 emoji 代理对
       decorations.push(
-        Decoration.node(heading.pos, heading.pos + heading.nodeSize, {
-          class: "bullet-list-mindmap-heading",
-        }),
-      );
-      // icon 放在 heading 之后，利用 <h1..6> 已有的 position:relative 绝对定位
-      decorations.push(
-        Decoration.widget(heading.pos + heading.nodeSize, () =>
+        Decoration.widget(heading.pos + w, () =>
           createMindmapIcon(pos, heading.text),
-        { side: 1 }),
+        { side: -1 }),
       );
     } else {
       // 无 heading：给列表容器添加 position:relative，让绝对定位的图标正确定位
@@ -182,24 +190,13 @@ function createBulletListDecorations(doc: ProsemirrorNode): DecorationSet {
         }),
       );
 
-      const isTaskList = node.type.name === "taskList";
-
-      if (isTaskList) {
-        // widget 放在 <ul> 内容开头（第一个 <li> 之前）
-        // 避免放入 taskItem 的 contentDOM 导致定位异常
-        decorations.push(
-          Decoration.widget(pos + 1, () =>
-            createMindmapIcon(pos, ""),
-          { side: 1 }),
-        );
-      } else {
-        // bulletList 无 NodeView，widget 方式正常工作
-        decorations.push(
-          Decoration.widget(pos + 3, () =>
-            createMindmapIcon(pos, ""),
-          { side: 0 }),
-        );
-      }
+      // widget 放在 <ul> 内容开头（第一个 <li> 之前）：
+      // 避免放入 listItem/taskItem 的 contentDOM 导致定位异常，也避免切分列表文本（emoji 安全）
+      decorations.push(
+        Decoration.widget(pos + 1, () =>
+          createMindmapIcon(pos, ""),
+        { side: 1 }),
+      );
     }
   });
 

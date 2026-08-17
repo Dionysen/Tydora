@@ -152,11 +152,14 @@ async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 /// 创建编辑器窗口并在其中打开文件（URL 参数 + 延迟事件双通道）
+/// 若提供了上次保存的窗口位置 (pos_x, pos_y)，则直接在该位置打开，否则居中显示
 fn spawn_editor_window(
     app: &tauri::AppHandle,
     file_path: &str,
     width: Option<f64>,
     height: Option<f64>,
+    pos_x: Option<f64>,
+    pos_y: Option<f64>,
 ) -> Result<(), String> {
     let file_name = file_path
         .split('\\')
@@ -179,7 +182,7 @@ fn spawn_editor_window(
     let url = format!("index.html?window=editor&file={}", encoded_path);
     let title = format!("{} - Tydora", file_name);
 
-    let window = WebviewWindowBuilder::new(
+    let mut builder = WebviewWindowBuilder::new(
         app,
         &label,
         tauri::WebviewUrl::App(url.into()),
@@ -187,10 +190,17 @@ fn spawn_editor_window(
     .title(&title)
     .inner_size(width.unwrap_or(1200.0), height.unwrap_or(800.0))
     .min_inner_size(600.0, 400.0)
-    .center()
     .decorations(false)
-    .resizable(true)
-    .build();
+    .resizable(true);
+
+    // 有上次保存的位置则直接在该位置打开（避免先居中再移动的跳动），否则居中
+    // 前端保存的为逻辑坐标（outerPosition / scaleFactor），position 直接接受逻辑坐标
+    builder = match (pos_x, pos_y) {
+        (Some(px), Some(py)) => builder.position(px, py),
+        _ => builder.center(),
+    };
+
+    let window = builder.build();
 
     match window {
         Ok(_) => {
@@ -218,8 +228,10 @@ async fn open_file_in_new_window(
     file_path: String,
     width: Option<f64>,
     height: Option<f64>,
+    pos_x: Option<f64>,
+    pos_y: Option<f64>,
 ) -> Result<(), String> {
-    spawn_editor_window(&app, &file_path, width, height)
+    spawn_editor_window(&app, &file_path, width, height, pos_x, pos_y)
 }
 
 /// 打开思维导图窗口
@@ -1479,7 +1491,7 @@ pub fn run() {
                     }
                 } else {
                     // 主窗口已关闭或正在销毁（仍有其他窗口存活）：在新编辑器窗口中打开文件
-                    let _ = spawn_editor_window(app, path, None, None);
+                    let _ = spawn_editor_window(app, path, None, None, None, None);
                 }
             }
         }))
