@@ -499,6 +499,22 @@
   border-color: var(--accent-hover, #74c7ec);
 }
 
+/* Language selector (卡片内右侧控件) */
+.vault-manager-language-select {
+  padding: 6px 10px;
+  border: 1px solid var(--border, #45475a);
+  border-radius: 6px;
+  background: var(--bg-primary, #1e1e2e);
+  color: var(--text-secondary, #a6adc8);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+
+.vault-manager-language-select:hover {
+  border-color: var(--accent, #89b4fa);
+}
+
 /* Scrollbar */
 .vault-manager-list::-webkit-scrollbar {
   width: 6px;

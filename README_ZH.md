@@ -1,7 +1,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/zuorn/Tydora?style=flat-square)](https://github.com/zuorn/Tydora)
 [![Release](https://img.shields.io/github/v/release/zuorn/Tydora?style=flat-square)](https://github.com/zuorn/Tydora/releases)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square)]()
+[![License](<https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square>)](LICENSE)
+[![Platform](<https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square>)]()
 [![Tauri](https://img.shields.io/badge/Tauri-v2-blue?style=flat-square)](https://v2.tauri.app/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square)](https://react.dev/)
 
@@ -11,7 +11,7 @@
 
 ---
 
-我曾长久地在 **Typora** 里安放专注，在 **Obsidian** 的图谱前整理思绪。但心底始终觉得，还缺少些什么——  
+我曾长久地在 **Typora** 里安放专注，在 **Obsidian** 的图谱前整理思绪。但心底始终觉得，还缺少些什么——
 少一些指尖触及思想时的<mark>绝对顺滑</mark>，少一些让知识直接铺展成画布的<mark>自由</mark>。
 
 于是，我决定自己写一个。它的名字叫 **Tydora**。
@@ -52,12 +52,16 @@
 
 ---
 
-它是我交出的答案，也是递给同路人的一份邀请。  
+## **📚一张书桌，静候同路人**
+
+它是我交出的答案，也是递给同路人的一份邀请。
 如果你也在寻找更懂你的<mark>书写伴侣</mark>，不妨来 **Tydora** 坐坐。
 
-🔗 [Tydora — 让思想自由流动](https://zuorn.github.io/Tydora/)
+🔗 [https://zuorn.github.io/Tydora](https://zuorn.github.io/Tydora)
 
 有任何想让它做到的事，请告诉我——我继续打磨，直到它成为我们<mark>心中理想的样子</mark>。
+
+---
 
 ## 快速开始
 
@@ -76,13 +80,13 @@ npm run tauri build
 
 ## 技术栈
 
-| 层级 | 技术 |
-| --- | --- |
-| 前端 | React 19 + TypeScript + Vite 6 |
-| 编辑器 | TipTap 3.x (WYSIWYG) + CodeMirror 6 (源码) |
-| 后端 | Rust (Tauri v2) |
-| 可视化 | D3.js (图谱) + markmap (思维导图) + React Flow (画布) |
-| 插件 | tauri-plugin-fs / dialog / window-state / updater / process |
+| 层级   | 技术                                                        |
+| ------ | ----------------------------------------------------------- |
+| 前端   | React 19 + TypeScript + Vite 6                              |
+| 编辑器 | TipTap 3.x (WYSIWYG) + CodeMirror 6 (源码)                  |
+| 后端   | Rust (Tauri v2)                                             |
+| 可视化 | D3.js (图谱) + markmap (思维导图) + React Flow (画布)       |
+| 插件   | tauri-plugin-fs / dialog / window-state / updater / process |
 
 ## 贡献
 

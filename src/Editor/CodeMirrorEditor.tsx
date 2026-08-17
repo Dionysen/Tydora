@@ -1,5 +1,5 @@
 import { useRef, useEffect, forwardRef, useImperativeHandle, useMemo } from "react";
-import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, Decoration, ViewPlugin } from "@codemirror/view";
+import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, Decoration, ViewPlugin, placeholder } from "@codemirror/view";
 import { EditorState, Compartment, RangeSetBuilder } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
@@ -431,6 +431,8 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
           closeBrackets(),
           autocompletion(),
           highlightSelectionMatches(),
+          // Markdown 文件空内容时提示输入 @ 插入 wiki-link
+          ...(useMarkdownHighlighting ? [placeholder("输入@插入")] : []),
           languageExtension,
           markdownTheme,
           ...mathExtensions,

@@ -21,7 +21,7 @@ function getStoredLanguage(): SupportedLanguage {
   } catch {
     // localStorage unavailable
   }
-  return "zh-CN";
+  return "en-US";
 }
 
 export function persistLanguage(lang: SupportedLanguage): void {
@@ -40,7 +40,7 @@ const resources = {
 i18n.use(initReactI18next).init({
   resources,
   lng: getStoredLanguage(),
-  fallbackLng: "zh-CN",
+  fallbackLng: "en-US",
   interpolation: {
     escapeValue: false, // React already escapes
   },

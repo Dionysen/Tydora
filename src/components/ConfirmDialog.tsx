@@ -8,8 +8,15 @@ interface ConfirmDialogProps {
   type?: "info" | "warning" | "danger";
   confirmText?: string;
   cancelText?: string;
+  /** 可选的第三个按钮（危险操作，如"不保存"） */
+  discardText?: string;
+  /** 快捷键提示，多个键用 "/" 分隔（如 "Y/Enter"） */
+  confirmHint?: string;
+  cancelHint?: string;
+  discardHint?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  onDiscard?: () => void;
 }
 
 export function ConfirmDialog({
@@ -19,13 +26,20 @@ export function ConfirmDialog({
   type = "warning",
   confirmText,
   cancelText,
+  discardText,
+  confirmHint = "Y/Enter",
+  cancelHint = "N",
+  discardHint = "X",
   onConfirm,
   onCancel,
+  onDiscard,
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
   const dialogRef = useRef<HTMLDivElement>(null);
   const resolvedConfirmText = confirmText ?? t("dialog.confirm");
   const resolvedCancelText = cancelText ?? t("dialog.cancel");
+  const resolvedDiscardText = discardText ?? "";
+  const hasDiscard = Boolean(onDiscard && resolvedDiscardText);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -39,6 +53,8 @@ export function ConfirmDialog({
         onConfirm();
       } else if (e.key.toLowerCase() === "n") {
         onCancel();
+      } else if (e.key.toLowerCase() === "x" || e.key.toLowerCase() === "d") {
+        if (hasDiscard) onDiscard?.();
       }
     };
 
@@ -55,7 +71,7 @@ export function ConfirmDialog({
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("mousedown", handleOverlayClick);
     };
-  }, [isOpen, onConfirm, onCancel]);
+  }, [isOpen, onConfirm, onCancel, hasDiscard, onDiscard]);
 
   if (!isOpen) return null;
 
@@ -79,10 +95,18 @@ export function ConfirmDialog({
         <div className="confirm-dialog-message">{message}</div>
         <div className="confirm-dialog-actions">
           <button className="confirm-dialog-btn confirm-dialog-btn-cancel" onClick={onCancel}>
-            {resolvedCancelText} <span className="confirm-dialog-btn-hint">(N)</span>
+            {resolvedCancelText}
+            <span className="confirm-dialog-btn-hint">({cancelHint})</span>
           </button>
+          {hasDiscard && onDiscard && (
+            <button className="confirm-dialog-btn confirm-dialog-btn-discard" onClick={onDiscard}>
+              {resolvedDiscardText}
+              <span className="confirm-dialog-btn-hint">({discardHint})</span>
+            </button>
+          )}
           <button className="confirm-dialog-btn confirm-dialog-btn-confirm" onClick={onConfirm}>
-            {resolvedConfirmText} <span className="confirm-dialog-btn-hint">(Y/Enter)</span>
+            {resolvedConfirmText}
+            <span className="confirm-dialog-btn-hint">({confirmHint})</span>
           </button>
         </div>
       </div>

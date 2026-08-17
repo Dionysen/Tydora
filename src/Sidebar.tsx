@@ -54,6 +54,7 @@ interface ContextMenuItem {
   disabled?: boolean;
   danger?: boolean;
   separator?: boolean;
+  children?: ContextMenuItem[];
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -434,6 +435,24 @@ function ContextMenu({
   onClose: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const subRef = useRef<HTMLDivElement>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [subMenuPos, setSubMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+
+  const cancelSubClose = () => {
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
+  const scheduleSubClose = () => {
+    closeTimerRef.current = window.setTimeout(() => {
+      setOpenIndex(null);
+      setSubMenuPos(null);
+    }, 120);
+  };
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -449,6 +468,7 @@ function ContextMenu({
     return () => {
       document.removeEventListener("mousedown", handler);
       document.removeEventListener("keydown", keyHandler);
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
     };
   }, [onClose]);
 
@@ -478,13 +498,51 @@ function ContextMenu({
     menu.style.top = `${top}px`;
   }, [x, y]);
 
+  // 子菜单渲染到 body 后，按视口边界修正位置（避免底部/右侧溢出）
+  useLayoutEffect(() => {
+    if (openIndex === null || !subMenuPos || !subRef.current) return;
+    const rect = subRef.current.getBoundingClientRect();
+    const GAP = 4;
+    let top = subMenuPos.top;
+    let left = subMenuPos.left;
+    if (top + rect.height > window.innerHeight - GAP) {
+      top = Math.max(GAP, window.innerHeight - GAP - rect.height);
+    }
+    if (left + rect.width > window.innerWidth - GAP) {
+      left = Math.max(GAP, window.innerWidth - GAP - rect.width);
+    }
+    subRef.current.style.top = `${top}px`;
+    subRef.current.style.left = `${left}px`;
+  }, [openIndex, subMenuPos]);
+
+  const handleItemMouseEnter = (e: React.MouseEvent<HTMLDivElement>, index: number, hasChildren: boolean) => {
+    cancelSubClose();
+    if (!hasChildren) {
+      setOpenIndex(null);
+      setSubMenuPos(null);
+      return;
+    }
+    const itemRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const GAP = 4;
+    const SUB_WIDTH = 216; // 预估子菜单宽度（min-width 200 + padding 8 + 边框 2 + 间距）
+    let left = itemRect.right + GAP;
+    if (left + SUB_WIDTH > window.innerWidth - GAP) {
+      left = itemRect.left - GAP - SUB_WIDTH;
+      if (left < GAP) left = GAP;
+    }
+    setSubMenuPos({ top: itemRect.top, left });
+    setOpenIndex(index);
+  };
+
   return createPortal(
     <div ref={menuRef} className="context-menu">
       {items.map((item, i) => (
         <div key={i}>
           {item.separator && <div className="context-menu-divider" />}
           <div
-            className={`context-menu-item${item.danger ? " danger" : ""}${item.disabled ? " disabled" : ""}`}
+            className={`context-menu-item${item.danger ? " danger" : ""}${item.disabled ? " disabled" : ""}${
+              item.children ? " has-submenu" : ""
+            }${openIndex === i ? " open" : ""}`}
             onClick={(e) => {
               e.stopPropagation();
               if (!item.disabled) {
@@ -492,10 +550,55 @@ function ContextMenu({
                 onClose();
               }
             }}
+            onMouseEnter={(e) => handleItemMouseEnter(e, i, Boolean(item.children))}
+            onMouseLeave={item.children ? scheduleSubClose : undefined}
           >
             {item.icon && <span className="context-menu-icon">{item.icon}</span>}
-            {item.label}
+            <span className="context-menu-label">{item.label}</span>
+            {item.children && (
+              <span className="context-menu-chevron">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </span>
+            )}
           </div>
+          {item.children && openIndex === i && subMenuPos && createPortal(
+            <div
+              ref={subRef}
+              className="context-submenu"
+              style={{ top: subMenuPos.top, left: subMenuPos.left }}
+              onMouseEnter={cancelSubClose}
+              onMouseLeave={scheduleSubClose}
+            >
+              {item.children.map((child, j) => (
+                <div
+                  key={j}
+                  className={`context-menu-item${child.danger ? " danger" : ""}${child.disabled ? " disabled" : ""}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!child.disabled) {
+                      child.onClick();
+                      onClose();
+                    }
+                  }}
+                >
+                  {child.icon && <span className="context-menu-icon">{child.icon}</span>}
+                  <span className="context-menu-label">{child.label}</span>
+                </div>
+              ))}
+            </div>,
+            document.body,
+          )}
         </div>
       ))}
     </div>,
@@ -513,6 +616,8 @@ interface FileActions {
   onSearch: () => void;
   onRename: () => void;
   onDuplicate: () => void;
+  onDuplicateAndCopy: () => void;
+  onCopyFile: () => void;
   onDelete: () => void;
   onCopyPath: () => void;
   onOpenLocation: () => void;
@@ -588,6 +693,12 @@ const MENU_ICONS = {
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
     </>,
   ),
+  copyFile: menuIcon(
+    <>
+      <rect x="8" y="2" width="8" height="4" rx="1" />
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+    </>,
+  ),
   moveTo: menuIcon(
     <>
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -623,7 +734,15 @@ function getFileMenuItems(actions: FileActions, t: (key: string) => string): Con
     { label: t("sidebar.contextMenu.openInNewWindow"), icon: MENU_ICONS.newWindow, onClick: actions.onNewWindow },
     { label: t("sidebar.contextMenu.favorite"), icon: MENU_ICONS.favorite, onClick: actions.onBookmark },
     { label: t("sidebar.contextMenu.rename"), icon: MENU_ICONS.rename, onClick: actions.onRename, separator: true },
-    { label: t("sidebar.contextMenu.duplicate"), icon: MENU_ICONS.duplicate, onClick: actions.onDuplicate },
+    {
+      label: t("sidebar.contextMenu.duplicate"),
+      icon: MENU_ICONS.duplicate,
+      onClick: actions.onDuplicateAndCopy,
+      children: [
+        { label: t("sidebar.contextMenu.duplicateCopy"), icon: MENU_ICONS.duplicate, onClick: actions.onDuplicate },
+        { label: t("sidebar.contextMenu.copyToClipboard"), icon: MENU_ICONS.copyFile, onClick: actions.onCopyFile },
+      ],
+    },
     { label: t("sidebar.contextMenu.moveTo"), icon: MENU_ICONS.moveTo, onClick: actions.onMoveTo },
     { label: t("sidebar.contextMenu.delete"), icon: MENU_ICONS.delete, onClick: actions.onDelete, danger: true, separator: true },
     { label: t("sidebar.contextMenu.copyPath"), icon: MENU_ICONS.copyPath, onClick: actions.onCopyPath, separator: true },
@@ -957,6 +1076,39 @@ function TreeNodeComp({
     }
   }, [node]);
 
+  const handleDuplicate = useCallback(async () => {
+    try {
+      await invoke("duplicate_file", { path: node.path });
+      showToast(i18n.t("sidebar.toast.duplicated"));
+      onReload();
+    } catch (err) {
+      console.error(i18n.t("sidebar.error.duplicateFailed"), err);
+      showToast(i18n.t("sidebar.error.duplicateFailed"));
+    }
+  }, [node, onReload]);
+
+  const handleDuplicateAndCopy = useCallback(async () => {
+    try {
+      await invoke("duplicate_file", { path: node.path });
+      await invoke("copy_file_to_clipboard", { path: node.path });
+      showToast(i18n.t("sidebar.toast.duplicatedAndCopied"));
+      onReload();
+    } catch (err) {
+      console.error(i18n.t("sidebar.error.duplicateAndCopyFailed"), err);
+      showToast(i18n.t("sidebar.error.duplicateAndCopyFailed"));
+    }
+  }, [node, onReload]);
+
+  const handleCopyFileToClipboard = useCallback(async () => {
+    try {
+      await invoke("copy_file_to_clipboard", { path: node.path });
+      showToast(i18n.t("sidebar.toast.fileCopiedToClipboard"));
+    } catch (err) {
+      console.error(i18n.t("sidebar.error.copyToClipboardFailed"), err);
+      showToast(i18n.t("sidebar.error.copyToClipboardFailed"));
+    }
+  }, [node]);
+
   const actions: FileActions = {
     onOpen: () => handleToggle({} as React.MouseEvent),
     onNewWindow: () => onNewWindow(node.path),
@@ -965,7 +1117,9 @@ function TreeNodeComp({
     onNewWhiteboard: handleNewWhiteboard,
     onSearch: showDevAlert,
     onRename: handleRename,
-    onDuplicate: showDevAlert,
+    onDuplicate: handleDuplicate,
+    onDuplicateAndCopy: handleDuplicateAndCopy,
+    onCopyFile: handleCopyFileToClipboard,
     onDelete: handleDelete,
     onCopyPath: handleCopyPath,
     onOpenLocation: handleOpenLocation,
@@ -1509,6 +1663,8 @@ function FileTree({
     onSearch: showDevAlert,
     onRename: () => {},
     onDuplicate: showDevAlert,
+    onDuplicateAndCopy: showDevAlert,
+    onCopyFile: () => {},
     onDelete: () => {},
     onCopyPath: handleCopyRootPath,
     onOpenLocation: handleOpenRootLocation,

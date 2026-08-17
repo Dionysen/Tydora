@@ -1163,9 +1163,16 @@ impl InnerWebView {
     let res = PostMessageW(Some(hwnd), *EXEC_MSG_ID, WPARAM(raw as _), LPARAM(0));
 
     if let Err(err) = res {
-      // 投递失败（消息队列已满，或目标窗口句柄已销毁）：目标窗口线程永远
-      // 不会执行该闭包，必须在此释放它，否则会造成内存泄漏。
-      drop(Box::from_raw(raw));
+      // 投递失败（消息队列已满，或目标窗口句柄已销毁）。
+      //
+      // 重要：这里绝不能 drop(raw) 来防泄漏！
+      // PostMessageW 的返回值与消息队列的实际入队状态之间存在竞态窗口期
+      // （尤其窗口销毁瞬间：句柄仍在但销毁正在进行，PostMessage 可能返回
+      // 失败而消息实际已入队），此时闭包仍会被主线程 main_thread_dispatcher_proc
+      // 消费；若在此处提前释放，消费路径会再次 Box::from_raw + drop，
+      // 造成双重释放 → Windows 堆损坏（0xc0000374 STATUS_HEAP_CORRUPTION）。
+      // 官方 wry 刻意不在此释放（接受极小概率的闭包泄漏），以换取绝无
+      // 双重释放。该泄漏仅在窗口销毁竞态下发生，频率极低，可接受。
 
       // 若窗口句柄已失效——即窗口在异步 WebResourceRequested 回调（asset://、
       // local-file:// 等自定义协议）完成前被销毁——这是 WebView2 异步回调的

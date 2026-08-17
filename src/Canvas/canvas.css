@@ -413,7 +413,7 @@
 }
 
 .canvas-placeholder {
-  color: var(--text-tertiary);
+  color: color-mix(in srgb, var(--text-secondary) 45%, transparent);
   font-style: italic;
   font-size: 12px;
 }
@@ -479,6 +479,18 @@
 
 .canvas-text-editor p {
   margin: 0.5em 0;
+}
+
+/* TipTap Placeholder：空内容时显示"输入@插入"提示 */
+.canvas-text-editor p.is-empty::before,
+.canvas-text-editor p.is-editor-empty::before {
+  content: attr(data-placeholder);
+  color: color-mix(in srgb, var(--text-secondary) 45%, transparent);
+  font-style: italic;
+  font-size: 12px;
+  float: left;
+  height: 0;
+  pointer-events: none;
 }
 
 .canvas-text-editor > :first-child {
@@ -1826,4 +1838,129 @@
   text-align: center;
   color: var(--text-tertiary);
   font-size: 13px;
+}
+
+/* Confirm Dialog (close with unsaved changes) */
+.confirm-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: confirm-dialog-fade-in 0.15s ease;
+}
+
+@keyframes confirm-dialog-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.confirm-dialog {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  padding: 24px;
+  min-width: 400px;
+  max-width: 480px;
+  animation: confirm-dialog-scale-in 0.15s ease;
+}
+
+@keyframes confirm-dialog-scale-in {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.confirm-dialog-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.confirm-dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.confirm-dialog-message {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  white-space: pre-wrap;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.confirm-dialog-actions .confirm-dialog-btn {
+  flex: 0 0 auto;
+}
+
+.confirm-dialog-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 24px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+  min-width: 80px;
+  white-space: nowrap;
+}
+
+.confirm-dialog-btn-cancel {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.confirm-dialog-btn-cancel:hover {
+  background: var(--border);
+}
+
+.confirm-dialog-btn-confirm {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+.confirm-dialog-btn-confirm:hover {
+  opacity: 0.9;
+}
+
+.confirm-dialog-btn-discard {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.confirm-dialog-btn-discard:hover {
+  background: var(--danger);
+  color: white;
+}
+
+.confirm-dialog-btn-hint {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.confirm-dialog-danger .confirm-dialog-btn-confirm {
+  background: var(--danger);
+  color: white;
 }

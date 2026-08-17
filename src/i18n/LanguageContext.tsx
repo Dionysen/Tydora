@@ -8,7 +8,7 @@ interface LanguageContextValue {
 }
 
 const LanguageContext = createContext<LanguageContextValue>({
-  language: "zh-CN",
+  language: "en-US",
   setLanguage: () => {},
 });
 
@@ -16,7 +16,7 @@ const EVENT_NAME = "language-changed";
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<SupportedLanguage>(() => {
-    return (i18n.language as SupportedLanguage) || "zh-CN";
+    return (i18n.language as SupportedLanguage) || "en-US";
   });
 
   const setLanguage = useCallback((lang: SupportedLanguage) => {

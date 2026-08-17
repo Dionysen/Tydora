@@ -8,6 +8,8 @@ import { mkdir, exists } from "@tauri-apps/plugin-fs";
 import { emit } from "@tauri-apps/api/event";
 import { clampWindowToMonitor } from "../services/windowState";
 import { track, trackPageview, ANALYTICS_EVENTS } from "../analytics";
+import { useLanguage } from "../i18n/LanguageContext";
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "../i18n";
 import appIcon from "../assets/icon.png";
 import "./VaultManager.css";
 
@@ -47,6 +49,7 @@ type ViewMode = "home" | "create";
 
 export default function VaultManagerWindow() {
   const { t } = useTranslation();
+  const { language, setLanguage } = useLanguage();
   const [vaults, setVaults] = useState<VaultInfo[]>(loadVaults);
   const [activeIndex, setActiveIndex] = useState<number>(loadActiveIndex);
   const [version, setVersion] = useState("");
@@ -417,6 +420,24 @@ export default function VaultManagerWindow() {
             <button className="vault-manager-btn" onClick={handleOpenVault}>
               {t("vaultManager.open")}
             </button>
+          </div>
+
+          <div className="vault-manager-action vault-manager-language">
+            <div className="vault-manager-action-info">
+              <div className="vault-manager-action-title">{t("vaultManager.language")}</div>
+              <div className="vault-manager-action-desc">{t("vaultManager.languageDesc")}</div>
+            </div>
+            <select
+              className="vault-manager-language-select"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
+            >
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>

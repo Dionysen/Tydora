@@ -39,6 +39,11 @@ export default function GraphWindow() {
     trackPageview("/app/graph");
   }, []);
 
+  // 显示窗口（Rust 端以 visible(false) 创建，加载完成后才显示，避免白屏）
+  useEffect(() => {
+    getCurrentWindow().show().catch(() => {});
+  }, []);
+
   const vaultPath = activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null;
 
   // 同步加载：优先从 localStorage 读取索引（~1ms），立即可用

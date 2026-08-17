@@ -28,7 +28,9 @@ function TextNode({ data, selected, id }: NodeProps) {
         heading: { levels: [1, 2, 3, 4, 5, 6] },
       }),
       Placeholder.configure({
-        placeholder: '输入内容...',
+        placeholder: '输入@插入',
+        // 未聚焦/未选中时也在空节点上显示提示
+        showOnlyCurrent: false,
       }),
       WikiLink,
       Markdown.configure({
@@ -179,7 +181,7 @@ function TextNode({ data, selected, id }: NodeProps) {
           </div>
         ) : (
           <div className="canvas-text-preview">
-            {text || <span className="canvas-placeholder">输入内容...</span>}
+            {text || <span className="canvas-placeholder">输入@插入</span>}
           </div>
         )}
       </div>

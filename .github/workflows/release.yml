@@ -15,6 +15,7 @@ jobs:
       matrix:
         include:
           - platform: windows-latest
+            # Windows 打包 NSIS 安装包，便携版 zip 由构建后的步骤额外生成
             args: ''
           - platform: macos-latest
             args: '--target aarch64-apple-darwin'
@@ -95,3 +96,26 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      # Windows: 额外生成便携版（免安装）zip，内容为 release 构建出的 Tydora.exe
+      - name: Package Windows portable zip
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          $version = (Get-Content VERSION).Trim()
+          $exe = 'src-tauri/target/release/Tydora.exe'
+          if (-not (Test-Path $exe)) { throw "Release exe not found: $exe" }
+          $outDir = 'src-tauri/target/release/bundle/portable'
+          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+          $zip = Join-Path $outDir "Tydora_${version}_x64_portable.zip"
+          Compress-Archive -Path $exe -DestinationPath $zip -Force
+          Get-Item $zip | Select-Object FullName, Length
+
+      # Windows: 把便携版 zip 上传到本次 GitHub Release（tauri-action 已创建 draft release）
+      - name: Upload Windows portable zip to release
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "v$(cat VERSION)" src-tauri/target/release/bundle/portable/*.zip --clobber

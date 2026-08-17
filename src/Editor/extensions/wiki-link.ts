@@ -9,6 +9,41 @@ function encodeHeading(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+/** 常见图片扩展名，用于识别 Obsidian 风格的 ![[图片.png]] 嵌入 */
+const IMAGE_EXTENSIONS_RE = /^(png|jpe?g|gif|webp|svg|bmp|avif|ico|heic|heif|tiff?|apng|jfif|pjpeg|jxl)$/i;
+
+/** 将 ![[图片.png|宽度]] 转为 <img> 标签（Obsidian 嵌入图片语法） */
+function replaceWikiImageSyntax(match: string, content: string): string {
+  let name = content;
+  let sizeParam = '';
+
+  const pipeIdx = name.lastIndexOf('|');
+  if (pipeIdx >= 0) {
+    sizeParam = name.slice(pipeIdx + 1).trim();
+    name = name.slice(0, pipeIdx).trim();
+  }
+
+  if (!name) return match;
+
+  // 仅图片扩展名才作为嵌入图片处理，否则保持原样交给 [[...]] 规则
+  const dotIdx = name.lastIndexOf('.');
+  const ext = dotIdx >= 0 ? name.slice(dotIdx + 1) : '';
+  if (!IMAGE_EXTENSIONS_RE.test(ext)) return match;
+
+  // Obsidian 宽度语法：![[img.png|300]] 或 ![[img.png|300x200]]（后者同时表示居中）
+  let width = '';
+  if (/^\d+$/.test(sizeParam)) {
+    width = sizeParam;
+  } else {
+    const m = sizeParam.match(/^(\d+)x\d+$/);
+    if (m) width = m[1];
+  }
+
+  const esc = encodeNote(name);
+  const html = `<img src="${esc}" alt="${esc}" data-wiki-embed="1"`;
+  return html + (width ? ` width="${width}"` : '') + '>';
+}
+
 /** 将 [[note#heading|display]] 转为 HTML <a> 标签，供 markdown-it 解析 */
 function replaceWikiLinkSyntax(_match: string, content: string): string {
   let note = content;
@@ -305,14 +340,18 @@ export const WikiLink = Node.create({
         },
         parse: {
           setup(markdownit: any) {
-            // 在 markdown-it 解析 inline 内容之前，将 [[note]] 替换为 HTML <a> 标签
+            // 在 markdown-it 解析 inline 内容之前：
+            // 1. 将 ![[图片]] 替换为 <img>（Obsidian 嵌入图片语法）
+            // 2. 将 [[note]] 替换为 HTML <a> 标签
             markdownit.core.ruler.before('inline', 'wiki_link', (mdState: any) => {
               mdState.tokens.forEach((token: any) => {
                 if (token.type === 'inline' && token.content) {
-                  token.content = token.content.replace(
-                    /\[\[([^\]]+)\]\]/g,
-                    replaceWikiLinkSyntax
-                  );
+                  token.content = token.content
+                    .replace(/!\[\[([^\]]+)\]\]/g, replaceWikiImageSyntax)
+                    .replace(
+                      /\[\[([^\]]+)\]\]/g,
+                      replaceWikiLinkSyntax
+                    );
                 }
               });
             });

@@ -54,3 +54,19 @@ export interface XhsCard {
   width: number;
   height: number;
 }
+
+/**
+ * 用户拖拽调整后的图片位置（卡片逻辑坐标，px）。
+ * key = cyrb53(图片 data URL)，value 为相对原始位置的偏移量。
+ */
+export type XhsImagePositions = Record<string, { dx: number; dy: number }>;
+
+/** 预览用的卡片 DOM（未栅格化，可直接挂载交互） */
+export interface XhsCardDom {
+  el: HTMLElement;
+  index: number;
+  total: number;
+  isCover: boolean;
+  from: number;
+  to: number;
+}

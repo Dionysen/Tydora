@@ -577,6 +577,108 @@ fn open_directory(dir_path: String) -> Result<(), String> {
     Ok(())
 }
 
+/// 复制文件为 "name copy.ext"，若已存在则自动递增为 "name copy 2.ext"。
+/// 返回新文件的完整路径。
+#[tauri::command]
+fn duplicate_file(path: String) -> Result<String, String> {
+    use std::path::Path;
+    let src = Path::new(&path);
+    if !src.is_file() {
+        return Err(format!("Not a file: {path}"));
+    }
+    let parent = src.parent().unwrap_or(Path::new("."));
+    let file_name = src.file_name().and_then(|n| n.to_str()).unwrap_or("copy");
+    let stem = Path::new(file_name)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or(file_name);
+    let ext = Path::new(file_name)
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
+    let ext_suffix = if ext.is_empty() { String::new() } else { format!(".{ext}") };
+
+    let mut index = 1u32;
+    let dest = loop {
+        let name = if index == 1 {
+            format!("{stem} copy{ext_suffix}")
+        } else {
+            format!("{stem} copy {index}{ext_suffix}")
+        };
+        let candidate = parent.join(&name);
+        if !candidate.exists() {
+            break candidate;
+        }
+        index += 1;
+    };
+    std::fs::copy(src, &dest).map_err(|e| e.to_string())?;
+    Ok(dest.to_string_lossy().into_owned())
+}
+
+#[cfg(target_os = "linux")]
+/// 向指定剪贴板工具写入 text/uri-list 内容
+fn write_uri_list(cmd: &str, args: &[&str], content: &str) -> std::io::Result<bool> {
+    use std::io::Write;
+    use std::process::{Command as ProcessCommand, Stdio};
+    let mut child = ProcessCommand::new(cmd)
+        .args(args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()?;
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin.write_all(content.as_bytes())?;
+        stdin.write_all(b"\n")?;
+    }
+    let status = child.wait()?;
+    Ok(status.success())
+}
+
+/// 将文件复制到系统剪贴板，以便在系统文件管理器中直接粘贴。
+#[tauri::command]
+fn copy_file_to_clipboard(path: String) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        // Windows：通过 PowerShell Set-Clipboard -Path 将文件作为 FileDropList 写入剪贴板
+        let script = format!("Set-Clipboard -Path '{}'", path.replace('\'', "''"));
+        let output = Command::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &script])
+            .output()
+            .map_err(|e| e.to_string())?;
+        if !output.status.success() {
+            return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
+        }
+    }
+    #[cfg(target_os = "macos")]
+    {
+        // macOS：通过 osascript 将文件写入剪贴板
+        let script = format!(
+            "set the clipboard to (POSIX file \"{}\")",
+            path.replace('"', "\\\"")
+        );
+        let output = Command::new("osascript")
+            .args(["-e", &script])
+            .output()
+            .map_err(|e| e.to_string())?;
+        if !output.status.success() {
+            return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
+        }
+    }
+    #[cfg(target_os = "linux")]
+    {
+        // Linux：写入 text/uri-list（依次尝试 xclip / xsel / wl-copy）
+        let uri = format!("file://{}", path);
+        let ok = write_uri_list("xclip", &["-selection", "clipboard", "-t", "text/uri-list", "-i"], &uri)
+            .or_else(|_| write_uri_list("xsel", &["--clipboard", "--input"], &uri))
+            .or_else(|_| write_uri_list("wl-copy", &["--type", "text/uri-list"], &uri))
+            .map_err(|e| e.to_string())?;
+        if !ok {
+            return Err("No clipboard tool available (xclip/xsel/wl-copy)".into());
+        }
+    }
+    Ok(())
+}
+
 /// 用系统默认程序打开文件（HTML 用浏览器，图片用默认查看器）
 #[tauri::command]
 fn open_file(file_path: String) -> Result<(), String> {
@@ -1114,6 +1216,229 @@ async fn switch_to_github_update(app: tauri::AppHandle, url: String) -> Result<(
     Ok(())
 }
 
+/// 当前是否为便携版（zip 解压后直接运行）。
+///
+/// 判断依据：非商店版（MSIX），且可执行文件不在 NSIS 安装器常用的安装目录
+/// （%LOCALAPPDATA%\Tydora、%LOCALAPPDATA%\Programs\Tydora、
+/// %ProgramFiles%\Tydora 等）中 → 视为便携版。
+#[tauri::command]
+fn is_portable_version() -> bool {
+    // 商店版（MSIX）不属于便携版
+    if is_msix() {
+        return false;
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let Ok(exe) = std::env::current_exe() else {
+            return false;
+        };
+        let Some(dir) = exe.parent() else {
+            return false;
+        };
+        // 仅当主程序名为 Tydora.exe 时才参与判断，避免误判
+        let exe_name = exe
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+        if exe_name != "tydora.exe" {
+            return false;
+        }
+        let dir_lower = dir.to_string_lossy().to_lowercase();
+        // NSIS 安装器常见的安装目录（默认 installMode=currentUser 装到 LOCALAPPDATA）
+        let mut candidates: Vec<String> = Vec::new();
+        if let Ok(local) = std::env::var("LOCALAPPDATA") {
+            let local = local.to_lowercase();
+            candidates.push(format!("{}\\tydora", local));
+            candidates.push(format!("{}\\programs\\tydora", local));
+        }
+        for key in ["ProgramFiles", "ProgramFiles(x86)"] {
+            if let Ok(pf) = std::env::var(key) {
+                candidates.push(format!("{}\\tydora", pf.to_lowercase()));
+            }
+        }
+        // 不在任何安装目录 → 视为便携版
+        !candidates.iter().any(|c| dir_lower.starts_with(c.as_str()))
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        false
+    }
+}
+
+/// 检查 GitHub 最新发布版本（便携版通道）：
+/// 当 GitHub 版本高于当前运行版本时返回更新信息（含便携 zip 下载地址），
+/// 否则返回 None。便携版不能走内置 updater（其 Windows 更新产物是 NSIS
+/// 安装包，会装进系统而非替换便携文件），因此复用 GitHub API 检查。
+#[tauri::command]
+async fn check_portable_update() -> Result<Option<GithubUpdateInfo>, String> {
+    let client = github_http_client()?;
+    let resp = client
+        .get("https://api.github.com/repos/zuorn/Tydora/releases/latest")
+        .send()
+        .await
+        .map_err(|e| format!("请求 GitHub 失败: {e}"))?;
+    if !resp.status().is_success() {
+        return Ok(None);
+    }
+    let release: GithubRelease = resp
+        .json()
+        .await
+        .map_err(|e| format!("解析 GitHub 响应失败: {e}"))?;
+
+    let version = release.tag_name.trim_start_matches('v').to_string();
+    if version.is_empty() {
+        return Ok(None);
+    }
+    // 仅当 GitHub 版本高于当前版本时才提示更新
+    if compare_versions(&version, env!("CARGO_PKG_VERSION")) != std::cmp::Ordering::Greater {
+        return Ok(None);
+    }
+    // 挑选便携版 zip（优先 *_x64_portable.zip）
+    let asset = release
+        .assets
+        .iter()
+        .filter(|a| {
+            let n = a.name.to_lowercase();
+            n.ends_with(".zip") && n.contains("portable")
+        })
+        .min_by_key(|a| {
+            if a.name.to_lowercase().contains("x64") {
+                0
+            } else {
+                1
+            }
+        });
+    let url = match asset {
+        Some(a) => a.browser_download_url.clone(),
+        // 兜底：按命名规则构造下载地址
+        None => format!(
+            "https://github.com/zuorn/Tydora/releases/download/v{version}/Tydora_{version}_x64_portable.zip"
+        ),
+    };
+
+    Ok(Some(GithubUpdateInfo {
+        version,
+        body: release.body.unwrap_or_default(),
+        date: release.published_at.unwrap_or_default(),
+        url,
+    }))
+}
+
+/// 安装便携版更新（便携版通道）：
+/// 1. 下载便携 zip 到临时目录（通过事件报告进度）
+/// 2. 解压出新的 Tydora.exe 到当前 exe 同目录下的 Tydora.exe.new
+/// 3. 生成并启动后台 cmd 脚本（隐藏窗口）：等待应用退出 → 用 .new 覆盖
+///    旧 exe → 启动新版 → 清理临时文件与脚本
+/// 4. 返回后前端退出应用，由后台脚本接管完成替换。
+#[tauri::command]
+async fn install_portable_update(
+    app: tauri::AppHandle,
+    url: String,
+    version: String,
+) -> Result<(), String> {
+    let client = github_http_client()?;
+    let mut resp = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("下载便携包失败: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(format!("下载便携包失败: HTTP {}", resp.status()));
+    }
+    let total = resp.content_length();
+
+    // 1. 流式下载 zip 到临时目录
+    let zip_path = std::env::temp_dir().join(format!("tydora-portable-{version}.zip"));
+    use std::io::Write;
+    let mut file =
+        std::fs::File::create(&zip_path).map_err(|e| format!("创建临时文件失败: {e}"))?;
+    let mut downloaded: u64 = 0;
+    while let Some(chunk) = resp.chunk().await.map_err(|e| format!("下载中断: {e}"))? {
+        file.write_all(&chunk).map_err(|e| format!("写入失败: {e}"))?;
+        downloaded += chunk.len() as u64;
+        let _ = app.emit(
+            "portable-update-progress",
+            serde_json::json!({ "downloaded": downloaded, "total": total }),
+        );
+    }
+    file.flush().map_err(|e| format!("写入失败: {e}"))?;
+    drop(file);
+
+    // 2. 解压出新 exe 到当前 exe 同目录（Tydora.exe.new）
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .ok_or_else(|| "无法定位可执行文件目录".to_string())?;
+    let new_exe = exe_dir.join("Tydora.exe.new");
+
+    let zip_file = std::fs::File::open(&zip_path).map_err(|e| format!("打开便携包失败: {e}"))?;
+    let mut archive = zip::ZipArchive::new(zip_file).map_err(|e| format!("解析便携包失败: {e}"))?;
+    let mut found = false;
+    for i in 0..archive.len() {
+        let mut entry = archive
+            .by_index(i)
+            .map_err(|e| format!("读取便携包失败: {e}"))?;
+        if !entry.is_dir() && entry.name().to_lowercase().ends_with(".exe") {
+            let mut out =
+                std::fs::File::create(&new_exe).map_err(|e| format!("写入新程序失败: {e}"))?;
+            std::io::copy(&mut entry, &mut out).map_err(|e| format!("解压新程序失败: {e}"))?;
+            out.flush().map_err(|e| format!("写入新程序失败: {e}"))?;
+            found = true;
+            break;
+        }
+    }
+    let _ = std::fs::remove_file(&zip_path);
+    if !found {
+        let _ = std::fs::remove_file(&new_exe);
+        return Err("便携包中未找到可执行文件".to_string());
+    }
+
+    // 3. 生成后台替换脚本：等进程退出 → 覆盖 exe → 启动新版 → 自删
+    let script_path = exe_dir.join("update-portable.cmd");
+    let script = format!(
+        "@echo off\r\n\
+         setlocal\r\n\
+         :wait\r\n\
+         tasklist /FI \"IMAGENAME eq Tydora.exe\" | find /I \"Tydora.exe\" >nul\r\n\
+         if not errorlevel 1 (\r\n\
+         \x20  ping -n 2 127.0.0.1 >nul\r\n\
+         \x20  goto wait\r\n\
+         )\r\n\
+         copy /Y \"%~dp0Tydora.exe.new\" \"%~dp0Tydora.exe\"\r\n\
+         if errorlevel 1 goto fail\r\n\
+         del /F /Q \"%~dp0Tydora.exe.new\"\r\n\
+         start \"\" \"%~dp0Tydora.exe\"\r\n\
+         del /F /Q \"%~f0\"\r\n\
+         exit /b 0\r\n\
+         :fail\r\n\
+         start \"\" \"%~dp0Tydora.exe\"\r\n\
+         exit /b 1\r\n"
+    );
+    std::fs::write(&script_path, script).map_err(|e| format!("写入替换脚本失败: {e}"))?;
+
+    // 4. 隐藏窗口启动后台脚本
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        Command::new("cmd")
+            .args(["/c", "/d"])
+            .arg(&script_path)
+            .creation_flags(CREATE_NO_WINDOW)
+            .spawn()
+            .map_err(|e| format!("启动替换脚本失败: {e}"))?;
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = script_path;
+        let _ = new_exe;
+        return Err("便携版更新仅支持 Windows".to_string());
+    }
+
+    Ok(())
+}
+
 pub fn run() {
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
@@ -1204,14 +1529,19 @@ pub fn run() {
             take_pending_files,
             get_app_version,
             is_store_version,
+            is_portable_version,
             check_github_update,
+            check_portable_update,
             switch_to_github_update,
+            install_portable_update,
             get_cwd,
             open_settings_window,
             open_file_in_new_window,
             open_file_location,
             open_file,
             open_url,
+            duplicate_file,
+            copy_file_to_clipboard,
             open_directory,
             open_mindmap_window,
             open_graph_window,

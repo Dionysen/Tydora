@@ -25,6 +25,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 notify = "6"
 reqwest = { version = "0.12", features = ["json", "gzip", "deflate", "brotli"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
 base64 = "0.22"
 axum = "0.7"
 tokio = { version = "1", features = ["full"] }
@@ -40,5 +41,11 @@ opt-level = "z"
 # 回调在途时，wry 向已失效窗口句柄 PostMessageW 失败并打印误导性错误
 # （"PostMessage failed; is the messages queue full?" 0x80070578）的问题。
 # 参见 vendor/wry/src/webview2/mod.rs 的 dispatch_handler。
+#
+# 注意：PostMessageW 失败分支绝不能 drop 闭包！其返回值与消息队列实际
+# 入队状态存在竞态窗口期（窗口销毁瞬间可能返回失败但消息已入队），提前
+# 释放会导致主线程 dispatcher 再次 Box::from_raw 同一指针 → 双重释放 →
+# 堆损坏 0xc0000374（STATUS_HEAP_CORRUPTION，ntdll）。此 patch 仅静默
+# 窗口销毁竞态下的误导性错误日志，内存释放遵循官方 wry 行为（不释放）。
 [patch.crates-io]
 wry = { path = "vendor/wry" }

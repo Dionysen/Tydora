@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
 import { open, save } from '@tauri-apps/plugin-dialog';
@@ -6,19 +7,30 @@ import { ReactFlowProvider } from '@xyflow/react';
 
 import CanvasView from './CanvasView';
 import { useCanvasStore } from './canvas-store';
+import { ConfirmDialog } from '../components';
 import { track, trackPageview, ANALYTICS_EVENTS } from '../analytics';
 import './canvas.css';
 
 const CANVAS_STORAGE_KEY = 'zmd-canvas-file-path';
 
 export default function CanvasWindow() {
+  const { t } = useTranslation();
   const [canvasTitle, setCanvasTitle] = useState('白板');
   const { loadCanvas, saveCanvas, filePath, isModified } = useCanvasStore();
+  // 关闭窗口前的未保存确认
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+  const closeConfirmOpenRef = useRef(false);
+  const closeAllowRef = useRef(false);
 
   // 统计：白板窗口打开（主窗口内嵌打开 .canvas 时由 App.tsx 上报）
   useEffect(() => {
     track(ANALYTICS_EVENTS.CANVAS_OPEN);
     trackPageview("/app/canvas");
+  }, []);
+
+  // 显示窗口（Rust 端以 visible(false) 创建，加载完成后才显示，避免白屏）
+  useEffect(() => {
+    getCurrentWindow().show().catch(() => {});
   }, []);
 
   // Load canvas file from URL params or localStorage
@@ -62,13 +74,84 @@ export default function CanvasWindow() {
     }
   }, [filePath]);
 
+  // 真正执行窗口关闭（用户已在确认框中选择保存或不保存）
+  const performClose = useCallback(async () => {
+    closeAllowRef.current = true;
+    await getCurrentWindow().close();
+  }, []);
+
+  // 弹出关闭确认对话框（防止重复弹出）
+  const promptCloseConfirm = useCallback(() => {
+    if (closeConfirmOpenRef.current) return;
+    closeConfirmOpenRef.current = true;
+    setCloseConfirmOpen(true);
+  }, []);
+
   // Window controls
   const handleClose = useCallback(async () => {
-    if (isModified) {
-      await saveCanvas();
+    if (useCanvasStore.getState().isModified) {
+      promptCloseConfirm();
+      return;
     }
-    await getCurrentWindow().close();
-  }, [isModified, saveCanvas]);
+    await performClose();
+  }, [promptCloseConfirm, performClose]);
+
+  // 拦截窗口关闭（标题栏 X / 系统关闭）：有未保存修改时弹出确认
+  useEffect(() => {
+    if (!('__TAURI_INTERNALS__' in window)) return;
+    const win = getCurrentWindow();
+    let unlisten: (() => void) | null = null;
+    win
+      .onCloseRequested((event) => {
+        if (closeAllowRef.current) return; // 用户已确认关闭，放行
+        if (!useCanvasStore.getState().isModified) return; // 无未保存修改，正常关闭
+        event.preventDefault();
+        promptCloseConfirm();
+      })
+      .then((fn) => {
+        unlisten = fn;
+      });
+    return () => {
+      unlisten?.();
+    };
+  }, [promptCloseConfirm]);
+
+  // 关闭确认：保存并关闭（新建未指定路径的白板先走另存为）
+  const handleCloseConfirmSave = useCallback(async () => {
+    closeConfirmOpenRef.current = false;
+    setCloseConfirmOpen(false);
+    try {
+      const store = useCanvasStore.getState();
+      if (!store.filePath) {
+        const path = await save({
+          filters: [{ name: 'Canvas', extensions: ['canvas'] }],
+          defaultPath: 'untitled.canvas',
+        });
+        if (!path) return; // 用户取消另存为，中止关闭
+        useCanvasStore.setState({ filePath: path });
+        localStorage.setItem(CANVAS_STORAGE_KEY, path);
+        setCanvasTitle(path.split(/[/\\]/).pop() || '白板');
+      }
+      await useCanvasStore.getState().saveCanvas();
+      if (useCanvasStore.getState().isModified) return; // 保存失败，中止关闭
+    } catch (err) {
+      return; // 保存异常，中止关闭
+    }
+    await performClose();
+  }, [performClose]);
+
+  // 关闭确认：不保存并关闭
+  const handleCloseConfirmDiscard = useCallback(async () => {
+    closeConfirmOpenRef.current = false;
+    setCloseConfirmOpen(false);
+    await performClose();
+  }, [performClose]);
+
+  // 关闭确认：取消
+  const handleCloseConfirmCancel = useCallback(() => {
+    closeConfirmOpenRef.current = false;
+    setCloseConfirmOpen(false);
+  }, []);
 
   const handleMinimize = useCallback(() => {
     getCurrentWindow().minimize();
@@ -208,6 +291,20 @@ export default function CanvasWindow() {
           <CanvasView />
         </ReactFlowProvider>
       </div>
+
+      <ConfirmDialog
+        isOpen={closeConfirmOpen}
+        title={t('app.dialog.unsavedChangesTitle')}
+        message={t('app.dialog.unsavedChangesMessage', { name: canvasTitle })}
+        type="warning"
+        confirmText={t('app.dialog.saveAndClose')}
+        cancelText={t('app.dialog.cancel')}
+        discardText={t('app.dialog.dontSaveAndClose')}
+        discardHint="X"
+        onConfirm={handleCloseConfirmSave}
+        onCancel={handleCloseConfirmCancel}
+        onDiscard={handleCloseConfirmDiscard}
+      />
     </div>
   );
 }

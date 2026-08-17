@@ -19,7 +19,7 @@ import { XhsPreviewPanel } from "./export/xiaohongshu";
 import { emit, listen } from "@tauri-apps/api/event";
 import { loadImageSettings, type ImageSettings } from "./services";
 import { loadEditorSettings, type EditorSettings, EDITOR_SETTINGS_KEY, SHORTCUTS_KEY, GRAPH_SETTINGS_KEY, DEFAULT_GRAPH } from "./Settings";
-import { checkForUpdate, downloadAndInstall, relaunchApp, type UpdateInfo } from "./services";
+import { checkForUpdate, downloadAndInstall, relaunchApp, exitApp, isPortableVersion, type UpdateInfo } from "./services";
 import { LinkIndexService } from "./wikilink";
 import { WikiLinkAutocomplete } from "./wikilink";
 import { WikiLinkPreview } from "./wikilink";
@@ -349,6 +349,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const [treeRefreshKey, setTreeRefreshKey] = useState(0);
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
   const [pendingFilePath, setPendingFilePath] = useState<string | null>(null);
+  // 关闭窗口前的未保存确认
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+  const closeConfirmOpenRef = useRef(false); // 确认框是否已打开（防止重复弹出）
+  const closeAllowRef = useRef(false); // 用户已确认关闭，允许窗口真正关闭
   // 预览模式状态
   const [previewFilePath, setPreviewFilePath] = useState<string | null>(null);
 
@@ -740,7 +744,12 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       await downloadAndInstall((downloaded, contentLength) => {
         setUpdateProgress({ downloaded, total: contentLength });
       });
-      await relaunchApp();
+      // 便携版：后台 cmd 脚本已替换 exe 并接管重启，这里只需退出
+      if (await isPortableVersion()) {
+        await exitApp();
+      } else {
+        await relaunchApp();
+      }
     } catch (e) {
       console.error(t("settings.about.updateFailed"), e);
       setUpdateDownloading(false);
@@ -803,7 +812,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   fileNameRef.current = fileName;
   modifiedRef.current = modified;
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (): Promise<boolean> => {
     try {
       let path = fileNameRef.current;
       if (!path) {
@@ -811,7 +820,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
           defaultPath: "untitled.md",
         });
-        if (!result) return;
+        if (!result) return false;
         path = result;
         setFileName(path);
       }
@@ -826,8 +835,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         TagIndexService.updateFileTags(path, contentRef.current);
         try { localStorage.setItem("zmd-link-index", LinkIndexService.serialize()); } catch {}
       }
+      return true;
     } catch (e) {
       console.error(t("app.error.saveFailed"), e);
+      return false;
     }
   }, []);
 
@@ -1322,7 +1333,21 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
   }, []);
 
-  const handleClose = useCallback(async () => {
+  // 检查是否有未保存的修改（文本文件或内嵌白板）
+  const hasUnsavedChanges = useCallback(() => {
+    return modifiedRef.current || useCanvasStore.getState().isModified;
+  }, []);
+
+  // 弹出关闭确认对话框（防止重复弹出）
+  const promptCloseConfirm = useCallback(() => {
+    if (closeConfirmOpenRef.current) return;
+    closeConfirmOpenRef.current = true;
+    setCloseConfirmOpen(true);
+  }, []);
+
+  // 真正执行窗口关闭（用户已在确认框中选择保存或不保存）
+  const performClose = useCallback(async () => {
+    closeAllowRef.current = true;
     await saveWindowStateRef.current();
     // 关闭主窗口前通知 Rust 标记其即将销毁，避免单实例回调向正在销毁的
     // 窗口发消息触发 "PostMessage failed（0x80070578 无效的窗口句柄）"
@@ -1331,6 +1356,70 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
     getCurrentWindow().close();
   }, []);
+
+  const handleClose = useCallback(async () => {
+    if (hasUnsavedChanges()) {
+      promptCloseConfirm();
+      return;
+    }
+    await performClose();
+  }, [hasUnsavedChanges, promptCloseConfirm, performClose]);
+
+  // 关闭确认：保存并关闭
+  const handleCloseConfirmSave = useCallback(async () => {
+    closeConfirmOpenRef.current = false;
+    setCloseConfirmOpen(false);
+    try {
+      const canvasStore = useCanvasStore.getState();
+      if (canvasStore.filePath) {
+        // 白板模式
+        if (canvasStore.isModified) {
+          await canvasStore.saveCanvas();
+          if (useCanvasStore.getState().isModified) return; // 保存失败，中止关闭
+        }
+      } else if (fileNameRef.current || contentRef.current) {
+        // 文本模式（新建未保存文件时走另存为对话框）
+        const ok = await handleSave();
+        if (!ok) return; // 用户取消另存为或保存失败，中止关闭
+      }
+    } catch (e) {
+      return; // 保存异常，中止关闭
+    }
+    await performClose();
+  }, [handleSave, performClose]);
+
+  // 关闭确认：不保存并关闭
+  const handleCloseConfirmDiscard = useCallback(async () => {
+    closeConfirmOpenRef.current = false;
+    setCloseConfirmOpen(false);
+    await performClose();
+  }, [performClose]);
+
+  // 关闭确认：取消
+  const handleCloseConfirmCancel = useCallback(() => {
+    closeConfirmOpenRef.current = false;
+    setCloseConfirmOpen(false);
+  }, []);
+
+  // 拦截窗口关闭（标题栏 X / 系统关闭）：有未保存修改时弹出确认
+  useEffect(() => {
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    const win = getCurrentWindow();
+    let unlisten: (() => void) | null = null;
+    win
+      .onCloseRequested((event) => {
+        if (closeAllowRef.current) return; // 用户已确认关闭，放行
+        if (!hasUnsavedChanges()) return; // 无未保存修改，正常关闭
+        event.preventDefault();
+        promptCloseConfirm();
+      })
+      .then((fn) => {
+        unlisten = fn;
+      });
+    return () => {
+      unlisten?.();
+    };
+  }, [hasUnsavedChanges, promptCloseConfirm]);
 
   // 关闭窗口 / 查找 / 替换快捷键（配置见 src/config/shortcuts.json 的 app）
   useEffect(() => {
@@ -2282,6 +2371,23 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                   <CanvasView />
                 </ReactFlowProvider>
               </div>
+            ) : !fileName && !content.trim() ? (
+              <div className="editor-welcome">
+                <div className="welcome-hint">
+                  <div className="welcome-hint-item">
+                    <span>{t("app.welcome.openFile")}</span>
+                    <kbd>Ctrl</kbd>
+                    <span>+</span>
+                    <kbd>O</kbd>
+                  </div>
+                  <div className="welcome-hint-item">
+                    <span>{t("app.welcome.commandPalette")}</span>
+                    <kbd>Ctrl</kbd>
+                    <span>+</span>
+                    <kbd>P</kbd>
+                  </div>
+                </div>
+              </div>
             ) : isCurrentFileMarkdown ? (
               <EditorErrorBoundary>
                 <Editor
@@ -2399,6 +2505,24 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         cancelText={t("app.dialog.dontSave")}
         onConfirm={handleSaveConfirm}
         onCancel={handleSaveCancel}
+      />
+
+      <ConfirmDialog
+        isOpen={closeConfirmOpen}
+        title={t("app.dialog.unsavedChangesTitle")}
+        message={t("app.dialog.unsavedChangesMessage", {
+          name: canvasFilePath
+            ? canvasFilePath.split(/[/\\]/).pop() || ""
+            : fileName?.split(/[/\\]/).pop() || "",
+        })}
+        type="warning"
+        confirmText={t("app.dialog.saveAndClose")}
+        cancelText={t("app.dialog.cancel")}
+        discardText={t("app.dialog.dontSaveAndClose")}
+        discardHint="X"
+        onConfirm={handleCloseConfirmSave}
+        onCancel={handleCloseConfirmCancel}
+        onDiscard={handleCloseConfirmDiscard}
       />
 
       {showExportFormatPicker && (

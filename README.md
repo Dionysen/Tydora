@@ -52,10 +52,12 @@ Turn any document into a **mind map** with one click. Linear text instantly unfo
 
 ---
 
+## **📚 A Desk Awaiting Fellow Travelers**
+
 It is the answer I offer — and an invitation to fellow travelers.
 If you're also looking for a <mark>writing companion</mark> that understands you better, come and sit with **Tydora**.
 
-🔗 [Tydora — Let Thoughts Flow Freely](https://zuorn.github.io/Tydora/)
+🔗 [Tydora — Let Your Ideas Flow](https://zuorn.github.io/Tydora/)
 
 If there's anything you'd like it to do, tell me — I'll keep refining it, until it becomes the <mark>ideal version in our hearts</mark>.
 

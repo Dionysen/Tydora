@@ -380,11 +380,20 @@
       "disabled": "Click to enable typewriter mode"
     },
     "wordCount": "{{count}} words",
+    "welcome": {
+      "openFile": "Open File",
+      "commandPalette": "Command Palette"
+    },
     "dialog": {
       "saveFile": "Save File",
       "saveFileMessage": "File \"{{name}}\" has unsaved changes. Save it?",
       "save": "Save",
       "dontSave": "Don't Save",
+      "unsavedChangesTitle": "Unsaved Changes",
+      "unsavedChangesMessage": "\"{{name}}\" has unsaved changes. Save before closing?",
+      "saveAndClose": "Save & Close",
+      "dontSaveAndClose": "Don't Save & Close",
+      "cancel": "Cancel",
       "copied": "Copied ✓",
       "copy": "Copy"
     },
@@ -454,7 +463,7 @@
         "exportHtml": "Export as HTML",
         "exportWord": "Export as Word",
         "exportImage": "Export as Image",
-        "exportXhs": "Export as RedNote Cards",
+        "exportXhs": "Export as Image-TextCards",
         "irMode": "Switch to Instant Render",
         "irModeActive": "Instant Render ✓",
         "svMode": "Switch to Source Mode",
@@ -557,7 +566,11 @@
     "helpExample": "# Summer Drinks\n\nA wide cover image is recommended here\n\n---\n\nLemon Sparkling Water\n- 1 lemon\n- 1 bottle of sparkling water\n- Ice cubes\n\n---\n\nWatermelon Juice\n- 500g watermelon\n- 1 spoon of honey\n- A few mint leaves",
     "helpClose": "Got it",
     "download": "Download",
-    "zoomHint": "Click to zoom",
+    "viewCard": "View",
+    "enterFullscreen": "Enter fullscreen",
+    "exitFullscreen": "Exit fullscreen",
+    "prevCard": "Previous card",
+    "nextCard": "Next card",
     "themes": {
       "default": "Default",
       "cream": "Cream",
@@ -580,7 +593,9 @@
       "newFolder": "New Folder",
       "search": "Search",
       "rename": "Rename",
-      "duplicate": "Duplicate",
+      "duplicate": "Copy",
+      "duplicateCopy": "Duplicate",
+      "copyToClipboard": "Copy to Clipboard",
       "moveTo": "Move to...",
       "delete": "Delete",
       "copyPath": "Copy File Path",
@@ -620,7 +635,9 @@
       "cancel": "Cancel"
     },
     "toast": {
-      "pathCopied": "Path copied to clipboard"
+      "pathCopied": "Path copied to clipboard",
+      "duplicated": "Duplicate created",
+      "fileCopiedToClipboard": "File copied to clipboard, paste it in your file manager"
     },
     "bookmarks": {
       "dialog": {
@@ -672,6 +689,9 @@
       "deleteFailed": "Delete failed:",
       "openLocationFailed": "Failed to open file location:",
       "renameFailed": "Rename failed:",
+      "duplicateFailed": "Failed to duplicate file:",
+      "duplicateAndCopyFailed": "Failed to duplicate and copy to clipboard:",
+      "copyToClipboardFailed": "Failed to copy to clipboard:",
       "moveFailed": "Move failed:",
       "openFolderLocationFailed": "Failed to open folder location:",
       "openSettingsFailed": "Failed to open settings:"
@@ -869,6 +889,8 @@
     "remove": "Remove",
     "minimize": "Minimize",
     "close": "Close",
+    "language": "Language",
+    "languageDesc": "Interface display language",
     "form": {
       "nameLabel": "Vault Name",
       "nameHint": "Give your new vault a name",

@@ -8,7 +8,7 @@ import { ask, open } from "@tauri-apps/plugin-dialog";
 import { useTranslation } from "react-i18next";
 import { useTheme, type ThemeName } from "./themes";
 import { loadImageSettings, saveImageSettings, type ImageSettings, type StorageMode, type FilenameFormat } from "./services";
-import { checkForUpdate, downloadAndInstall, relaunchApp, exitApp, isStoreVersion, type UpdateInfo } from "./services";
+import { checkForUpdate, downloadAndInstall, relaunchApp, exitApp, isStoreVersion, isPortableVersion, type UpdateInfo } from "./services";
 import { PublishSettings } from "./publish";
 import { loadCanvasSettings, saveCanvasSettings, type CanvasSettings } from "./Canvas/canvas-settings";
 import { parseCssVariables, extractPreviewColors, type ThemeVariable, type ThemeManifest } from "./themes/CustomThemeManager";
@@ -1113,15 +1113,6 @@ function ShortcutsSettingsContent() {
     localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(shortcuts));
   }, [shortcuts]);
 
-  const filteredShortcuts = shortcuts.filter((s) => {
-    const query = search.toLowerCase();
-    if (!query) return true;
-    const translatedLabel = shortcutLabelMap[s.id] || s.label;
-    if (translatedLabel.toLowerCase().includes(query)) return true;
-    const keysStr = s.keys.join("+").toLowerCase();
-    return keysStr.includes(query);
-  });
-
   // 按分组整理快捷键
   const shortcutGroupNames: Record<string, string> = {
     "格式": t("settings.shortcuts.format", "格式"),
@@ -1189,6 +1180,14 @@ function ShortcutsSettingsContent() {
     "quick-open": t("settings.shortcuts.labels.quick-open"),
     "command-palette": t("settings.shortcuts.labels.command-palette"),
   };
+  const filteredShortcuts = shortcuts.filter((s) => {
+    const query = search.toLowerCase();
+    if (!query) return true;
+    const translatedLabel = shortcutLabelMap[s.id] || s.label;
+    if (translatedLabel.toLowerCase().includes(query)) return true;
+    const keysStr = s.keys.join("+").toLowerCase();
+    return keysStr.includes(query);
+  });
   const groupedShortcuts = filteredShortcuts.reduce<Record<string, ShortcutItem[]>>((acc, shortcut) => {
     const group = shortcut.group || "其他";
     if (!acc[group]) acc[group] = [];
@@ -1899,6 +1898,7 @@ function AboutSettingsContent() {
   const { t } = useTranslation();
   const [version, setVersion] = useState<string>("");
   const [storeVersion, setStoreVersion] = useState(false);
+  const [portableVersion, setPortableVersion] = useState(false);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateResult, setUpdateResult] = useState<{ available: boolean; info?: UpdateInfo } | null>(null);
   const [downloading, setDownloading] = useState(false);
@@ -1909,6 +1909,8 @@ function AboutSettingsContent() {
     invoke<string>("get_app_version").then(setVersion).catch(() => setVersion(""));
     // 是否为微软商店版本：商店版检测 GitHub 更高版本，切换通道更新
     isStoreVersion().then(setStoreVersion).catch(() => setStoreVersion(false));
+    // 是否为便携版：便携版走 GitHub 便携 zip 通道更新
+    isPortableVersion().then(setPortableVersion).catch(() => setPortableVersion(false));
   }, []);
 
   const handleCheckUpdate = useCallback(async () => {
@@ -1939,6 +1941,9 @@ function AboutSettingsContent() {
       if (storeVersion) {
         // 切换完成：应用退出，后台脚本随后卸载商店版并安装 GitHub 版
         await exitApp();
+      } else if (portableVersion) {
+        // 便携版：退出，后台 cmd 脚本已替换 exe 并接管重启
+        await exitApp();
       } else {
         await relaunchApp();
       }
@@ -1946,7 +1951,7 @@ function AboutSettingsContent() {
       console.error(`${t("settings.about.updateFailed")}`, e);
       setDownloading(false);
     }
-  }, [updateResult, t, storeVersion]);
+  }, [updateResult, t, storeVersion, portableVersion]);
 
   return (
     <div className="settings-section">
@@ -2082,24 +2087,28 @@ export default function Settings() {
     (async () => {
       try {
         const saved = localStorage.getItem(SETTINGS_WINDOW_STATE_KEY);
-        if (!saved) return;
-        const state = JSON.parse(saved) as {
-          x: number; y: number; width: number; height: number; maximized: boolean;
-        };
+        if (saved) {
+          const state = JSON.parse(saved) as {
+            x: number; y: number; width: number; height: number; maximized: boolean;
+          };
 
-        const monitors = await availableMonitors();
-        if (monitors && monitors.length > 0 && state.width && state.height) {
-          const clamped = clampWindowToMonitor(
-            { x: state.x ?? 0, y: state.y ?? 0, width: state.width, height: state.height },
-            monitors
-          );
-          await win.setSize(new PhysicalSize(clamped.width, clamped.height));
-          await win.setPosition(new PhysicalPosition(clamped.x, clamped.y));
-        }
-        if (state.maximized) {
-          await win.maximize();
+          const monitors = await availableMonitors();
+          if (monitors && monitors.length > 0 && state.width && state.height) {
+            const clamped = clampWindowToMonitor(
+              { x: state.x ?? 0, y: state.y ?? 0, width: state.width, height: state.height },
+              monitors
+            );
+            await win.setSize(new PhysicalSize(clamped.width, clamped.height));
+            await win.setPosition(new PhysicalPosition(clamped.x, clamped.y));
+          }
+          if (state.maximized) {
+            await win.maximize();
+          }
         }
       } catch {}
+      // 无论是否有保存的窗口状态，都必须显示窗口（Rust 端以 visible(false) 创建）
+      await win.show();
+      await win.setFocus().catch(() => {});
     })();
 
     let moveTimer: ReturnType<typeof setTimeout>;

@@ -10,13 +10,22 @@ export interface LinkIndex {
   backlinks: Map<string, string[]>;
   // 文件名索引：笔记名 → 文件路径（用于查找文件）
   fileByName: Map<string, string>;
+  // 图片文件名索引（含扩展名，大小写不敏感）：完整文件名 → 文件路径（用于解析 ![[图片]] 嵌入）
+  imageByName: Map<string, string>;
 }
+
+/** 常见图片扩展名（用于识别 ![[xxx.png]] 之类的嵌入图片） */
+const IMAGE_EXTENSIONS = new Set([
+  "png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif", "ico",
+  "heic", "heif", "tif", "tiff", "apng", "jfif", "pjpeg", "jxl",
+]);
 
 class LinkIndexServiceImpl {
   private index: LinkIndex = {
     outlinks: new Map(),
     backlinks: new Map(),
     fileByName: new Map(),
+    imageByName: new Map(),
   };
   
   /**
@@ -27,14 +36,28 @@ class LinkIndexServiceImpl {
       outlinks: new Map(),
       backlinks: new Map(),
       fileByName: new Map(),
+      imageByName: new Map(),
     };
 
-    const files = await this.getAllIndexableFiles(vaultPath);
+    const allFiles = await this.getAllFiles(vaultPath);
 
-    // 第一遍：建立文件名索引
-    for (const filePath of files) {
-      const noteName = this.pathToNoteName(filePath, vaultPath);
-      this.index.fileByName.set(noteName, filePath);
+    // 第一遍：建立文件名索引（图片单独索引，不参与 wiki 链接补全）
+    const files: string[] = [];
+    for (const filePath of allFiles) {
+      const name = filePath.split(/[/\\]/).pop() || "";
+      const ext = name.lastIndexOf(".") >= 0 ? name.slice(name.lastIndexOf(".") + 1).toLowerCase() : "";
+      if (IMAGE_EXTENSIONS.has(ext)) {
+        const lower = name.toLowerCase();
+        const existing = this.index.imageByName.get(lower);
+        // 同名图片保留路径最短者
+        if (!existing || filePath.length < existing.length) {
+          this.index.imageByName.set(lower, filePath);
+        }
+      } else if (name.toLowerCase().endsWith(".md") || name.toLowerCase().endsWith(".canvas")) {
+        files.push(filePath);
+        const noteName = this.pathToNoteName(filePath, vaultPath);
+        this.index.fileByName.set(noteName, filePath);
+      }
     }
 
     // 第二遍：批量读取并解析链接（每批 50 个）
@@ -139,6 +162,13 @@ class LinkIndexServiceImpl {
       if (path === filePath) {
         this.index.fileByName.delete(name);
         break;
+      }
+    }
+
+    // 清理图片索引
+    for (const [name, path] of this.index.imageByName) {
+      if (path === filePath) {
+        this.index.imageByName.delete(name);
       }
     }
   }
@@ -278,22 +308,31 @@ class LinkIndexServiceImpl {
   }
   
   /**
-   * 获取所有可索引的文件（.md 和 .canvas）
+   * 递归获取目录下所有文件（含图片等非笔记文件）
    */
-  private async getAllIndexableFiles(dirPath: string): Promise<string[]> {
+  private async getAllFiles(dirPath: string): Promise<string[]> {
     const files: string[] = [];
     const entries = await readDir(dirPath);
 
     for (const entry of entries) {
       const fullPath = `${dirPath}/${entry.name}`;
       if (entry.isDirectory) {
-        files.push(...await this.getAllIndexableFiles(fullPath));
-      } else if (entry.name.endsWith('.md') || entry.name.endsWith('.canvas')) {
+        files.push(...await this.getAllFiles(fullPath));
+      } else {
         files.push(fullPath);
       }
     }
 
     return files;
+  }
+
+  /**
+   * 根据图片完整文件名（含扩展名）查找图片路径，大小写不敏感，同名取路径最短
+   * 用于解析 Obsidian 风格的 ![[图片.png]] 嵌入
+   */
+  findImageByBaseName(name: string): string | undefined {
+    const lower = name.toLowerCase();
+    return this.index.imageByName.get(lower);
   }
 
   /**
@@ -304,6 +343,7 @@ class LinkIndexServiceImpl {
       outlinks: Array.from(this.index.outlinks.entries()),
       backlinks: Array.from(this.index.backlinks.entries()),
       fileByName: Array.from(this.index.fileByName.entries()),
+      imageByName: Array.from(this.index.imageByName.entries()),
     });
   }
 
@@ -316,6 +356,7 @@ class LinkIndexServiceImpl {
       this.index.outlinks = new Map(data.outlinks);
       this.index.backlinks = new Map(data.backlinks);
       this.index.fileByName = new Map(data.fileByName);
+      this.index.imageByName = new Map(data.imageByName || []);
     } catch {
       // 数据损坏，忽略
     }

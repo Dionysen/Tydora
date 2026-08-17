@@ -55,6 +55,7 @@ import { TableFloatingToolbar as TableFloatingToolbarComponent } from "./TableFl
 import { executeCommand } from "./extensions/custom-commands";
 import { Math as MathExtension } from "./extensions/math";
 import { saveImageToLocal, loadImageSettings, resolveRelativePath, dirName, ImageSaveCancelledError } from "../services";
+import { LinkIndexService } from "../wikilink";
 import { loadShortcuts, matchShortcut } from "./shortcuts";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import CodeMirrorEditor, { type CodeMirrorEditorHandle } from "./CodeMirrorEditor";
@@ -93,6 +94,10 @@ let activeImagePreviewClose: (() => void) | null = null;
 function imageNodeToMarkdown(attrs: Record<string, any>): string {
   const src = (attrs.src as string) || "";
   if (!src) return "";
+  // Obsidian 嵌入图片语法 ![[name|width]]
+  if (attrs["data-wiki-embed"]) {
+    return `![[${src}${attrs.width ? `|${attrs.width}` : ""}]]`;
+  }
   const escAlt = (s: string) => s.replace(/[`*\\~[\]_]/g, "\\$&");
   const alt = escAlt((attrs.alt as string) || "") + (attrs.width ? `|${attrs.width}` : "");
   return (
@@ -248,7 +253,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         }),
         Heading.extend({ addKeyboardShortcuts() { return {}; } }),
         Placeholder.configure({
-          placeholder: "开始输入 Markdown...",
+          placeholder: "输入@插入",
         }),
         CodeBlockLowlight.configure({
           lowlight,
@@ -273,6 +278,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
                 },
               },
               "data-abs-path": { default: null },
+              "data-wiki-embed": { default: null },
             };
           },
           addStorage() {
@@ -281,6 +287,11 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
                 serialize(state: any, node: any) {
                   const src = node.attrs.src;
                   if (!src) return;
+                  // Obsidian 嵌入图片：保留 `![[name|width]]` 语法
+                  if (node.attrs["data-wiki-embed"]) {
+                    state.write(`![[${src}${node.attrs.width ? `|${node.attrs.width}` : ""}]]`);
+                    return;
+                  }
                   // 缩放宽度以 Obsidian 风格 `![alt|300](src)` 持久化到 Markdown
                   const alt = (node.attrs.alt || "") + (node.attrs.width ? `|${node.attrs.width}` : "");
                   state.write(
@@ -350,7 +361,15 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
                 const basePath = currentFilePathRef.current
                   ? dirName(currentFilePathRef.current)
                   : activeVaultPathRef.current;
-                if (basePath && (src.startsWith("./") || src.startsWith("../") || !src.match(/^[a-zA-Z]:\\/))) {
+                if (node.attrs["data-wiki-embed"]) {
+                  // Obsidian 嵌入图片：优先按文件名在 vault 中查找，失败则回退相对路径解析
+                  const found = LinkIndexService.findImageByBaseName(src);
+                  if (found) {
+                    resolvedPath = found;
+                  } else if (basePath && (src.startsWith("./") || src.startsWith("../") || !src.match(/^[a-zA-Z]:\\/))) {
+                    resolvedPath = resolveRelativePath(basePath, src);
+                  }
+                } else if (basePath && (src.startsWith("./") || src.startsWith("../") || !src.match(/^[a-zA-Z]:\\/))) {
                   resolvedPath = resolveRelativePath(basePath, src);
                 }
                 dom.setAttribute("data-abs-path", resolvedPath);
@@ -431,6 +450,18 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
               let sourceBox: HTMLDivElement | null = null;
               let sourceClosed = false;
 
+              // 点击面板外部（文档其他位置）→ 关闭源码弹窗
+              // 使用捕获阶段监听：编辑器/ProseMirror 可能拦截 mousedown 冒泡，捕获阶段必然最先收到
+              const onDocMouseDown = (e: MouseEvent) => {
+                const target = e.target as Node;
+                if (!sourceBox) return;
+                // 面板内部点击 → 不关闭
+                if (sourceBox.contains(target)) return;
+                // 图片工具栏（源码/预览按钮）点击 → 不关闭，由 click 事件处理 toggle
+                if (toolbar.contains(target)) return;
+                closeSourceEditor();
+              };
+
               const closeSourceEditor = () => {
                 if (sourceClosed) return;
                 sourceClosed = true;
@@ -441,6 +472,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
                 if (activeImageSourceEditorClose === closeSourceEditor) {
                   activeImageSourceEditorClose = null;
                 }
+                document.removeEventListener("mousedown", onDocMouseDown, true);
               };
 
               const confirmSourceEdit = () => {
@@ -486,6 +518,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
                       title: el.getAttribute("title") || null,
                       width: widthNum && Number.isFinite(widthNum) && widthNum > 0 ? widthNum : null,
                       "data-abs-path": null,
+                      "data-wiki-embed": el.getAttribute("data-wiki-embed") || null,
                     })
                   );
                   closeSourceEditor();
@@ -574,7 +607,12 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
                   if (!sourceBox) return;
                   const rect = wrapper.getBoundingClientRect();
                   if (rect.top < 160) sourceBox.classList.add("below");
+                  // 图片较窄时面板左对齐，避免向右溢出编辑器
+                  if (rect.width < 360) sourceBox.classList.add("left-align");
                 });
+
+                // 点击面板外部时关闭源码弹窗（捕获阶段，不受冒泡拦截影响）
+                document.addEventListener("mousedown", onDocMouseDown, true);
 
                 ta.focus();
               };

@@ -1,4 +1,4 @@
-/* 小红书预览分栏（右侧） */
+/* 小红书图文卡片预览（右侧栏，可拖拽调宽；导出时全屏显示） */
 .xhs-panel {
   position: relative;
   display: flex;
@@ -10,7 +10,14 @@
   color: var(--text-primary);
   font-family: var(--font-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
 }
-
+/* 全屏模式：铺满整个窗口 */
+.xhs-panel.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  border-left: none;
+}
+/* 侧栏左侧拖拽把手 */
 .xhs-resize-handle {
   position: absolute;
   top: 0;
@@ -42,6 +49,26 @@
 .xhs-panel-icon {
   color: var(--text-secondary);
   flex-shrink: 0;
+}
+/* 标题栏全屏/还原按钮 */
+.xhs-fullscreen-btn {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color 0.12s, background 0.12s;
+}
+.xhs-fullscreen-btn:hover {
+  color: var(--accent);
+  background: var(--bg-hover, rgba(0, 0, 0, 0.06));
 }
 /* 关闭按钮；在状态栏中作为内联按钮使用 */
 .xhs-close {
@@ -223,29 +250,74 @@
 .xhs-cards {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 12px;
+  overflow-x: hidden;
+  padding: 18px 28px 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
 }
+
 .xhs-card-item {
   position: relative;
   border: none;
   background: none;
   padding: 0;
-  cursor: zoom-in;
-  width: 100%;
-  max-width: 260px;
+  /* 悬停时鼠标变为加号 */
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M12 5v14M5 12h14' stroke='%23ffffff' stroke-width='3.5' stroke-linecap='round'/><path d='M12 5v14M5 12h14' stroke='%23222222' stroke-width='1.8' stroke-linecap='round'/></svg>")
+      12 12,
+    zoom-in;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
   flex-shrink: 0;
 }
-.xhs-card-item img {
+/* 卡片 DOM 宿主：实际宽高由 JS 按缩放比例设置 */
+.xhs-card-dom-host {
+  position: relative;
   display: block;
-  width: 100%;
-  height: auto;
+  overflow: hidden;
+}
+/* 卡片内图片：可点击选中、可拖拽移动 */
+.xhs-card-dom-host img[data-xhs-img-hash] {
+  cursor: grab;
+  -webkit-user-drag: none;
+  user-select: none;
+  transition: filter 0.12s ease;
+}
+.xhs-card-dom-host img[data-xhs-img-hash]:hover {
+  filter: brightness(1.02);
+}
+.xhs-card-dom-host img.xhs-img-selected {
+  outline: 2px solid var(--accent, #4f8cff);
+  outline-offset: 2px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 4px rgba(79, 140, 255, 0.25);
+}
+.xhs-card-dom-host img.xhs-img-dragging {
+  cursor: grabbing;
+  opacity: 0.92;
+}
+.xhs-card-view {
+  position: absolute;
+  top: 8px;
+  right: 46px;
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 15px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  /* 卡片宿主（.xhs-card-dom-host）在 DOM 中位于按钮之后，同为定位元素会盖住按钮；
+     显式提升层级，让 hover 时按钮可见、可点击（拖拽中图片 z-index:20 仍会暂时盖住它） */
+  z-index: 10;
+  transition: opacity 0.15s ease, background 0.15s ease;
 }
 .xhs-card-download {
   position: absolute;
@@ -262,12 +334,15 @@
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.15s ease;
+  z-index: 10;
+  transition: opacity 0.15s ease, background 0.15s ease;
 }
-.xhs-card-item:hover .xhs-card-download {
+.xhs-card-item:hover .xhs-card-download,
+.xhs-card-item:hover .xhs-card-view {
   opacity: 1;
 }
-.xhs-card-download:hover {
+.xhs-card-download:hover,
+.xhs-card-view:hover {
   background: rgba(0, 0, 0, 0.78);
 }
 
@@ -309,38 +384,75 @@
   width: 100%;
 }
 
+/* 放大查看：覆盖整个窗口 */
 .xhs-zoom-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 1300;
   background: rgba(0, 0, 0, 0.6);
   overflow: auto;
 }
-/* flex 居中容器：让卡片始终保持在遮罩中央（含滚动时） */
-.xhs-zoom-body {
+/* 左右切换按钮：固定在遮罩两侧垂直居中 */
+.xhs-zoom-nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1310;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
   display: flex;
-  min-height: 100%;
   align-items: center;
   justify-content: center;
-  padding: 32px 20px;
-  box-sizing: border-box;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+.xhs-zoom-nav:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.78);
+}
+.xhs-zoom-nav:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+.xhs-zoom-prev {
+  left: 16px;
+}
+.xhs-zoom-next {
+  right: 16px;
+}
+/* 舞台容器：铺满遮罩，让卡片始终保持在中央 */
+.xhs-zoom-body {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .xhs-zoom-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
 }
-.xhs-zoom-stage img {
-  display: block;
-  max-width: 100%;
-  border-radius: 10px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+/* 放大舞台内的卡片宿主：整卡等比缩放（尺寸由 JS 设置） */
+.xhs-zoom-dom {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
 }
-/* 关闭按钮位于卡片图片上方、与图片右缘对齐，不遮挡图片 */
+/* 关闭按钮固定在舞台右上角 */
 .xhs-zoom-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
   width: 32px;
   height: 32px;
-  margin-bottom: 10px;
   border: none;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.55);
@@ -355,10 +467,12 @@
 .xhs-zoom-close:hover {
   background: rgba(0, 0, 0, 0.78);
 }
-/* 页码位于卡片图片下方居中 */
+/* 页码固定在舞台底部居中 */
 .xhs-zoom-page {
-  align-self: center;
-  margin-top: 12px;
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   padding: 3px 12px;
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.55);
