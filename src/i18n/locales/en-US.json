@@ -695,7 +695,15 @@
       "moveFailed": "Move failed:",
       "openFolderLocationFailed": "Failed to open folder location:",
       "openSettingsFailed": "Failed to open settings:"
-    }
+    },
+    "sort": {
+      "byName": "By Name",
+      "byCreated": "By Created",
+      "byModified": "By Modified",
+      "ascending": "Ascending",
+      "descending": "Descending",
+      "tooltip": "Sort By"
+    } 
   },
   "editor": {
     "contextMenu": {
