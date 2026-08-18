@@ -379,6 +379,7 @@
       "enabled": "Typewriter mode enabled, click to disable",
       "disabled": "Click to enable typewriter mode"
     },
+    "fontSizeToast": "Font size",
     "wordCount": "{{count}} words",
     "welcome": {
       "openFile": "Open File",

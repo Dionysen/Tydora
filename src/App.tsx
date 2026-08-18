@@ -167,6 +167,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     } catch {}
     return true;
   });
+  // Ctrl+滚轮调整字号时的右上角提示（停止滚动 1.5s 后自动消失）
+  const [fontSizeToast, setFontSizeToast] = useState<number | null>(null);
+  const fontSizeToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [wordCount, setWordCount] = useState(0);
   const [isCurrentFileMarkdown, setIsCurrentFileMarkdown] = useState(true);
   const codeMirrorRef = useRef<CodeMirrorEditorHandle>(null);
@@ -280,10 +283,21 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         settings.fontSize = next;
         localStorage.setItem("zmd-general-settings", JSON.stringify(settings));
         document.documentElement.style.setProperty("--editor-font-size", next + "px");
+        // 右上角显示当前字号，停止滚动 1.5s 后自动消失
+        setFontSizeToast(next);
+        if (fontSizeToastTimerRef.current) clearTimeout(fontSizeToastTimerRef.current);
+        fontSizeToastTimerRef.current = setTimeout(() => setFontSizeToast(null), 1500);
       } catch {}
     };
     container.addEventListener("wheel", onWheel, { passive: false });
     return () => container.removeEventListener("wheel", onWheel);
+  }, []);
+
+  // 卸载时清理字号提示的自动消失定时器
+  useEffect(() => {
+    return () => {
+      if (fontSizeToastTimerRef.current) clearTimeout(fontSizeToastTimerRef.current);
+    };
   }, []);
 
   // 滚动条自动隐藏：滚动时立即显示，停止滚动 400ms 后快速隐藏
@@ -2405,6 +2419,12 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           {/* 编辑器面板 + 小红书预览分栏 */}
           <div className="editor-body">
           <div className="editor-panel">
+            {/* Ctrl+滚轮调整字号时的右上角提示 */}
+            {fontSizeToast !== null && (
+              <div className="font-size-indicator" role="status" aria-live="polite">
+                {t("app.fontSizeToast")} {fontSizeToast}px
+              </div>
+            )}
             {findReplaceDialogMode && isCurrentFileMarkdown && (
               <FindReplaceDialog
                 editorHandle={editorHandleRef.current}

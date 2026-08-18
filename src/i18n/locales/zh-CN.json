@@ -379,6 +379,7 @@
       "enabled": "打字机模式已开启，点击关闭",
       "disabled": "点击开启打字机模式"
     },
+    "fontSizeToast": "字号",
     "wordCount": "{{count}} 字",
     "welcome": {
       "openFile": "打开文件",

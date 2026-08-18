@@ -12,12 +12,20 @@ import {
   type XhsFontFamily,
   type XhsFontSize,
   type XhsImagePositions,
+  type XhsRatio,
 } from "./types";
 import type { EditorMode } from "../../Editor";
 import "./XhsPreviewPanel.css";
 
 /** 图片位置持久化键：用户拖拽调整后的图片偏移（key = cyrb53(图片 data URL)） */
 const IMAGE_POSITIONS_KEY = "zmd-xhs-image-positions";
+
+/** 卡片比例 → 逻辑尺寸（与导出 render.ts 的 RATIO_SIZES 保持一致） */
+const RATIO_SIZES: Record<XhsRatio, { width: number; height: number }> = {
+  "3:4": { width: 450, height: 600 },
+  "3:5": { width: 450, height: 750 },
+  "1:1": { width: 600, height: 600 },
+};
 
 function loadImagePositions(): XhsImagePositions {
   try {
@@ -117,11 +125,12 @@ export function XhsPreviewPanel({
   const syncCardsFromEditor = useCallback((editorEl: HTMLElement) => {
     const cardsEl = cardsRef.current;
     if (!cardsEl) return;
+    if (fullscreen) return; // 全屏横排时无纵向滚动同步
     const maxEditor = editorEl.scrollHeight - editorEl.clientHeight;
     const maxCards = cardsEl.scrollHeight - cardsEl.clientHeight;
     if (maxEditor <= 0 || maxCards <= 0) return;
     cardsEl.scrollTop = (editorEl.scrollTop / maxEditor) * maxCards;
-  }, []);
+  }, [fullscreen]);
 
   // 捕获阶段监听编辑器 .tiptap-editor 的滚动，映射到卡片预览
   useEffect(() => {
@@ -203,20 +212,25 @@ export function XhsPreviewPanel({
 
   // ── 卡片 DOM 预览：挂载 / 缩放 / 图片拖拽 ──
 
-  // 预览缩放：卡片逻辑宽度（450/600px）按侧栏可用宽度等比缩小
+  // 预览缩放：侧栏纵排按宽度等比缩小；全屏横排按可用高度适配
   useEffect(() => {
     const el = cardsRef.current;
     if (!el) return;
-    const logicalW = settings.ratio === "1:1" ? 600 : 450;
+    const size = RATIO_SIZES[settings.ratio];
     const compute = () => {
-      const avail = Math.max(120, el.clientWidth - 16);
-      setScale(Math.min(1, avail / logicalW));
+      if (fullscreen) {
+        const availH = Math.max(120, el.clientHeight - 8);
+        setScale(Math.min(1, availH / size.height));
+      } else {
+        const availW = Math.max(120, el.clientWidth - 16);
+        setScale(Math.min(1, availW / size.width));
+      }
     };
     compute();
     const ro = new ResizeObserver(compute);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [settings.ratio]);
+  }, [settings.ratio, fullscreen]);
 
   // 把卡片 DOM 挂载到各卡片容器（随 cards / viewMode 重建）
   useEffect(() => {
@@ -620,7 +634,7 @@ export function XhsPreviewPanel({
         )}
       </div>
 
-      <div className="xhs-cards" ref={cardsRef}>
+      <div className={`xhs-cards${fullscreen ? " xhs-cards-horizontal" : ""}`} ref={cardsRef}>
         {viewMode === "ir" &&
           cards.map((card) => (
             <div key={card.index} className="xhs-card-item" data-index={card.index}>
