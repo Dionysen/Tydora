@@ -1375,3 +1375,85 @@
   border-radius: 2px;
   padding: 0 1px;
 }
+
+.sidebar-tree-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.sidebar-sort-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 2px 8px 4px;
+  flex-shrink: 0;
+}
+
+.sidebar-sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+  -webkit-app-region: no-drag;
+}
+
+.sidebar-sort-btn:hover {
+  background: rgba(128, 128, 128, 0.12);
+  color: var(--text-primary);
+}
+
+.sidebar-sort-label {
+  white-space: nowrap;
+}
+
+.sidebar-sort-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 8px;
+  margin-top: 2px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  padding: 4px 0;
+  z-index: 100;
+  min-width: 140px;
+}
+
+.sidebar-sort-option {
+  display: block;
+  width: 100%;
+  padding: 5px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary, #333);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.sidebar-sort-option:hover {
+  background: rgba(78, 178, 137, 0.1);
+}
+
+.sidebar-sort-option.active {
+  color: var(--accent, #4eb289);
+  font-weight: 500;
+}
+
+.sidebar-sort-divider {
+  height: 1px;
+  background: rgba(128, 128, 128, 0.15);
+  margin: 2px 0;
+}
