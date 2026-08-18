@@ -7,6 +7,7 @@ mod commands;
 use commands::watcher_commands::{watch_vault, unwatch_vault, WatcherState};
 use commands::remote_image::{fetch_remote_image, HttpClientState};
 use commands::proxy::{start_proxy_server, fetch_page_title};
+use commands::file_commands::list_dir_with_meta;
 
 struct PreviewServer(Mutex<Option<std::process::Child>>);
 
@@ -1573,7 +1574,8 @@ pub fn run() {
             fetch_page_title,
             create_export_file,
             append_export_file,
-            notify_main_closing
+            notify_main_closing,
+            list_dir_with_meta
         ])
         .setup(|app| {
             // 初始化文件监听器状态
