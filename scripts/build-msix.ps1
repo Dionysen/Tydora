@@ -83,7 +83,10 @@ elseif ($parts.Count -lt 3 -or $parts.Count -gt 4) {
     throw "VERSION 必须是 3 或 4 段（X.Y.Z[.W]），当前：$Version"
 }
 foreach ($p in $parts) {
-    if ($p -gt 65535) { throw "MSIX 版本每段不能超过 65535：$Version" }
+    # ⚠️ 必须显式转 int 再比较：PS 5.1 中 '8' -gt 65535 会把右侧转成字符串
+    # 做字典序比较（'8' > '65535' 为真），导致 0.1.8/0.1.9 等版本误报
+    if ($p -notmatch '^\d+$') { throw "版本段必须是非负整数：'$p'（完整版本：$Version）" }
+    if ([int]$p -gt 65535) { throw "MSIX 版本每段不能超过 65535：$Version" }
 }
 Write-Host "MSIX version: $Version" -ForegroundColor Cyan
 Write-Host "Identity Name:        $PackageIdentityName"

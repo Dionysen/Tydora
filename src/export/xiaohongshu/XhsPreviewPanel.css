@@ -257,6 +257,15 @@
   align-items: center;
   gap: 18px;
 }
+/* 全屏预览：卡片横向排列，超出窗口宽度时横向滚动 */
+.xhs-panel.fullscreen .xhs-cards {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow-y: hidden;
+  overflow-x: auto;
+  padding: 14px 20px;
+}
 
 .xhs-card-item {
   position: relative;
