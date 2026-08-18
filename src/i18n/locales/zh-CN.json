@@ -697,6 +697,14 @@
       "openFolderLocationFailed": "打开文件夹位置失败:",
       "openSettingsFailed": "打开设置窗口失败:"
     }
+    "sort": {
+      "byName": "按名称",
+      "byCreated": "按创建时间",
+      "byModified": "按修改时间",
+      "ascending": "升序",
+      "descending": "降序",
+      "tooltip": "排序方式"
+    }
   },
   "editor": {
     "contextMenu": {
