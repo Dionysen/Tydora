@@ -696,7 +696,7 @@
       "moveFailed": "移动失败:",
       "openFolderLocationFailed": "打开文件夹位置失败:",
       "openSettingsFailed": "打开设置窗口失败:"
-    }
+    },
     "sort": {
       "byName": "按名称",
       "byCreated": "按创建时间",
