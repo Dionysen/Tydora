@@ -703,6 +703,12 @@
       "byModified": "By Modified",
       "ascending": "Ascending",
       "descending": "Descending",
+      "nameAsc": "File Name (A-Z)",
+      "nameDesc": "File Name (Z-A)",
+      "modifiedDesc": "Modified (New to Old)",
+      "modifiedAsc": "Modified (Old to New)",
+      "createdDesc": "Created (New to Old)",
+      "createdAsc": "Created (Old to New)",
       "tooltip": "Sort By"
     } 
   },

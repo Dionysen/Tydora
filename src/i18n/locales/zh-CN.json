@@ -704,6 +704,12 @@
       "byModified": "按修改时间",
       "ascending": "升序",
       "descending": "降序",
+      "nameAsc": "文件名(A-Z)",
+      "nameDesc": "文件名(Z-A)",
+      "modifiedDesc": "编辑时间(从新到旧)",
+      "modifiedAsc": "编辑时间(从旧到新)",
+      "createdDesc": "创建时间(从新到旧)",
+      "createdAsc": "创建时间(从旧到新)",
       "tooltip": "排序方式"
     }
   },

@@ -65,6 +65,13 @@ function saveSortSettings(settings: FileSortSettings): void {
   } catch {}
 }
 
+/** 根据排序设置返回对应的组合 i18n key（文件名/编辑时间/创建时间 × 升降序）。 */
+function sortLabelKey(s: FileSortSettings): string {
+  if (s.sortBy === "name") return s.sortOrder === "asc" ? "sidebar.sort.nameAsc" : "sidebar.sort.nameDesc";
+  if (s.sortBy === "modified") return s.sortOrder === "asc" ? "sidebar.sort.modifiedAsc" : "sidebar.sort.modifiedDesc";
+  return s.sortOrder === "asc" ? "sidebar.sort.createdAsc" : "sidebar.sort.createdDesc";
+}
+
 let currentSortSettings: FileSortSettings = loadSortSettings();
 
 interface SidebarProps {
@@ -1408,6 +1415,7 @@ function FileTree({
     currentSortSettings = settings;
     saveSortSettings(settings);
     setSortSettings(settings);
+    setSortDropdownOpen(false);
     const resortTree = (nodes: TreeNode[]) => {
       for (const n of nodes) {
         if (n.children) {
@@ -1419,7 +1427,7 @@ function FileTree({
     resortTree(rootNodesRef.current);
     setRootNodes(sortTreeNodes(rootNodesRef.current, settings));
     handleRefresh();
-  }, [handleRefresh]);
+  }, [handleRefresh, setSortDropdownOpen]);
 
   const handleFinishEdit = useCallback(async (path: string, newName: string, isDirectory: boolean) => {
     setEditingPath(null);
@@ -1849,48 +1857,48 @@ function FileTree({
             <path d="M3 6h13M3 12h9M3 18h5M14 15l3 3 3-3M17 4v14" />
           </svg>
           <span className="sidebar-sort-label">
-            {sortSettings.sortBy === "name" ? i18n.t("sidebar.sort.byName")
-              : sortSettings.sortBy === "created" ? i18n.t("sidebar.sort.byCreated")
-              : i18n.t("sidebar.sort.byModified")}
+            {i18n.t(sortLabelKey(sortSettings))}
           </span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="10" height="10">
-            {sortSettings.sortOrder === "asc"
-              ? <path d="M18 15l-6-6-6 6" />
-              : <path d="M6 9l6 6 6-6" />}
-          </svg>
         </button>
         {sortDropdownOpen && (
           <div className="sidebar-sort-dropdown" onClick={e => e.stopPropagation()}>
             <button
-              className={`sidebar-sort-option${sortSettings.sortBy === "name" ? " active" : ""}`}
-              onClick={() => handleSortChange({ ...sortSettings, sortBy: "name" })}
+              className={`sidebar-sort-option${sortSettings.sortBy === "name" && sortSettings.sortOrder === "asc" ? " active" : ""}`}
+              onClick={() => handleSortChange({ sortBy: "name", sortOrder: "asc" })}
             >
-              {i18n.t("sidebar.sort.byName")}
+              {i18n.t("sidebar.sort.nameAsc")}
             </button>
             <button
-              className={`sidebar-sort-option${sortSettings.sortBy === "created" ? " active" : ""}`}
-              onClick={() => handleSortChange({ ...sortSettings, sortBy: "created" })}
+              className={`sidebar-sort-option${sortSettings.sortBy === "name" && sortSettings.sortOrder === "desc" ? " active" : ""}`}
+              onClick={() => handleSortChange({ sortBy: "name", sortOrder: "desc" })}
             >
-              {i18n.t("sidebar.sort.byCreated")}
-            </button>
-            <button
-              className={`sidebar-sort-option${sortSettings.sortBy === "modified" ? " active" : ""}`}
-              onClick={() => handleSortChange({ ...sortSettings, sortBy: "modified" })}
-            >
-              {i18n.t("sidebar.sort.byModified")}
+              {i18n.t("sidebar.sort.nameDesc")}
             </button>
             <div className="sidebar-sort-divider" />
             <button
-              className={`sidebar-sort-option${sortSettings.sortOrder === "asc" ? " active" : ""}`}
-              onClick={() => handleSortChange({ ...sortSettings, sortOrder: "asc" })}
+              className={`sidebar-sort-option${sortSettings.sortBy === "modified" && sortSettings.sortOrder === "desc" ? " active" : ""}`}
+              onClick={() => handleSortChange({ sortBy: "modified", sortOrder: "desc" })}
             >
-              {i18n.t("sidebar.sort.ascending")}
+              {i18n.t("sidebar.sort.modifiedDesc")}
             </button>
             <button
-              className={`sidebar-sort-option${sortSettings.sortOrder === "desc" ? " active" : ""}`}
-              onClick={() => handleSortChange({ ...sortSettings, sortOrder: "desc" })}
+              className={`sidebar-sort-option${sortSettings.sortBy === "modified" && sortSettings.sortOrder === "asc" ? " active" : ""}`}
+              onClick={() => handleSortChange({ sortBy: "modified", sortOrder: "asc" })}
             >
-              {i18n.t("sidebar.sort.descending")}
+              {i18n.t("sidebar.sort.modifiedAsc")}
+            </button>
+            <div className="sidebar-sort-divider" />
+            <button
+              className={`sidebar-sort-option${sortSettings.sortBy === "created" && sortSettings.sortOrder === "desc" ? " active" : ""}`}
+              onClick={() => handleSortChange({ sortBy: "created", sortOrder: "desc" })}
+            >
+              {i18n.t("sidebar.sort.createdDesc")}
+            </button>
+            <button
+              className={`sidebar-sort-option${sortSettings.sortBy === "created" && sortSettings.sortOrder === "asc" ? " active" : ""}`}
+              onClick={() => handleSortChange({ sortBy: "created", sortOrder: "asc" })}
+            >
+              {i18n.t("sidebar.sort.createdAsc")}
             </button>
           </div>
         )}
