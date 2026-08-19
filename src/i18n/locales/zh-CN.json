@@ -699,11 +699,6 @@
       "openSettingsFailed": "打开设置窗口失败:"
     },
     "sort": {
-      "byName": "按名称",
-      "byCreated": "按创建时间",
-      "byModified": "按修改时间",
-      "ascending": "升序",
-      "descending": "降序",
       "nameAsc": "文件名(A-Z)",
       "nameDesc": "文件名(Z-A)",
       "modifiedDesc": "编辑时间(从新到旧)",

@@ -698,11 +698,6 @@
       "openSettingsFailed": "Failed to open settings:"
     },
     "sort": {
-      "byName": "By Name",
-      "byCreated": "By Created",
-      "byModified": "By Modified",
-      "ascending": "Ascending",
-      "descending": "Descending",
       "nameAsc": "File Name (A-Z)",
       "nameDesc": "File Name (Z-A)",
       "modifiedDesc": "Modified (New to Old)",
