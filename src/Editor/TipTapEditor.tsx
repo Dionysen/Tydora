@@ -12,7 +12,7 @@ import Blockquote from "@tiptap/extension-blockquote";
 import BulletList from "@tiptap/extension-bullet-list";
 import OrderedList from "@tiptap/extension-ordered-list";
 import ListItem from "@tiptap/extension-list-item";
-import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import CodeBlockLowlight from "./extensions/code-block-lowlight-safe";
 import TiptapImage from "@tiptap/extension-image";
 import TiptapLink from "@tiptap/extension-link";
 import { Table } from "@tiptap/extension-table";
@@ -40,6 +40,7 @@ import elixirLang from "highlight.js/lib/languages/elixir";
 import juliaLang from "highlight.js/lib/languages/julia";
 import tclLang from "highlight.js/lib/languages/tcl";
 import propertiesLang from "highlight.js/lib/languages/properties";
+import gradleLang from "highlight.js/lib/languages/gradle";
 import { Frontmatter } from "./extensions/frontmatter";
 import { Callout } from "./extensions/callout";
 import { Mermaid } from "./extensions/mermaid";
@@ -84,6 +85,7 @@ lowlight.register("elixir", elixirLang);
 lowlight.register("julia", juliaLang);
 lowlight.register("tcl", tclLang);
 lowlight.register("properties", propertiesLang);
+lowlight.register("gradle", gradleLang);
 lowlight.register("mermaid", mermaidHljsLang);
 
 // 图片源码编辑面板：同一时刻只允许一个（所有图片 node view 共享）
