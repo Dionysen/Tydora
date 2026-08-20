@@ -4,6 +4,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import { Fragment } from "@tiptap/pm/model";
 import { TextSelection } from "@tiptap/pm/state";
 import type MarkdownIt from "markdown-it";
+import taskListPlugin from "markdown-it-task-lists";
 
 // 输入 `- [ ] ` / `- [x] ` 的即时渲染转换：
 // 1. 输入 `- ` 时 BulletList 的 inputRule 会先把行转换为 bulletList > listItem；
@@ -235,6 +236,11 @@ export const TaskListExt = TaskList.extend({
         serialize: parent?.storage?.markdown?.serialize,
         parse: {
           setup: (markdownit: any) => {
+            // 必须同时注册官方 markdown-it-task-lists 插件：
+            // 覆盖 addStorage 的 parse 会整体替换 tiptap-markdown 内置的
+            // taskList 默认 spec（其 setup 会 use 官方插件），若这里只注册
+            // customEmptyTaskLists，带内容的任务项 `- [ ] xxx` 将无法被识别。
+            markdownit.use(taskListPlugin);
             markdownit.use(customEmptyTaskLists);
           },
           updateDOM: (element: HTMLElement) => {

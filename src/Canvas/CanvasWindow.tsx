@@ -9,7 +9,6 @@ import CanvasView from './CanvasView';
 import { useCanvasStore } from './canvas-store';
 import { ConfirmDialog } from '../components';
 import { track, trackPageview, ANALYTICS_EVENTS } from '../analytics';
-import './canvas.css';
 
 const CANVAS_STORAGE_KEY = 'zmd-canvas-file-path';
 

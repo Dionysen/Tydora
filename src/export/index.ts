@@ -9,13 +9,6 @@ import {
   rasterizeMermaidSvgsForDocx,
   replaceTaskCheckboxesWithSvg,
 } from "./dom";
-import {
-  buildHtmlDoc,
-  buildWechatHtml,
-  exportPdfBytes,
-  renderToPng,
-} from "./exporters";
-import { exportDocxBytes } from "./docx";
 
 export type ExportFormat = "pdf" | "html" | "docx" | "png" | "wechat";
 
@@ -70,6 +63,9 @@ export async function buildExportArtifact(format: ExportFormat, ctx: ExportConte
     throw new Error("请切换到预览模式（WYSIWYG）后再导出");
   }
 
+  // 导出相关重库（html2canvas / jspdf / docx 等）按需加载，避免拖慢应用启动
+  const { buildHtmlDoc, buildWechatHtml, exportPdfBytes, renderToPng } = await import("./exporters");
+
   // Word 导出固定使用浅色主题，避免暗色主题下文字/背景异常
   const { container, cleanup } = prepareExportElement(raw, ctx.themeName, format === "docx");
   try {
@@ -88,6 +84,7 @@ export async function buildExportArtifact(format: ExportFormat, ctx: ExportConte
           previewHtml: htmlDoc,
         };
       case "docx": {
+        const { exportDocxBytes } = await import("./docx");
         // 先把 mermaid SVG 栅格化为图片，再生成真正的 .docx 二进制
         await rasterizeMermaidSvgsForDocx(raw);
         // 移除导出 header（icon + 名称），Word 文档不需要应用标识

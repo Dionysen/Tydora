@@ -1,14 +1,19 @@
+import { lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
-import Settings from "./Settings";
-import VaultManagerWindow from "./VaultManager/VaultManagerWindow";
-import { MindmapWindow } from "./mindmap";
-import { GraphWindow } from "./graph";
-import CanvasWindow from "./Canvas/CanvasWindow";
 import { ThemeProvider } from "./themes";
 import { LanguageProvider } from "./i18n/LanguageContext";
 import "./i18n"; // init i18next before first render
 import "./themes.css";
+import "./global.css";
+
+// 按窗口代码分割：每个窗口只加载自身及其依赖的 chunk，
+// 避免启动/打开窗口时解析全部窗口的代码（显著降低首屏与窗口打开耗时）
+const App = lazy(() => import("./App"));
+const Settings = lazy(() => import("./Settings"));
+const VaultManagerWindow = lazy(() => import("./VaultManager/VaultManagerWindow"));
+const MindmapWindow = lazy(() => import("./mindmap").then((m) => ({ default: m.MindmapWindow })));
+const GraphWindow = lazy(() => import("./graph").then((m) => ({ default: m.GraphWindow })));
+const CanvasWindow = lazy(() => import("./Canvas/CanvasWindow"));
 
 // 屏蔽 ResizeObserver 循环警告（调整窗口/侧栏宽度时的良性警告）
 // Chromium 的 ResizeObserver 错误走 window.onerror 和 console.error 两条路径
@@ -36,23 +41,44 @@ if (import.meta.env.DEV) {
   };
 }
 
-const urlParams = new URLSearchParams(window.location.search);
-const isSettingsWindow = urlParams.get("window") === "settings";
-const isVaultManagerWindow = urlParams.get("window") === "vault-manager";
-const isMindmapWindow = urlParams.get("window") === "mindmap";
-const isGraphWindow = urlParams.get("window") === "graph";
-const isCanvasWindow = urlParams.get("window") === "canvas";
-const initialFilePath = urlParams.get("window") === "editor"
-  ? urlParams.get("file")?.replace(/\//g, "\\")
-  : null;
-const initialVaultPath = urlParams.get("window") === "editor"
-  ? urlParams.get("vault")?.replace(/\//g, "\\")
-  : null;
+function Root() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const isSettingsWindow = urlParams.get("window") === "settings";
+  const isVaultManagerWindow = urlParams.get("window") === "vault-manager";
+  const isMindmapWindow = urlParams.get("window") === "mindmap";
+  const isGraphWindow = urlParams.get("window") === "graph";
+  const isCanvasWindow = urlParams.get("window") === "canvas";
+  const initialFilePath = urlParams.get("window") === "editor"
+    ? urlParams.get("file")?.replace(/\//g, "\\")
+    : null;
+  const initialVaultPath = urlParams.get("window") === "editor"
+    ? urlParams.get("vault")?.replace(/\//g, "\\")
+    : null;
+
+  if (isSettingsWindow) {
+    return <Settings />;
+  }
+  if (isVaultManagerWindow) {
+    return <VaultManagerWindow />;
+  }
+  if (isMindmapWindow) {
+    return <MindmapWindow />;
+  }
+  if (isGraphWindow) {
+    return <GraphWindow />;
+  }
+  if (isCanvasWindow) {
+    return <CanvasWindow />;
+  }
+  return <App initialFilePath={initialFilePath} initialVaultPath={initialVaultPath} />;
+}
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <ThemeProvider>
     <LanguageProvider>
-      {isSettingsWindow ? <Settings /> : isVaultManagerWindow ? <VaultManagerWindow /> : isMindmapWindow ? <MindmapWindow /> : isGraphWindow ? <GraphWindow /> : isCanvasWindow ? <CanvasWindow /> : <App initialFilePath={initialFilePath} initialVaultPath={initialVaultPath} />}
+      <Suspense fallback={null}>
+        <Root />
+      </Suspense>
     </LanguageProvider>
   </ThemeProvider>,
 );

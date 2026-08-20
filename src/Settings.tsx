@@ -14,7 +14,6 @@ import { loadCanvasSettings, saveCanvasSettings, type CanvasSettings } from "./C
 import { parseCssVariables, extractPreviewColors, type ThemeVariable, type ThemeManifest } from "./themes/CustomThemeManager";
 import { getCustomThemeCss } from "./themes/CustomThemeManager";
 import { CODE_THEMES, type CustomCodeTheme } from "./themes";
-import hljs from "highlight.js";
 import appIcon from "./assets/icon.png";
 import { useLanguage } from "./i18n/LanguageContext";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "./i18n";
@@ -630,6 +629,23 @@ function ThemeSettingsContent({
   const [codeThemeName, setCodeThemeName] = useState("");
   const [codeThemeDialog, setCodeThemeDialog] = useState<{ open: boolean; filePath: string }>({ open: false, filePath: "" });
 
+  // 代码主题预览用的示例高亮：hljs 按需加载，避免拖慢设置窗口打开
+  const [codeSampleHtml, setCodeSampleHtml] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    import("highlight.js")
+      .then(({ default: hljs }) => {
+        if (cancelled) return;
+        setCodeSampleHtml(
+          hljs.highlight(`function greet(name) {\n  return 42;\n}`, { language: "javascript" }).value,
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const builtinThemes: { value: ThemeName; label: string; colors: string[] }[] = [
     { value: "white", label: t("settings.theme.white"), colors: ["#ffffff", "#2563eb", "#1e293b", "#d1d9e6"] },
     { value: "mint", label: "Mint", colors: ["#ffffff", "#4eb289", "#1e293b", "#a5cfc0"] },
@@ -966,13 +982,7 @@ function ThemeSettingsContent({
       <div className="settings-code-theme-preview">
         <div className="settings-code-theme-preview-title">{t("settings.theme.preview")}</div>
         <pre className="settings-code-theme-preview-code">
-          <code
-            dangerouslySetInnerHTML={{
-              __html: hljs.highlight(`function greet(name) {
-  return 42;
-}`, { language: "javascript" }).value,
-            }}
-          />
+          <code dangerouslySetInnerHTML={{ __html: codeSampleHtml }} />
         </pre>
       </div>
 

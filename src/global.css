@@ -1,0 +1,30 @@
+/* ========== 全局基础样式 ==========
+ * 必须由 main.tsx 静态导入，随主入口 CSS 同步加载。
+ * 代码分割后各窗口（设置/白板/图谱/脑图等）不再加载 App.css，
+ * 因此 html/body/#root 的全局样式必须放在这里，保证所有窗口
+ * 在任何 chunk 加载完成前就有正确的背景色与重置样式。
+ */
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
+}

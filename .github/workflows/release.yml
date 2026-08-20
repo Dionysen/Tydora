@@ -23,6 +23,10 @@ jobs:
             args: '--target x86_64-apple-darwin'
           - platform: ubuntu-22.04
             args: ''
+          - platform: ubuntu-22.04-arm
+            # Linux ARM64（aarch64）：使用 GitHub 官方 ARM64 托管 runner 原生构建
+            # （AppImage 工具链不支持 x86→arm64 交叉编译，公共仓库可直接用该 runner）
+            args: ''
 
     runs-on: ${{ matrix.platform }}
 
@@ -48,7 +52,7 @@ jobs:
           workspaces: './src-tauri -> target'
 
       - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-22.04'
+        if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'ubuntu-22.04-arm'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev libdpkg-dev rpm

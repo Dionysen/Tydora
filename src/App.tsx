@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useMemo, Component } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo, Component, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { getCurrentWindow, availableMonitors } from "@tauri-apps/api/window";
 import { PhysicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
@@ -24,14 +24,27 @@ import { LinkIndexService } from "./wikilink";
 import { WikiLinkAutocomplete } from "./wikilink";
 import { WikiLinkPreview } from "./wikilink";
 import { TagAutocomplete, TagIndexService } from "./tags";
-import { GraphView } from "./graph";
-import CanvasView from "./Canvas/CanvasView";
-import { ReactFlowProvider } from "@xyflow/react";
 import { useCanvasStore } from "./Canvas/canvas-store";
 import { useVaultWatcher } from "./services";
 import PublishPanel from "./publish/PublishPanel";
 import PublishConfigDialog from "./publish/PublishConfigDialog";
 import { CONFIG_FILE } from "./publish/PublishService";
+
+// 关系图谱 / 白板仅在打开时渲染，按需加载（避免 d3、@xyflow 进入首屏 bundle）
+const GraphView = lazy(() => import("./graph").then((m) => ({ default: m.GraphView })));
+const EmbeddedCanvasView = lazy(async () => {
+  const [{ ReactFlowProvider }, { default: CanvasView }] = await Promise.all([
+    import("@xyflow/react"),
+    import("./Canvas/CanvasView"),
+  ]);
+  return {
+    default: () => (
+      <ReactFlowProvider>
+        <CanvasView />
+      </ReactFlowProvider>
+    ),
+  };
+});
 import { BookmarkDialog, BookmarksService } from "./Bookmarks";
 import FindReplaceDialog from "./components/FindReplaceDialog";
 import "./App.css";
@@ -2489,15 +2502,17 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
             )}
             {graphViewOpen ? (
               <div className="graph-view-embedded">
-                <GraphView
-                  vaultPath={activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null}
-                  onSelectNote={(path) => {
-                    setGraphViewOpen(false);
-                    handleSelectFile(path);
-                  }}
-                  standalone
-                  refreshKey={graphRefreshKey}
-                />
+                <Suspense fallback={null}>
+                  <GraphView
+                    vaultPath={activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null}
+                    onSelectNote={(path) => {
+                      setGraphViewOpen(false);
+                      handleSelectFile(path);
+                    }}
+                    standalone
+                    refreshKey={graphRefreshKey}
+                  />
+                </Suspense>
               </div>
             ) : previewFilePath ? (
               <FilePreview
@@ -2506,9 +2521,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
               />
             ) : canvasFilePath ? (
               <div style={{ width: '100%', height: '100%' }}>
-                <ReactFlowProvider>
-                  <CanvasView />
-                </ReactFlowProvider>
+                <Suspense fallback={null}>
+                  <EmbeddedCanvasView />
+                </Suspense>
               </div>
             ) : !fileName && !content.trim() ? (
               <div className="editor-welcome">

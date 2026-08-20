@@ -12,6 +12,7 @@ import {
   type Connection,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import './canvas.css';
 
 import { CanvasZoomContext } from './CanvasZoomContext';
 import { getCanvasColor } from './canvas-utils';

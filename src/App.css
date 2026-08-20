@@ -1,43 +1,6 @@
-/* ========== 全局重置 ========== */
-*,
-*::before,
-*::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-:root {
-  --bg-primary: #1e1e2e;
-  --bg-secondary: #181825;
-  --bg-surface: #313244;
-  --text-primary: #000000;
-  --text-secondary: #a6adc8;
-  --accent: #89b4fa;
-  --accent-hover: #74c7ec;
-  --border: #45475a;
-  --danger: #f38ba8;
-  --font-mono: "Cascadia Code", "JetBrains Mono", "Fira Code", "Consolas",
-    monospace;
-  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
-}
-
-html,
-body {
-  height: 100%;
-  overflow: hidden;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: var(--font-ui);
-  font-size: 14px;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
-
-#root {
-  height: 100%;
-}
+/* 全局重置与 html/body/#root 基础样式已移至 src/global.css
+ * （由 main.tsx 静态导入，所有窗口共享，随主入口 CSS 同步加载）
+ */
 
 /* ========== App 布局 ========== */
 .app {
