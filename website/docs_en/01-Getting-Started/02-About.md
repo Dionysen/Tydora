@@ -14,7 +14,7 @@ Tydora is a modern desktop Markdown editor built with Tauri v2 + React 19. It su
 
 | Item | Details |
 | --- | --- |
-| Current Version | 0.1.8 | <!-- x-release-please-version -->
+| Current Version | 0.1.9 | <!-- x-release-please-version -->
 | Build Framework | Tauri v2 |
 | Frontend Framework | React 19 |
 | Editor Engine | TipTap 3.x (WYSIWYG) + CodeMirror 6 (Source) |
