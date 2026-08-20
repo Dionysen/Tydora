@@ -363,7 +363,8 @@
       "copyPath": "Copy Path",
       "relativePath": "Relative Path (from vault)",
       "absolutePath": "Absolute Path",
-      "openInExplorer": "Show in File Explorer",
+      "openInExplorer": "Open File Location",
+      "openInTerminal": "Open in Terminal",
       "mindmap": "Mind Map",
       "graph": "Graph",
       "exporting": "Exporting…",
@@ -425,7 +426,8 @@
       "autoSaveFailed": "Auto-save failed:",
       "openNewWindowFailed": "Failed to open new window:",
       "renameFailed": "Rename failed:",
-      "openLocationFailed": "Failed to open file location:"
+      "openLocationFailed": "Failed to open file location:",
+      "openTerminalFailed": "Failed to open terminal:"
     },
     "command": {
       "categories": {
@@ -597,7 +599,8 @@
       "moveTo": "Move to...",
       "delete": "Delete",
       "copyPath": "Copy File Path",
-      "openLocation": "Open File Location"
+      "openLocation": "Open File Location",
+      "openInTerminal": "Open in Terminal"
     },
     "search": {
       "placeholder": "Search files...",
@@ -692,6 +695,7 @@
       "copyToClipboardFailed": "Failed to copy to clipboard:",
       "moveFailed": "Move failed:",
       "openFolderLocationFailed": "Failed to open folder location:",
+      "openTerminalFailed": "Failed to open terminal:",
       "openSettingsFailed": "Failed to open settings:"
     },
     "sort": {

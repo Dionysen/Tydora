@@ -591,6 +591,57 @@ fn open_directory(dir_path: String) -> Result<(), String> {
     Ok(())
 }
 
+/// 在系统终端中打开指定路径（文件取其所在目录，目录/仓库直接打开）
+#[tauri::command]
+fn open_in_terminal(path: String) -> Result<(), String> {
+    let target = std::path::Path::new(&path);
+    let dir = if target.is_dir() {
+        target.to_path_buf()
+    } else if let Some(parent) = target.parent() {
+        parent.to_path_buf()
+    } else {
+        target.to_path_buf()
+    };
+    let dir = dir.to_string_lossy().to_string();
+
+    #[cfg(target_os = "windows")]
+    {
+        // 优先 Windows Terminal，失败则回退到 cmd（/K 保持窗口打开）
+        if Command::new("wt.exe").args(["-d", &dir]).spawn().is_ok() {
+            return Ok(());
+        }
+        Command::new("cmd.exe")
+            .current_dir(&dir)
+            .arg("/K")
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .args(["-a", "Terminal", &dir])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        // 依次尝试常见终端模拟器，成功即返回
+        let candidates: &[(&str, &str)] = &[
+            ("gnome-terminal", "--working-directory"),
+            ("konsole", "--workdir"),
+            ("xfce4-terminal", "--working-directory"),
+            ("x-terminal-emulator", "--working-directory"),
+        ];
+        for (bin, flag) in candidates {
+            if Command::new(bin).args([*flag, &dir]).spawn().is_ok() {
+                return Ok(());
+            }
+        }
+        return Err("No terminal emulator found".to_string());
+    }
+    Ok(())
+}
+
 /// 复制文件为 "name copy.ext"，若已存在则自动递增为 "name copy 2.ext"。
 /// 返回新文件的完整路径。
 #[tauri::command]
@@ -1645,6 +1696,7 @@ pub fn run() {
             duplicate_file,
             copy_file_to_clipboard,
             open_directory,
+            open_in_terminal,
             open_mindmap_window,
             open_graph_window,
             open_canvas_window,

@@ -1400,6 +1400,20 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     setMoreMenuOpen(false);
   }, [fileName]);
 
+  const handleOpenTerminal = useCallback(async () => {
+    // 优先在当前文件所在目录打开终端，无打开文件时用仓库根目录
+    const path =
+      fileName ||
+      (activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null);
+    if (!path) return;
+    try {
+      await invoke("open_in_terminal", { path });
+    } catch (err) {
+      console.error(t("app.error.openTerminalFailed"), err);
+    }
+    setMoreMenuOpen(false);
+  }, [fileName, activeVaultIndex, vaults]);
+
   const handleMinimize = useCallback(() => {
     getCurrentWindow().minimize();
   }, []);
@@ -2319,6 +2333,16 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                           {t("app.menu.absolutePath")}
                         </div>
                       </div>
+                    </div>
+                    <div
+                      className={`editor-topbar-more-menu-item${!fileName && !(activeVaultIndex >= 0) ? ' disabled' : ''}`}
+                      onClick={() => { if (!fileName && !(activeVaultIndex >= 0)) return; handleOpenTerminal(); }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="4 17 10 11 4 5" />
+                        <line x1="12" y1="19" x2="20" y2="19" />
+                      </svg>
+                      <span className="editor-topbar-more-menu-label">{t("app.menu.openInTerminal")}</span>
                     </div>
                     <div
                       className={`editor-topbar-more-menu-item${!fileName ? ' disabled' : ''}`}

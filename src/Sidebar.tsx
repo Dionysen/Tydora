@@ -678,6 +678,7 @@ interface FileActions {
   onDelete: () => void;
   onCopyPath: () => void;
   onOpenLocation: () => void;
+  onOpenTerminal: () => void;
   onNewWindow: () => void;
   onBookmark: () => void;
   onMoveTo: () => void;
@@ -781,6 +782,12 @@ const MENU_ICONS = {
   openLocation: menuIcon(
     <path d="m6 14 1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2" />,
   ),
+  openTerminal: menuIcon(
+    <>
+      <polyline points="4 17 10 11 4 5" />
+      <line x1="12" y1="19" x2="20" y2="19" />
+    </>,
+  ),
 };
 
 function getFileMenuItems(actions: FileActions, t: (key: string) => string): ContextMenuItem[] {
@@ -803,6 +810,7 @@ function getFileMenuItems(actions: FileActions, t: (key: string) => string): Con
     { label: t("sidebar.contextMenu.moveTo"), icon: MENU_ICONS.moveTo, onClick: actions.onMoveTo },
     { label: t("sidebar.contextMenu.delete"), icon: MENU_ICONS.delete, onClick: actions.onDelete, danger: true, separator: true },
     { label: t("sidebar.contextMenu.copyPath"), icon: MENU_ICONS.copyPath, onClick: actions.onCopyPath, separator: true },
+    { label: t("sidebar.contextMenu.openInTerminal"), icon: MENU_ICONS.openTerminal, onClick: actions.onOpenTerminal },
     { label: t("sidebar.contextMenu.openLocation"), icon: MENU_ICONS.openLocation, onClick: actions.onOpenLocation },
   ];
 }
@@ -817,6 +825,7 @@ function getFolderMenuItems(actions: FileActions, t: (key: string) => string): C
     { label: t("sidebar.contextMenu.moveTo"), icon: MENU_ICONS.moveTo, onClick: actions.onMoveTo },
     { label: t("sidebar.contextMenu.delete"), icon: MENU_ICONS.delete, onClick: actions.onDelete, danger: true, separator: true },
     { label: t("sidebar.contextMenu.copyPath"), icon: MENU_ICONS.copyPath, onClick: actions.onCopyPath },
+    { label: t("sidebar.contextMenu.openInTerminal"), icon: MENU_ICONS.openTerminal, onClick: actions.onOpenTerminal },
     { label: t("sidebar.contextMenu.openLocation"), icon: MENU_ICONS.openLocation, onClick: actions.onOpenLocation },
   ];
 }
@@ -827,6 +836,7 @@ function getBlankMenuItems(actions: FileActions, t: (key: string) => string): Co
     { label: t("sidebar.contextMenu.newCanvas"), icon: MENU_ICONS.newCanvas, onClick: actions.onNewWhiteboard },
     { label: t("sidebar.contextMenu.newFolder"), icon: MENU_ICONS.newFolder, onClick: actions.onNewFolder, separator: true },
     { label: t("sidebar.contextMenu.copyPath"), icon: MENU_ICONS.copyPath, onClick: actions.onCopyPath },
+    { label: t("sidebar.contextMenu.openInTerminal"), icon: MENU_ICONS.openTerminal, onClick: actions.onOpenTerminal },
     { label: t("sidebar.contextMenu.openLocation"), icon: MENU_ICONS.openLocation, onClick: actions.onOpenLocation },
   ];
 }
@@ -1133,6 +1143,14 @@ function TreeNodeComp({
     }
   }, [node]);
 
+  const handleOpenTerminal = useCallback(async () => {
+    try {
+      await invoke("open_in_terminal", { path: node.path });
+    } catch (err) {
+      console.error(i18n.t("sidebar.error.openTerminalFailed"), err);
+    }
+  }, [node]);
+
   const handleDuplicate = useCallback(async () => {
     try {
       await invoke("duplicate_file", { path: node.path });
@@ -1180,6 +1198,7 @@ function TreeNodeComp({
     onDelete: handleDelete,
     onCopyPath: handleCopyPath,
     onOpenLocation: handleOpenLocation,
+    onOpenTerminal: handleOpenTerminal,
     onBookmark: () => onBookmark(node.path, node.isDirectory),
     onMoveTo: () => onMoveTo(node.path, node.isDirectory),
   };
@@ -1733,6 +1752,14 @@ function FileTree({
     }
   }, [rootPath]);
 
+  const handleOpenRootTerminal = useCallback(async () => {
+    try {
+      await invoke("open_in_terminal", { path: rootPath });
+    } catch (err) {
+      console.error(i18n.t("sidebar.error.openTerminalFailed"), err);
+    }
+  }, [rootPath]);
+
   const blankActions: FileActions = {
     onOpen: () => {},
     onNewWindow: showDevAlert,
@@ -1747,6 +1774,7 @@ function FileTree({
     onDelete: () => {},
     onCopyPath: handleCopyRootPath,
     onOpenLocation: handleOpenRootLocation,
+    onOpenTerminal: handleOpenRootTerminal,
     onBookmark: () => {},
     onMoveTo: () => {},
   };

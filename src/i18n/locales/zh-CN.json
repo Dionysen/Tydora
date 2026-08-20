@@ -363,7 +363,8 @@
       "copyPath": "复制路径",
       "relativePath": "基于库的相对路径",
       "absolutePath": "绝对路径",
-      "openInExplorer": "在系统资源管理器中显示",
+      "openInExplorer": "打开文件位置",
+      "openInTerminal": "在终端打开",
       "mindmap": "思维导图",
       "graph": "关系图谱",
       "exporting": "导出中…",
@@ -597,7 +598,8 @@
       "moveTo": "移动到...",
       "delete": "删除",
       "copyPath": "复制文件路径",
-      "openLocation": "打开文件位置"
+      "openLocation": "打开文件位置",
+      "openInTerminal": "在终端打开"
     },
     "search": {
       "placeholder": "搜索文件内容...",
@@ -693,6 +695,7 @@
       "copyToClipboardFailed": "复制到剪切板失败:",
       "moveFailed": "移动失败:",
       "openFolderLocationFailed": "打开文件夹位置失败:",
+      "openTerminalFailed": "打开终端失败:",
       "openSettingsFailed": "打开设置窗口失败:"
     },
     "sort": {
