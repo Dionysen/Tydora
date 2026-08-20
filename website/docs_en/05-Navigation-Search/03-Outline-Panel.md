@@ -1,4 +1,4 @@
-﻿---
+---
 title: Outline Panel
 tags: [Navigation & Search]
 ---
@@ -7,15 +7,14 @@ tags: [Navigation & Search]
 
 The Outline Panel displays the **heading structure of the current document**, giving you a bird's-eye view of your article's skeleton and letting you jump to any section with a single click.
 
-> [!NOTE]
-> Switch to the "Outline" tab in the left sidebar to view it. It sits alongside the "Files", "Backlinks", and other tabs.
+> [!NOTE]Switch to the "Outline" tab in the left sidebar to view it. It sits alongside the "Files", "Backlinks", and other tabs.
 
 ## Features
 
-- Automatically parses Markdown headings (levels 1–6)
-- Displays headings with **indentation by hierarchy**, making the structure clear at a glance
-- Click any heading to scroll the editor to the corresponding position
-- Highlights the **current reading position** (synchronized with scrolling)
+1. Automatically parses Markdown headings (levels 1–6)
+2. Displays headings with **indentation by hierarchy**, making the structure clear at a glance
+3. Click any heading to scroll the editor to the corresponding position
+4. Highlights the **current reading position** (synchronized with scrolling)
 
 ## Usage
 
@@ -42,8 +41,7 @@ The Outline supports all 6 heading levels:
 - **Structure inspection**: Plan your outline before writing, and verify chapter completeness at any time during writing
 - **Section jumping**: Click to navigate instantly, no manual scrolling needed
 
-> [!TIP]
-> The Outline and [[03-Knowledge-Management/04-Knowledge-Graph]] complement each other: the Outline shows the "structure of a single document", while the Graph shows the "relationships between notes".
+> [!TIP]The Outline and  complement each other: the Outline shows the "structure of a single document", while the Graph shows the "relationships between notes".
 
 ## Related Documents
 

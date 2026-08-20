@@ -257,13 +257,15 @@
   align-items: center;
   gap: 18px;
 }
-/* 全屏预览：卡片横向排列，超出窗口宽度时横向滚动 */
+/* 全屏预览：卡片网格多行排列；一行放不下的卡片自动换行，超出时纵向滚动 */
 .xhs-panel.fullscreen .xhs-cards {
   flex-direction: row;
+  flex-wrap: wrap;
   align-items: flex-start;
+  align-content: flex-start;
   justify-content: flex-start;
-  overflow-y: hidden;
-  overflow-x: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 14px 20px;
 }
 

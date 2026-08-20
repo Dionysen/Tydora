@@ -212,7 +212,8 @@ export function XhsPreviewPanel({
 
   // ── 卡片 DOM 预览：挂载 / 缩放 / 图片拖拽 ──
 
-  // 预览缩放：侧栏纵排按宽度等比缩小；全屏横排按可用高度适配
+  // 预览缩放：侧栏纵排按宽度等比缩小；全屏网格按可用宽高取较小值，
+  // 保证单张卡片完整可见，放不下的卡片由 CSS flex-wrap 换到下一行
   useEffect(() => {
     const el = cardsRef.current;
     if (!el) return;
@@ -220,7 +221,8 @@ export function XhsPreviewPanel({
     const compute = () => {
       if (fullscreen) {
         const availH = Math.max(120, el.clientHeight - 8);
-        setScale(Math.min(1, availH / size.height));
+        const availW = Math.max(120, el.clientWidth - 8);
+        setScale(Math.min(1, availH / size.height, availW / size.width));
       } else {
         const availW = Math.max(120, el.clientWidth - 16);
         setScale(Math.min(1, availW / size.width));
