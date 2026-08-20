@@ -694,6 +694,15 @@
       "moveFailed": "移动失败:",
       "openFolderLocationFailed": "打开文件夹位置失败:",
       "openSettingsFailed": "打开设置窗口失败:"
+    },
+    "sort": {
+      "nameAsc": "文件名(A-Z)",
+      "nameDesc": "文件名(Z-A)",
+      "modifiedDesc": "编辑时间(从新到旧)",
+      "modifiedAsc": "编辑时间(从旧到新)",
+      "createdDesc": "创建时间(从新到旧)",
+      "createdAsc": "创建时间(从旧到新)",
+      "tooltip": "排序方式"
     }
   },
   "editor": {

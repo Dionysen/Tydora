@@ -27,7 +27,52 @@ interface TreeNode {
   isFile: boolean;
   children: TreeNode[] | null;
   expanded: boolean;
+  mtime: number | null;
+  ctime: number | null;
 }
+
+interface DirEntryWithMeta {
+  name: string;
+  isDirectory: boolean;
+  isFile: boolean;
+  mtime: number | null;
+  ctime: number | null;
+}
+
+type SortBy = "name" | "created" | "modified";
+type SortOrder = "asc" | "desc";
+
+interface FileSortSettings {
+  sortBy: SortBy;
+  sortOrder: SortOrder;
+}
+
+const DEFAULT_SORT: FileSortSettings = { sortBy: "name", sortOrder: "asc" };
+const SORT_KEY = "zmd-file-sort-settings";
+
+function loadSortSettings(): FileSortSettings {
+  try {
+    const raw = localStorage.getItem(SORT_KEY);
+    return raw ? { ...DEFAULT_SORT, ...JSON.parse(raw) } : DEFAULT_SORT;
+  } catch {
+    return DEFAULT_SORT;
+  }
+}
+
+function saveSortSettings(settings: FileSortSettings): void {
+  try {
+    localStorage.setItem(SORT_KEY, JSON.stringify(settings));
+  } catch {}
+}
+
+/** 根据排序设置返回对应的组合 i18n key（文件名/编辑时间/创建时间 × 升降序）。 */
+function sortLabelKey(s: FileSortSettings): string {
+  if (s.sortBy === "name") return s.sortOrder === "asc" ? "sidebar.sort.nameAsc" : "sidebar.sort.nameDesc";
+  if (s.sortBy === "modified") return s.sortOrder === "asc" ? "sidebar.sort.modifiedAsc" : "sidebar.sort.modifiedDesc";
+  return s.sortOrder === "asc" ? "sidebar.sort.createdAsc" : "sidebar.sort.createdDesc";
+}
+
+let currentSortSettings: FileSortSettings = loadSortSettings();
 
 interface SidebarProps {
   vaults: VaultInfo[];
@@ -59,29 +104,41 @@ interface ContextMenuItem {
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-function sortTreeNodes(nodes: TreeNode[]): TreeNode[] {
+function sortTreeNodes(nodes: TreeNode[], settings: FileSortSettings = currentSortSettings): TreeNode[] {
+  const { sortBy, sortOrder } = settings;
+  const dir = sortOrder === "asc" ? 1 : -1;
   return [...nodes].sort((a, b) => {
     if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
-    return a.name.localeCompare(b.name);
+    switch (sortBy) {
+      case "created": {
+        const cmp = (a.ctime ?? 0) - (b.ctime ?? 0);
+        return cmp === 0 ? a.name.localeCompare(b.name) : cmp * dir;
+      }
+      case "modified": {
+        const cmp = (a.mtime ?? 0) - (b.mtime ?? 0);
+        return cmp === 0 ? a.name.localeCompare(b.name) : cmp * dir;
+      }
+      default:
+        return a.name.localeCompare(b.name) * dir;
+    }
   });
 }
 
 async function loadDirectory(dirPath: string): Promise<TreeNode[]> {
   try {
-    const entries = await readDir(dirPath);
-    const nodes: TreeNode[] = [];
-    for (const entry of entries) {
-      if (entry.name.startsWith(".")) continue;
-      const fullPath = joinPath(dirPath, entry.name);
-      nodes.push({
-        name: entry.name,
-        path: fullPath,
-        isDirectory: entry.isDirectory,
-        isFile: entry.isFile,
-        children: entry.isDirectory ? null : null,
+    const entries = await invoke<DirEntryWithMeta[]>("list_dir_with_meta", { dirPath });
+    const nodes: TreeNode[] = entries
+      .filter(e => !e.name.startsWith("."))
+      .map(e => ({
+        name: e.name,
+        path: joinPath(dirPath, e.name),
+        isDirectory: e.isDirectory,
+        isFile: e.isFile,
+        children: null,
         expanded: false,
-      });
-    }
+        mtime: e.mtime,
+        ctime: e.ctime,
+      }));
     return sortTreeNodes(nodes);
   } catch {
     return [];
@@ -1300,6 +1357,10 @@ function FileTree({
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
   const [moveSourcePath, setMoveSourcePath] = useState<string | null>(null);
 
+  // ── Sort state ──
+  const [sortSettings, setSortSettings] = useState<FileSortSettings>(loadSortSettings);
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+
   // 记录展开的目录，reload 后恢复
   const rootNodesRef = useRef<TreeNode[]>([]);
   rootNodesRef.current = rootNodes;
@@ -1349,6 +1410,24 @@ function FileTree({
     setRootNodes(nodes);
     handleRefresh();
   }, [rootPath, collectExpanded, restoreExpanded, handleRefresh]);
+
+  const handleSortChange = useCallback((settings: FileSortSettings) => {
+    currentSortSettings = settings;
+    saveSortSettings(settings);
+    setSortSettings(settings);
+    setSortDropdownOpen(false);
+    const resortTree = (nodes: TreeNode[]) => {
+      for (const n of nodes) {
+        if (n.children) {
+          resortTree(n.children);
+          n.children = sortTreeNodes(n.children, settings);
+        }
+      }
+    };
+    resortTree(rootNodesRef.current);
+    setRootNodes(sortTreeNodes(rootNodesRef.current, settings));
+    handleRefresh();
+  }, [handleRefresh, setSortDropdownOpen]);
 
   const handleFinishEdit = useCallback(async (path: string, newName: string, isDirectory: boolean) => {
     setEditingPath(null);
@@ -1759,8 +1838,72 @@ function FileTree({
     pendingRenameRef.current = null;
   }, [linkUpdateDialog, handleReload]);
 
+  useEffect(() => {
+    if (!sortDropdownOpen) return;
+    const handler = () => setSortDropdownOpen(false);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [sortDropdownOpen]);
+
   return (
-    <div ref={treeRef} className={`sidebar-tree${hidden ? " hidden" : ""}${isDragging ? " dragging" : ""}${dragOverPath === rootPath ? " drag-over" : ""}`} onContextMenu={handleBlankContextMenu} onScroll={handleScroll} onClick={(e) => { if (e.target === e.currentTarget) handleClearSelection(); }} data-path={rootPath} data-is-dir="1">
+    <div className="sidebar-tree-wrapper">
+      <div className="sidebar-sort-bar">
+        <button
+          className="sidebar-sort-btn"
+          onClick={(e) => { e.stopPropagation(); setSortDropdownOpen(v => !v); }}
+          title={i18n.t("sidebar.sort.tooltip")}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+            <path d="M3 6h13M3 12h9M3 18h5M14 15l3 3 3-3M17 4v14" />
+          </svg>
+          <span className="sidebar-sort-label">
+            {i18n.t(sortLabelKey(sortSettings))}
+          </span>
+        </button>
+        {sortDropdownOpen && (
+          <div className="sidebar-sort-dropdown" onClick={e => e.stopPropagation()}>
+            <button
+              className={`sidebar-sort-option${sortSettings.sortBy === "name" && sortSettings.sortOrder === "asc" ? " active" : ""}`}
+              onClick={() => handleSortChange({ sortBy: "name", sortOrder: "asc" })}
+            >
+              {i18n.t("sidebar.sort.nameAsc")}
+            </button>
+            <button
+              className={`sidebar-sort-option${sortSettings.sortBy === "name" && sortSettings.sortOrder === "desc" ? " active" : ""}`}
+              onClick={() => handleSortChange({ sortBy: "name", sortOrder: "desc" })}
+            >
+              {i18n.t("sidebar.sort.nameDesc")}
+            </button>
+            <div className="sidebar-sort-divider" />
+            <button
+              className={`sidebar-sort-option${sortSettings.sortBy === "modified" && sortSettings.sortOrder === "desc" ? " active" : ""}`}
+              onClick={() => handleSortChange({ sortBy: "modified", sortOrder: "desc" })}
+            >
+              {i18n.t("sidebar.sort.modifiedDesc")}
+            </button>
+            <button
+              className={`sidebar-sort-option${sortSettings.sortBy === "modified" && sortSettings.sortOrder === "asc" ? " active" : ""}`}
+              onClick={() => handleSortChange({ sortBy: "modified", sortOrder: "asc" })}
+            >
+              {i18n.t("sidebar.sort.modifiedAsc")}
+            </button>
+            <div className="sidebar-sort-divider" />
+            <button
+              className={`sidebar-sort-option${sortSettings.sortBy === "created" && sortSettings.sortOrder === "desc" ? " active" : ""}`}
+              onClick={() => handleSortChange({ sortBy: "created", sortOrder: "desc" })}
+            >
+              {i18n.t("sidebar.sort.createdDesc")}
+            </button>
+            <button
+              className={`sidebar-sort-option${sortSettings.sortBy === "created" && sortSettings.sortOrder === "asc" ? " active" : ""}`}
+              onClick={() => handleSortChange({ sortBy: "created", sortOrder: "asc" })}
+            >
+              {i18n.t("sidebar.sort.createdAsc")}
+            </button>
+          </div>
+        )}
+      </div>
+      <div ref={treeRef} className={`sidebar-tree${hidden ? " hidden" : ""}${isDragging ? " dragging" : ""}${dragOverPath === rootPath ? " drag-over" : ""}`} onContextMenu={handleBlankContextMenu} onScroll={handleScroll} onClick={(e) => { if (e.target === e.currentTarget) handleClearSelection(); }} data-path={rootPath} data-is-dir="1">
       {rootNodes.length > 0 &&
         rootNodes.map((node) => (
           <TreeNodeComp
@@ -1812,6 +1955,7 @@ function FileTree({
         onSelect={handleFolderSelect}
         onCancel={handleFolderPickerCancel}
       />
+      </div>
     </div>
   );
 }
