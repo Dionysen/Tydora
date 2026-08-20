@@ -65,13 +65,6 @@ function saveSortSettings(settings: FileSortSettings): void {
   } catch {}
 }
 
-/** 根据排序设置返回对应的组合 i18n key（文件名/编辑时间/创建时间 × 升降序）。 */
-function sortLabelKey(s: FileSortSettings): string {
-  if (s.sortBy === "name") return s.sortOrder === "asc" ? "sidebar.sort.nameAsc" : "sidebar.sort.nameDesc";
-  if (s.sortBy === "modified") return s.sortOrder === "asc" ? "sidebar.sort.modifiedAsc" : "sidebar.sort.modifiedDesc";
-  return s.sortOrder === "asc" ? "sidebar.sort.createdAsc" : "sidebar.sort.createdDesc";
-}
-
 let currentSortSettings: FileSortSettings = loadSortSettings();
 
 interface SidebarProps {
@@ -159,6 +152,19 @@ function parentPath(path: string): string {
   const sep = pathSep();
   const idx = path.lastIndexOf(sep);
   return idx > 0 ? path.substring(0, idx) : path;
+}
+
+/** 返回 dirPath 在 rootPath 内的所有祖先目录（含自身，不含 root），用于展开文件树使其可见。 */
+function ancestorDirs(dirPath: string, rootPath: string): string[] {
+  const result: string[] = [];
+  let cur = dirPath;
+  while (cur.length > rootPath.length && cur.startsWith(rootPath)) {
+    result.push(cur);
+    const parent = parentPath(cur);
+    if (parent === cur) break;
+    cur = parent;
+  }
+  return result;
 }
 
 async function uniqueFilePath(dirPath: string, baseName: string, ext: string): Promise<string> {
@@ -1420,10 +1426,16 @@ function FileTree({
     forceUpdate((n) => n + 1);
   }, []);
 
-  const handleReload = useCallback(async (expandPath?: string) => {
+  const handleReload = useCallback(async (expandPath?: string | string[]) => {
     invalidateFileCache(rootPath);
     const paths = collectExpanded(rootNodesRef.current);
-    if (expandPath) paths.add(expandPath);
+    if (expandPath) {
+      if (Array.isArray(expandPath)) {
+        for (const p of expandPath) paths.add(p);
+      } else {
+        paths.add(expandPath);
+      }
+    }
     const nodes = await loadDirectory(rootPath);
     await restoreExpanded(nodes, paths);
     setRootNodes(nodes);
@@ -1447,6 +1459,36 @@ function FileTree({
     setRootNodes(sortTreeNodes(rootNodesRef.current, settings));
     handleRefresh();
   }, [handleRefresh, setSortDropdownOpen]);
+
+  // ── Collapse all / Expand all ──
+  const handleCollapseAll = useCallback(() => {
+    const collapse = (nodes: TreeNode[]) => {
+      for (const n of nodes) {
+        n.expanded = false;
+        if (n.children) collapse(n.children);
+      }
+    };
+    collapse(rootNodesRef.current);
+    saveExpandedPaths(vaultPath, new Set());
+    setRootNodes([...rootNodesRef.current]);
+    handleRefresh();
+  }, [vaultPath, handleRefresh]);
+
+  const handleExpandAll = useCallback(async () => {
+    const expand = async (nodes: TreeNode[]) => {
+      for (const n of nodes) {
+        if (n.isDirectory) {
+          if (n.children === null) n.children = await loadDirectory(n.path);
+          n.expanded = true;
+          if (n.children) await expand(n.children);
+        }
+      }
+    };
+    await expand(rootNodesRef.current);
+    saveExpandedPaths(vaultPath, collectExpanded(rootNodesRef.current));
+    setRootNodes([...rootNodesRef.current]);
+    handleRefresh();
+  }, [vaultPath, collectExpanded, handleRefresh]);
 
   const handleFinishEdit = useCallback(async (path: string, newName: string, isDirectory: boolean) => {
     setEditingPath(null);
@@ -1718,19 +1760,26 @@ function FileTree({
   }, [handleReload]);
 
   // ── Blank area actions ──
+  /** 当前选中文件所在目录；未选中或不在本仓库内时回退到根目录。 */
+  const selectionDir = activePath && activePath.startsWith(rootPath)
+    ? parentPath(activePath)
+    : rootPath;
+
   const handleNewRootFile = useCallback(async () => {
+    const targetDir = selectionDir;
     try {
-      const filePath = await uniqueFilePath(rootPath, "untitled", ".md");
-      await writeTextFile(filePath, ""); await handleReload(); handleStartEdit(filePath);
+      const filePath = await uniqueFilePath(targetDir, "untitled", ".md");
+      await writeTextFile(filePath, ""); await handleReload(ancestorDirs(targetDir, rootPath)); handleStartEdit(filePath);
     } catch (err) { console.error(i18n.t("sidebar.error.newFileFailed"), err); }
-  }, [rootPath, handleReload, handleStartEdit]);
+  }, [selectionDir, rootPath, handleReload, handleStartEdit]);
 
   const handleNewRootFolder = useCallback(async () => {
+    const targetDir = selectionDir;
     try {
-      const dirPath = await uniqueDirPath(rootPath, "新建文件夹");
-      await mkdir(dirPath); await handleReload(); handleStartEdit(dirPath);
+      const dirPath = await uniqueDirPath(targetDir, "新建文件夹");
+      await mkdir(dirPath); await handleReload(ancestorDirs(targetDir, rootPath)); handleStartEdit(dirPath);
     } catch (err) { console.error(i18n.t("sidebar.error.newFolderFailed"), err); }
-  }, [rootPath, handleReload, handleStartEdit]);
+  }, [selectionDir, rootPath, handleReload, handleStartEdit]);
 
   const handleNewRootWhiteboard = useCallback(async () => {
     try {
@@ -1877,59 +1926,105 @@ function FileTree({
     <div className="sidebar-tree-wrapper">
       <div className="sidebar-sort-bar">
         <button
-          className="sidebar-sort-btn"
-          onClick={(e) => { e.stopPropagation(); setSortDropdownOpen(v => !v); }}
-          title={i18n.t("sidebar.sort.tooltip")}
+          className="sidebar-action-btn"
+          onClick={handleNewRootFile}
+          title={i18n.t("sidebar.toolbar.newFile")}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-            <path d="M3 6h13M3 12h9M3 18h5M14 15l3 3 3-3M17 4v14" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+            <path d="M11.35 22H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v5.35" />
+            <path d="M14 2v5a1 1 0 0 0 1 1h5" />
+            <path d="M14 19h6" />
+            <path d="M17 16v6" />
           </svg>
-          <span className="sidebar-sort-label">
-            {i18n.t(sortLabelKey(sortSettings))}
-          </span>
         </button>
-        {sortDropdownOpen && (
-          <div className="sidebar-sort-dropdown" onClick={e => e.stopPropagation()}>
-            <button
-              className={`sidebar-sort-option${sortSettings.sortBy === "name" && sortSettings.sortOrder === "asc" ? " active" : ""}`}
-              onClick={() => handleSortChange({ sortBy: "name", sortOrder: "asc" })}
-            >
-              {i18n.t("sidebar.sort.nameAsc")}
-            </button>
-            <button
-              className={`sidebar-sort-option${sortSettings.sortBy === "name" && sortSettings.sortOrder === "desc" ? " active" : ""}`}
-              onClick={() => handleSortChange({ sortBy: "name", sortOrder: "desc" })}
-            >
-              {i18n.t("sidebar.sort.nameDesc")}
-            </button>
-            <div className="sidebar-sort-divider" />
-            <button
-              className={`sidebar-sort-option${sortSettings.sortBy === "modified" && sortSettings.sortOrder === "desc" ? " active" : ""}`}
-              onClick={() => handleSortChange({ sortBy: "modified", sortOrder: "desc" })}
-            >
-              {i18n.t("sidebar.sort.modifiedDesc")}
-            </button>
-            <button
-              className={`sidebar-sort-option${sortSettings.sortBy === "modified" && sortSettings.sortOrder === "asc" ? " active" : ""}`}
-              onClick={() => handleSortChange({ sortBy: "modified", sortOrder: "asc" })}
-            >
-              {i18n.t("sidebar.sort.modifiedAsc")}
-            </button>
-            <div className="sidebar-sort-divider" />
-            <button
-              className={`sidebar-sort-option${sortSettings.sortBy === "created" && sortSettings.sortOrder === "desc" ? " active" : ""}`}
-              onClick={() => handleSortChange({ sortBy: "created", sortOrder: "desc" })}
-            >
-              {i18n.t("sidebar.sort.createdDesc")}
-            </button>
-            <button
-              className={`sidebar-sort-option${sortSettings.sortBy === "created" && sortSettings.sortOrder === "asc" ? " active" : ""}`}
-              onClick={() => handleSortChange({ sortBy: "created", sortOrder: "asc" })}
-            >
-              {i18n.t("sidebar.sort.createdAsc")}
-            </button>
-          </div>
-        )}
+        <button
+          className="sidebar-action-btn"
+          onClick={handleNewRootFolder}
+          title={i18n.t("sidebar.toolbar.newFolder")}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+            <path d="M12 10v6" />
+            <path d="M9 13h6" />
+            <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+          </svg>
+        </button>
+        <div className="sidebar-sort-wrap">
+          <button
+            className="sidebar-action-btn"
+            onClick={(e) => { e.stopPropagation(); setSortDropdownOpen(v => !v); }}
+            title={i18n.t("sidebar.sort.tooltip")}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+              <path d="m3 8 4-4 4 4" />
+              <path d="M7 4v16" />
+              <path d="M11 12h4" />
+              <path d="M11 16h7" />
+              <path d="M11 20h10" />
+            </svg>
+          </button>
+          {sortDropdownOpen && (
+            <div className="sidebar-sort-dropdown" onClick={e => e.stopPropagation()}>
+              <button
+                className={`sidebar-sort-option${sortSettings.sortBy === "name" && sortSettings.sortOrder === "asc" ? " active" : ""}`}
+                onClick={() => handleSortChange({ sortBy: "name", sortOrder: "asc" })}
+              >
+                {i18n.t("sidebar.sort.nameAsc")}
+              </button>
+              <button
+                className={`sidebar-sort-option${sortSettings.sortBy === "name" && sortSettings.sortOrder === "desc" ? " active" : ""}`}
+                onClick={() => handleSortChange({ sortBy: "name", sortOrder: "desc" })}
+              >
+                {i18n.t("sidebar.sort.nameDesc")}
+              </button>
+              <div className="sidebar-sort-divider" />
+              <button
+                className={`sidebar-sort-option${sortSettings.sortBy === "modified" && sortSettings.sortOrder === "desc" ? " active" : ""}`}
+                onClick={() => handleSortChange({ sortBy: "modified", sortOrder: "desc" })}
+              >
+                {i18n.t("sidebar.sort.modifiedDesc")}
+              </button>
+              <button
+                className={`sidebar-sort-option${sortSettings.sortBy === "modified" && sortSettings.sortOrder === "asc" ? " active" : ""}`}
+                onClick={() => handleSortChange({ sortBy: "modified", sortOrder: "asc" })}
+              >
+                {i18n.t("sidebar.sort.modifiedAsc")}
+              </button>
+              <div className="sidebar-sort-divider" />
+              <button
+                className={`sidebar-sort-option${sortSettings.sortBy === "created" && sortSettings.sortOrder === "desc" ? " active" : ""}`}
+                onClick={() => handleSortChange({ sortBy: "created", sortOrder: "desc" })}
+              >
+                {i18n.t("sidebar.sort.createdDesc")}
+              </button>
+              <button
+                className={`sidebar-sort-option${sortSettings.sortBy === "created" && sortSettings.sortOrder === "asc" ? " active" : ""}`}
+                onClick={() => handleSortChange({ sortBy: "created", sortOrder: "asc" })}
+              >
+                {i18n.t("sidebar.sort.createdAsc")}
+              </button>
+            </div>
+          )}
+        </div>
+        <button
+          className="sidebar-action-btn"
+          onClick={handleCollapseAll}
+          title={i18n.t("sidebar.toolbar.collapseAll")}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+            <path d="m7 20 5-5 5 5" />
+            <path d="m7 4 5 5 5-5" />
+          </svg>
+        </button>
+        <button
+          className="sidebar-action-btn"
+          onClick={handleExpandAll}
+          title={i18n.t("sidebar.toolbar.expandAll")}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+            <path d="m7 15 5 5 5-5" />
+            <path d="m7 9 5-5 5 5" />
+          </svg>
+        </button>
       </div>
       <div ref={treeRef} className={`sidebar-tree${hidden ? " hidden" : ""}${isDragging ? " dragging" : ""}${dragOverPath === rootPath ? " drag-over" : ""}`} onContextMenu={handleBlankContextMenu} onScroll={handleScroll} onClick={(e) => { if (e.target === e.currentTarget) handleClearSelection(); }} data-path={rootPath} data-is-dir="1">
       {rootNodes.length > 0 &&

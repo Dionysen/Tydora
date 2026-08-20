@@ -706,6 +706,12 @@
       "createdDesc": "创建时间(从新到旧)",
       "createdAsc": "创建时间(从旧到新)",
       "tooltip": "排序方式"
+    },
+    "toolbar": {
+      "newFile": "新建文件（在当前选中文件所在目录）",
+      "newFolder": "新建文件夹（在当前选中文件所在目录）",
+      "collapseAll": "折叠全部",
+      "expandAll": "展开全部"
     }
   },
   "editor": {
