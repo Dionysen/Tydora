@@ -101,12 +101,9 @@ The following shortcuts are available anywhere in the application (system-level 
 | Shortcut | Function |
 | --- | --- |
 | `Ctrl+\` | Toggle sidebar |
-| `Ctrl+'` | Fullscreen |
-| `Ctrl+P` | Split preview *（see note below）* |
 | `Ctrl+Alt+T` | Typewriter mode |
 | `Ctrl+M` | Open mind map |
-| `Ctrl+Alt+7` | Switch to instant rendering mode |
-| `Ctrl+Alt+8` | Switch to source code mode |
+| `Ctrl+/` | Toggle mode (IR ↔ SV) |
 
 ## System
 
@@ -122,7 +119,6 @@ The following shortcuts are available anywhere in the application (system-level 
 > [!WARNING]
 > Due to historical reasons, some default shortcuts overlap. At runtime, **global shortcuts** take precedence:
 > - `Ctrl+O` is bound to both "Ordered List" and "Quick Open File". At runtime, **Quick Open takes priority**, so `Ctrl+O` opens files rather than inserting an ordered list. If you frequently use the ordered list shortcut, consider reassigning "Ordered List" to a non-conflicting combination in [[07-Settings/03-Keyboard-Shortcuts]].
-> - `Ctrl+P` is bound to both "Split Preview" and "Command Palette". At runtime, **Command Palette takes priority**.
 >
 > All shortcuts can be customized in Settings and take effect immediately after assignment.
 

@@ -157,8 +157,17 @@ export async function inlineImages(root: HTMLElement): Promise<void> {
             // protocol-asset 下 convertFileSrc 返回的 http://asset.localhost/... 格式：解析为本地路径
             img.src = await readLocalImageAsDataUrl(decodeAssetUrl(src.replace(/^https?:\/\/asset\.localhost\//, "asset://")));
           } else {
-            const dataUrl = await invoke<string>("fetch_remote_image", { url: src });
-            img.src = dataUrl;
+            // src 可能为已编码或空格/竖线形式，由 Rust 端 encode_url_safe 统一处理
+            const tryFetch = async (refresh: boolean) => {
+              const dataUrl = await invoke<string>("fetch_remote_image", { url: src, refresh });
+              img.src = dataUrl;
+              await waitForImageLoad(img);
+            };
+            try {
+              await tryFetch(false);
+            } catch {
+              await tryFetch(true);
+            }
           }
         } else if (!src.startsWith("data:")) {
           // 处理相对路径、Vite 资源路径等本地资源，通过 fetch 转为 data URI

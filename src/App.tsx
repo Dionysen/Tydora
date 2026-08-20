@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { getCurrentWindow, availableMonitors } from "@tauri-apps/api/window";
 import { PhysicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import { clampWindowToMonitor } from "./services/windowState";
-import { readTextFile, writeTextFile, rename } from "@tauri-apps/plugin-fs";
+import { readTextFile, writeTextFile, rename, exists } from "@tauri-apps/plugin-fs";
 import { save } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { TipTapEditor as Editor, CodeMirrorEditor, type EditorHandle, type CodeMirrorEditorHandle, type EditorMode, MODE_LABELS } from "./Editor";
@@ -30,6 +30,8 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { useCanvasStore } from "./Canvas/canvas-store";
 import { useVaultWatcher } from "./services";
 import PublishPanel from "./publish/PublishPanel";
+import PublishConfigDialog from "./publish/PublishConfigDialog";
+import { CONFIG_FILE } from "./publish/PublishService";
 import { BookmarkDialog, BookmarksService } from "./Bookmarks";
 import FindReplaceDialog from "./components/FindReplaceDialog";
 import "./App.css";
@@ -471,6 +473,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   // 发布状态
   const [publishOpen, setPublishOpen] = useState(false);
+  const [publishConfigOpen, setPublishConfigOpen] = useState(false);
 
   // 更新状态
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -1553,7 +1556,16 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (matchShortcut(e, shortcutsConfig.app["toggle-mode"])) {
+      let shortcutKeys = shortcutsConfig.editor.find((s) => s.id === "toggle-mode")?.keys ?? ["Ctrl", "/"];
+      try {
+        const saved = localStorage.getItem(SHORTCUTS_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const item = parsed.find((s: { id: string }) => s.id === "toggle-mode");
+          if (item) shortcutKeys = item.keys;
+        }
+      } catch {}
+      if (matchShortcut(e, shortcutKeys)) {
         e.preventDefault();
         e.stopImmediatePropagation();
         toggleIrSv();
@@ -1958,6 +1970,25 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
   }, []);
 
+  // 点击"发布网站"：仓库缺少 markdown-publish.config.json 时先弹出配置窗口
+  const handlePublish = useCallback(async () => {
+    const path = activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null;
+    if (!path) {
+      setPublishOpen(true);
+      return;
+    }
+    try {
+      const configExists = await exists(`${path}/${CONFIG_FILE}`);
+      if (configExists) {
+        setPublishOpen(true);
+      } else {
+        setPublishConfigOpen(true);
+      }
+    } catch {
+      setPublishOpen(true);
+    }
+  }, [activeVaultIndex, vaults]);
+
   // ── 命令面板命令列表 ──
   const commands = useMemo(() => [
     // 文件操作
@@ -1998,7 +2029,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         invoke("open_vault_in_new_window", { vaultPath: vault.path, width: size.width / scale, height: size.height / scale });
       },
     })),
-    { id: "publish", label: t("app.command.labels.publishWebsite"), category: t("app.command.categories.tools"), action: () => setPublishOpen(true) },
+    { id: "publish", label: t("app.command.labels.publishWebsite"), category: t("app.command.categories.tools"), action: handlePublish },
     // 复制和导出 — 通过命令面板直接触发各格式导出/复制
     { id: "copy-markdown", label: t("app.command.labels.copyMarkdown"), category: t("app.command.categories.export"), aliases: t("app.command.aliases.copyMarkdown").split(", "), action: handleCopyAsMarkdown },
     { id: "copy-wechat", label: t("app.command.labels.copyWechat"), category: t("app.command.categories.export"), aliases: t("app.command.aliases.copyWechat").split(", "), action: () => handleExportRef.current("wechat") },
@@ -2058,7 +2089,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "settings-image", label: t("app.command.labels.imageSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.imageSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "image"); invoke("open_settings_window"); } },
     { id: "settings-canvas", label: t("app.command.labels.canvasSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.canvasSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "canvas"); invoke("open_settings_window"); } },
     { id: "settings-about", label: t("app.command.labels.about"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.about").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "about"); invoke("open_settings_window"); } },
-  ], [t, handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, setViewMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings, handleOpenXhs]);
+  ], [t, handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, setViewMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings, handleOpenXhs, handlePublish]);
 
   return (
     <div className="app">
@@ -2074,7 +2105,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           onSelectHeading={handleSelectHeading}
           onRemoveVault={handleRemoveVault}
           onNewWindow={handleNewWindow}
-          onPublish={() => setPublishOpen(true)}
+          onPublish={handlePublish}
           onSelectVault={setActiveVaultIndex}
           collapsed={!sidebarOpen}
           refreshKey={treeRefreshKey}
@@ -2786,6 +2817,18 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         <PublishPanel
           vaultPath={activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null}
           onClose={() => setPublishOpen(false)}
+        />
+      )}
+
+      {/* 发布配置弹窗：配置文件缺失时先完成配置 */}
+      {publishConfigOpen && (
+        <PublishConfigDialog
+          vaultPath={activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null}
+          onClose={() => setPublishConfigOpen(false)}
+          onSaved={() => {
+            setPublishConfigOpen(false);
+            setPublishOpen(true);
+          }}
         />
       )}
 

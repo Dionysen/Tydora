@@ -130,12 +130,9 @@
         "redo": "重做",
         "select-all": "全选（代码块内）",
         "toggle-sidebar": "切换侧栏",
-        "fullscreen": "全屏",
-        "split-view": "分屏预览",
         "typewriter": "打字机模式",
         "open-mindmap": "打开思维导图",
-        "mode-ir": "切换到即时渲染模式",
-        "mode-sv": "切换到源码模式",
+        "toggle-mode": "模式切换",
         "escape": "关闭提示",
         "quick-open": "快速打开文件",
         "command-palette": "命令面板"
@@ -851,7 +848,14 @@
     "failedLog": "发布失败:",
     "stopPreviewFailed": "停止预览失败:",
     "previewFailed": "预览失败:",
-    "openFolderFailed": "打开文件夹失败:"
+    "openFolderFailed": "打开文件夹失败:",
+    "cliMissingTitle": "未找到 markdown-publish CLI",
+    "cliMissingDesc": "发布网站需要先安装 markdown-publish CLI。请先安装 Node.js，然后在终端中执行以下命令：",
+    "copyInstallCmd": "复制命令",
+    "cliMissingHint": "安装完成后请重启 Tydora 再试。",
+    "configTitle": "发布配置",
+    "configMissingHint": "未找到 markdown-publish.config.json，请先完成站点配置。",
+    "saveAndPublish": "保存并发布"
   },
   "mindmapWindow": {
     "title": "思维导图",

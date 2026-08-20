@@ -9,18 +9,18 @@ import Italic from "@tiptap/extension-italic";
 import Strike from "@tiptap/extension-strike";
 import Code from "@tiptap/extension-code";
 import Blockquote from "@tiptap/extension-blockquote";
-import BulletList from "@tiptap/extension-bullet-list";
+import { BulletListExt as BulletList } from "./extensions/bullet-list-input";
 import OrderedList from "@tiptap/extension-ordered-list";
 import ListItem from "@tiptap/extension-list-item";
 import CodeBlockLowlight from "./extensions/code-block-lowlight-safe";
 import TiptapImage from "@tiptap/extension-image";
 import TiptapLink from "@tiptap/extension-link";
+import { serializeMarkdownUrl } from "./extensions/markdown-safe-url";
 import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
-import TaskList from "@tiptap/extension-task-list";
-import TaskItem from "@tiptap/extension-task-item";
+import { TaskListExt as TaskList, TaskItemExt as TaskItem } from "./extensions/task-list-input";
 import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
 import Heading from "@tiptap/extension-heading";
@@ -60,6 +60,7 @@ import { saveImageToLocal, loadImageSettings, resolveRelativePath, dirName, Imag
 import { LinkIndexService } from "../wikilink";
 import { loadShortcuts, matchShortcut } from "./shortcuts";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import { emit } from "@tauri-apps/api/event";
 import CodeMirrorEditor, { type CodeMirrorEditorHandle } from "./CodeMirrorEditor";
 import { ContextMenu } from "./ContextMenu";
 import { LinkDialog } from "./LinkDialog";
@@ -105,7 +106,7 @@ function imageNodeToMarkdown(attrs: Record<string, any>): string {
   const alt = escAlt((attrs.alt as string) || "") + (attrs.width ? `|${attrs.width}` : "");
   return (
     "![" + alt + "](" +
-    src.replace(/[()]/g, "\\$&") +
+    serializeMarkdownUrl(src) +
     (attrs.title ? ' "' + String(attrs.title).replace(/"/g, '\\"') + '"' : "") +
     ")"
   );
@@ -261,7 +262,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
             };
           },
         }),
-        BulletList.extend({ addKeyboardShortcuts() { return {}; } }),
+        BulletList,
         OrderedList.extend({ addKeyboardShortcuts() { return {}; } }),
         ListItem,
         HardBreak.extend({
@@ -327,7 +328,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
                   const alt = (node.attrs.alt || "") + (node.attrs.width ? `|${node.attrs.width}` : "");
                   state.write(
                     "![" + state.esc(alt) + "](" +
-                    src.replace(/[\(\)]/g, "\\$&") +
+                    serializeMarkdownUrl(src) +
                     (node.attrs.title ? ' "' + node.attrs.title.replace(/"/g, '\\"') + '"' : "") +
                     ")"
                   );
@@ -383,10 +384,43 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
                 dom.setAttribute("data-abs-path", absPath);
                 dom.src = convertFileSrc(absPath);
               } else if (src && (src.startsWith("http://") || src.startsWith("https://"))) {
-                // 网络图片：通过 Rust 后端代理下载，绕过 CORS 和 WebView2 限制
-                invoke<string>("fetch_remote_image", { url: src })
-                  .then(dataUrl => { dom.src = dataUrl; })
-                  .catch(() => { dom.src = src; });
+                // 网络图片：通过 Rust 后端代理下载，绕过 CORS 和 WebView2 限制。
+                // src 可能为已编码（%20）或经 decodeURIComponent 后的空格/竖线形式，
+                // 统一交给 Rust 端 encode_url_safe 处理（只编码空格/竖线，不二次编码 %xx）。
+                const retryOnce = () => {
+                  if (dom.dataset.remoteRetried) return false;
+                  dom.dataset.remoteRetried = "1";
+                  return true;
+                };
+                const tryLoad = (refresh = false) => {
+                  invoke<string>("fetch_remote_image", { url: src, refresh })
+                    .then((dataUrl) => {
+                      dom.src = dataUrl;
+                      // 缓存内容损坏（如 MIME 类型错误）时 data URL 渲染失败，
+                      // 监听 error 触发刷新缓存重试一次，避免破图残留。
+                      if (!dom.dataset.remoteChecked) {
+                        dom.dataset.remoteChecked = "1";
+                        dom.addEventListener(
+                          "error",
+                          () => {
+                            console.warn("Remote image data URL failed to render, refreshing:", src);
+                            if (retryOnce()) tryLoad(true);
+                            else dom.src = src;
+                          },
+                          { once: true }
+                        );
+                      }
+                    })
+                    .catch((err) => {
+                      console.error("fetch_remote_image failed", src, err);
+                      if (!refresh && retryOnce()) {
+                        tryLoad(true); // 请求本身失败，刷新缓存重试一次
+                      } else {
+                        dom.src = src; // 最终回退到原始 URL
+                      }
+                    });
+                };
+                tryLoad(false);
               } else if (src && !src.startsWith("data:") && !src.startsWith("asset:")) {
                 let resolvedPath = src;
                 const basePath = currentFilePathRef.current
@@ -724,7 +758,49 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
           inline: true,
           allowBase64: true,
         }),
-        TiptapLink.configure({
+        TiptapLink.extend({
+          // 徽章 `[![alt](img)](href)` 的外层链接：tiptap-markdown 解析时会
+          // decodeURIComponent(href)（%20→空格、%7C→|），序列化时必须用 <...>
+          // 包裹含空白/竖线的 URL，否则往返解析时 markdown-it 会在空格处截断。
+          addStorage() {
+            return {
+              markdown: {
+                serialize: {
+                  open: "[",
+                  close: (_state: any, mark: any) => {
+                    const href = serializeMarkdownUrl(mark.attrs.href);
+                    return mark.attrs.title
+                      ? `](${href} "${mark.attrs.title.replace(/"/g, '\\"')}")`
+                      : `](${href})`;
+                  },
+                },
+              },
+            };
+          },
+          // @tiptap/extension-link v3 移除了 markInputRule，输入时只有 URL
+          // autolink 能即时生成链接，`[中文](README_ZH.md)` 这类相对路径/本地
+          // 路径链接不会自动变成链接。这里补一个 markInputRule：
+          // 链接文本是最后一个捕获组（mark 应用位置），URL 从完整匹配中提取。
+          // 注意必须用 ^ $ 锚点：InputRule 的 range 计算假设匹配从段落开头
+          // 开始（忽略 match.index），否则段落中间输入时位置会错位损坏文本。
+          addInputRules() {
+            return [
+              markInputRule({
+                find: /^\[([^\]]+)\]\((?:[^)\s]+)\)$/,
+                type: this.type,
+                getAttributes: (match) => {
+                  const m = match[0].match(/^\[[^\]]+\]\(([^)\s]+)\)$/);
+                  return {
+                    href: m ? m[1] : "",
+                    target: null,
+                    rel: null,
+                    class: null,
+                  };
+                },
+              }),
+            ];
+          },
+        }).configure({
           openOnClick: false,
         }),
         Table.configure({
@@ -1130,7 +1206,28 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         if (href.startsWith("http://") || href.startsWith("https://")) {
           invoke("open_url", { url: href });
         } else if (!href.startsWith("wikilink://")) {
-          invoke("open_file", { filePath: href });
+          // 相对路径链接（如 README_ZH.md）：基于当前文档目录解析为绝对路径
+          let filePath = href;
+          const hashIdx = filePath.search(/[#?]/);
+          if (hashIdx !== -1) filePath = filePath.slice(0, hashIdx);
+          const basePath = currentFilePathRef.current
+            ? dirName(currentFilePathRef.current)
+            : activeVaultPathRef.current;
+          const isAbs =
+            /^[a-zA-Z]:[\\/]/.test(filePath) ||
+            filePath.startsWith("/") ||
+            filePath.startsWith("\\\\") ||
+            filePath.startsWith("file://");
+          if (basePath && !isAbs && filePath) {
+            filePath = resolveRelativePath(basePath, filePath);
+          }
+          if (filePath) {
+            if (/\.(md|markdown|mdx|txt)$/i.test(filePath)) {
+              emit("open-file", { path: filePath }); // 文档类链接在应用内打开
+            } else {
+              invoke("open_file", { filePath }); // 其他文件用系统默认程序
+            }
+          }
         }
       };
 

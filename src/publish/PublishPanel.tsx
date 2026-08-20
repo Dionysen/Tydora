@@ -9,6 +9,8 @@ import {
 } from "./PublishService";
 import "./PublishPanel.css";
 
+const INSTALL_CMD = "npm install -g @abstractwebunit/markdown-publish";
+
 interface PublishPanelProps {
   vaultPath: string | null;
   onClose: () => void;
@@ -46,6 +48,16 @@ export default function PublishPanel({ vaultPath, onClose, onDone }: PublishPane
       setPublishing(false);
     }
   }, [vaultPath]);
+
+  const missingCli = error != null && error.includes("markdown-publish CLI");
+
+  const copyInstallCmd = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(INSTALL_CMD);
+    } catch {
+      /* 忽略剪贴板失败 */
+    }
+  }, []);
 
   const handlePreview = useCallback(async () => {
     if (!outputPath) return;
@@ -89,7 +101,20 @@ export default function PublishPanel({ vaultPath, onClose, onDone }: PublishPane
           <button className="publish-panel-close" onClick={onClose}>×</button>
         </div>
         <div className="publish-panel-body">
-          {error && (
+          {missingCli && (
+            <div className="publish-cli-missing">
+              <div className="publish-cli-missing-title">{t("publish.cliMissingTitle")}</div>
+              <p className="publish-cli-missing-desc">{t("publish.cliMissingDesc")}</p>
+              <div className="publish-cli-install-cmd">
+                <code>{INSTALL_CMD}</code>
+                <button className="publish-cli-copy-btn" onClick={copyInstallCmd}>
+                  {t("publish.copyInstallCmd")}
+                </button>
+              </div>
+              <p className="publish-cli-missing-hint">{t("publish.cliMissingHint")}</p>
+            </div>
+          )}
+          {error && !missingCli && (
             <div className="publish-error">
               <span className="publish-error-icon">⚠</span>
               {error}

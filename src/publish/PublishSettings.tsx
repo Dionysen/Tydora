@@ -13,6 +13,7 @@ import {
   type PublishConfig,
 } from "./PublishService";
 import PublishPanel from "./PublishPanel";
+import PublishConfigFields from "./PublishConfigFields";
 import "../Settings.css";
 
 interface VaultInfo {
@@ -163,157 +164,8 @@ export default function PublishSettings() {
 
   return (
     <div className="canvas-settings-page">
-      {/* 站点信息 */}
-      <div className="canvas-settings-card">
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.publish.siteName")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.publish.siteNameDesc")}</span>
-          </div>
-          <input
-            className="settings-input"
-            type="text"
-            value={config.siteName}
-            onChange={(e) => handleChange("siteName", e.target.value)}
-            placeholder={t("settings.publish.siteNamePlaceholder")}
-          />
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.publish.siteDescription")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.publish.siteDescriptionDesc")}</span>
-          </div>
-          <input
-            className="settings-input"
-            type="text"
-            value={config.siteDescription || ""}
-            onChange={(e) => handleChange("siteDescription", e.target.value)}
-            placeholder={t("settings.publish.siteDescriptionPlaceholder")}
-          />
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.publish.siteLang")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.publish.siteLangDesc")}</span>
-          </div>
-          <select
-            className="settings-select"
-            value={config.siteLang}
-            onChange={(e) => handleChange("siteLang", e.target.value)}
-          >
-            <option value="zh">中文</option>
-            <option value="en">English</option>
-            <option value="ja">日本語</option>
-            <option value="ko">한국어</option>
-          </select>
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.publish.siteUrl")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.publish.siteUrlDesc")}</span>
-          </div>
-          <input
-            className="settings-input"
-            type="url"
-            value={config.siteUrl || ""}
-            onChange={(e) => handleChange("siteUrl", e.target.value)}
-            placeholder={t("settings.publish.siteUrlPlaceholder")}
-          />
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.publish.siteFooter")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.publish.siteFooterDesc")}</span>
-          </div>
-          <input
-            className="settings-input"
-            type="text"
-            value={config.siteFooter || ""}
-            onChange={(e) => handleChange("siteFooter", e.target.value)}
-            placeholder={t("settings.publish.footerPlaceholder")}
-          />
-        </div>
-      </div>
-
-      {/* 构建选项 */}
-      <div className="canvas-settings-card">
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.publish.vaultDir")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.publish.vaultDirDesc")}</span>
-          </div>
-          <input
-            className="settings-input"
-            type="text"
-            value={config.vaultDir}
-            onChange={(e) => handleChange("vaultDir", e.target.value)}
-            placeholder="."
-          />
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.publish.buildMode")}</span>
-            <span className="canvas-settings-row-desc">
-              {config.buildMode === "public"
-                ? t("settings.publish.buildModePublicDesc")
-                : t("settings.publish.buildModeFullDesc")}
-            </span>
-          </div>
-          <div className="canvas-settings-row-control">
-            <label className="settings-radio-card">
-              <input
-                type="radio"
-                name="buildMode"
-                value="full"
-                checked={config.buildMode === "full"}
-                onChange={() => handleChange("buildMode", "full")}
-              />
-              <span>{t("settings.publish.buildModeFull")}</span>
-            </label>
-            <label className="settings-radio-card">
-              <input
-                type="radio"
-                name="buildMode"
-                value="public"
-                checked={config.buildMode === "public"}
-                onChange={() => handleChange("buildMode", "public")}
-              />
-              <span>{t("settings.publish.buildModePublic")}</span>
-            </label>
-          </div>
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.publish.baseHref")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.publish.baseHrefDesc")}</span>
-          </div>
-          <input
-            className="settings-input"
-            type="text"
-            value={config.baseHref}
-            onChange={(e) => handleChange("baseHref", e.target.value)}
-            placeholder="/"
-          />
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.publish.outDir")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.publish.outDirDesc")}</span>
-          </div>
-          <div className="canvas-settings-row-control">
-            <input
-              className="settings-input"
-              type="text"
-              value={config.out}
-              onChange={(e) => handleChange("out", e.target.value)}
-              placeholder="dist"
-            />
-            <button className="settings-button" onClick={handleBrowseOutput}>
-              {t("settings.publish.browse")}
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* 站点信息 + 构建选项 */}
+      <PublishConfigFields config={config} onChange={handleChange} onBrowseOutput={handleBrowseOutput} />
 
       {/* 操作按钮 */}
       <div className="canvas-settings-card">

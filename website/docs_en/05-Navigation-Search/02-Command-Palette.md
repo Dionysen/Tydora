@@ -59,9 +59,6 @@ The palette remembers your recently executed commands and pins them to the top, 
 - Command Palette (`Ctrl+P`) searches for **commands**.
 - Quick Open (`Ctrl+O`) searches for **files**.
 
-> [!WARNING]
-> In the default configuration, `Ctrl+P` is also bound to "Split Preview", but the Command Palette takes priority at runtime. See [[07-Settings/04-Shortcut-Reference]] for details.
-
 ## Related Documents
 
 - [[05-Navigation-Search/01-Quick-Open]] — File quick open

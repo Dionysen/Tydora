@@ -130,12 +130,9 @@
         "redo": "Redo",
         "select-all": "Select All (in Code Block)",
         "toggle-sidebar": "Toggle Sidebar",
-        "fullscreen": "Fullscreen",
-        "split-view": "Split Preview",
         "typewriter": "Typewriter Mode",
         "open-mindmap": "Open Mind Map",
-        "mode-ir": "Switch to Instant Render Mode",
-        "mode-sv": "Switch to Source Mode",
+        "toggle-mode": "Toggle Mode",
         "escape": "Close Tooltip",
         "quick-open": "Quick Open",
         "command-palette": "Command Palette"
@@ -850,7 +847,14 @@
     "failedLog": "Publish failed:",
     "stopPreviewFailed": "Failed to stop preview:",
     "previewFailed": "Preview failed:",
-    "openFolderFailed": "Failed to open folder:"
+    "openFolderFailed": "Failed to open folder:",
+    "cliMissingTitle": "markdown-publish CLI not found",
+    "cliMissingDesc": "Publishing requires the markdown-publish CLI. Install Node.js first, then run the following command in your terminal:",
+    "copyInstallCmd": "Copy command",
+    "cliMissingHint": "Restart Tydora after installation and try again.",
+    "configTitle": "Publish Configuration",
+    "configMissingHint": "markdown-publish.config.json not found. Please configure the site first.",
+    "saveAndPublish": "Save & Publish"
   },
   "mindmapWindow": {
     "title": "Mind Map",

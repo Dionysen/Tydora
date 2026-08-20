@@ -23,13 +23,13 @@ No. Tydora only reads and writes files you specify — it does **not** move, cop
 
 ## Editing & Shortcuts
 
-### Why do `Ctrl+O` / `Ctrl+P` behave differently from "Ordered List / Split Preview" in the docs?
+### Why does `Ctrl+O` behave differently from "Ordered List" in the docs?
 
-These two combos are **bound to two commands each** in the default config (`Ctrl+O`: Quick Open + Ordered List; `Ctrl+P`: Command Palette + Split Preview). At runtime, **global commands take priority**, so `Ctrl+O` actually opens files and `Ctrl+P` opens the command palette. If you frequently use the ordered list shortcut, reassign it in [[07-Settings/03-Keyboard-Shortcuts]]. See [[07-Settings/04-Shortcut-Reference]].
+This combo is **bound to two commands** in the default config (`Ctrl+O`: Quick Open + Ordered List). At runtime, **global commands take priority**, so `Ctrl+O` actually opens files. If you frequently use the ordered list shortcut, reassign it in [[07-Settings/03-Keyboard-Shortcuts]]. See [[07-Settings/04-Shortcut-Reference]].
 
 ### How do I switch between WYSIWYG and Source mode?
 
-Press `Ctrl+/` to toggle; or use `Ctrl+Alt+7` / `Ctrl+Alt+8` to go directly to one; or click the mode indicator in the status bar. See [[02-Editor/01-Editing-Modes]].
+Press `Ctrl+/` to toggle; or click the mode indicator in the status bar. See [[02-Editor/01-Editing-Modes]].
 
 ### How do I quickly add/remove table rows and columns?
 

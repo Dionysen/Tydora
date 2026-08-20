@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
 use tauri::{Emitter, Manager, WebviewWindowBuilder, State};
@@ -774,6 +775,7 @@ fn get_cwd() -> Result<String, String> {
 /// 执行 markdown-publish CLI 构建静态网站
 #[tauri::command]
 async fn run_markdown_publish(
+    app: tauri::AppHandle,
     vault_dir: String,
     out_dir: String,
     config: String,
@@ -813,37 +815,40 @@ async fn run_markdown_publish(
         args.push(build_mode.to_string());
     }
 
-    // 获取当前工作目录，构建 CLI 脚本路径
-    // Tauri 的 cwd 是 src-tauri 目录，需要往上一级找到项目根目录
-    let cwd = std::env::current_dir()
-        .map_err(|e| format!("获取当前目录失败: {}", e))?;
+    // 定位 markdown-publish CLI。依次尝试以下来源：
+    // 1. 应用资源目录中随安装包打包的 CLI（生产环境优先）
+    // 2. 项目 node_modules（开发环境：Tauri 的 cwd 是 src-tauri，往上一级即项目根）
+    // 3. 全局 npm 安装的 markdown-publish 命令
+    //
+    // 用户安装包（NSIS/便携/商店版）不携带 node_modules，前两种途径在生产环境
+    // 通常找不到，需要引导用户通过 npm 全局安装 CLI。见下方缺失时的提示。
+    let Some(launch) = find_markdown_publish_launcher(&app) else {
+        let install_hint = r#"未找到 markdown-publish CLI。
 
-    let project_root = cwd.parent().unwrap_or(&cwd);
+发布网站需要先安装 markdown-publish CLI。请先在电脑上安装 Node.js（https://nodejs.org），
+然后在终端中执行以下命令安装：
 
-    let cli_path = project_root.join("node_modules")
-        .join("@abstractwebunit")
-        .join("markdown-publish")
-        .join("tools")
-        .join("cli")
-        .join("cli.mjs");
+    npm install -g @abstractwebunit/markdown-publish
 
-    if !cli_path.exists() {
-        return Err(format!("找不到 CLI 脚本: {}", cli_path.display()));
-    }
+安装完成后重启 Tydora 再试。"#;
+        return Err(install_hint.to_string());
+    };
 
-    let output = Command::new("node")
-        .arg(cli_path.to_str().unwrap_or_default())
+    let output = Command::new(&launch.program)
+        .args(&launch.args)
         .args(&args)
         .output()
-        .map_err(|e| format!("启动 markdown-publish 失败: {}", e))?;
+        .map_err(|e| format!("启动 markdown-publish 失败（请确认已安装 Node.js）: {}", e))?;
 
     if output.status.success() {
-        // 构建完成后执行 postbuild 脚本（注入落地页样式等）
-        let postbuild_script = project_root.join("website").join("postbuild.mjs");
-        if postbuild_script.exists() {
-            let _ = Command::new("node")
-                .arg(postbuild_script.to_str().unwrap_or_default())
-                .output();
+        // 构建完成后，若在开发环境项目仓库内，执行 postbuild 脚本（注入落地页样式等）
+        if let Some(project_root) = current_project_root() {
+            let postbuild_script = project_root.join("website").join("postbuild.mjs");
+            if postbuild_script.exists() {
+                let _ = Command::new("node")
+                    .arg(postbuild_script.to_str().unwrap_or_default())
+                    .output();
+            }
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -853,6 +858,90 @@ async fn run_markdown_publish(
         let stdout = String::from_utf8_lossy(&output.stdout);
         Err(format!("markdown-publish 执行失败:\n{}\n{}", stdout, stderr))
     }
+}
+
+/// 解析出的 CLI 启动方式：程序名 + 附加参数（如 `node <cli.mjs>` 或全局 `markdown-publish`）
+struct MarkdownPublishLauncher {
+    program: String,
+    args: Vec<std::ffi::OsString>,
+}
+
+/// 依次查找 markdown-publish CLI 的可执行启动方式。
+/// 返回 None 表示未安装，调用方应引导用户安装。
+fn find_markdown_publish_launcher(app: &tauri::AppHandle) -> Option<MarkdownPublishLauncher> {
+    // 1. 应用资源目录中随安装包打包的 CLI：resources/markdown-publish/...
+    if let Ok(res_dir) = app.path().resource_dir() {
+        let bundled = res_dir
+            .join("markdown-publish")
+            .join("tools")
+            .join("cli")
+            .join("cli.mjs");
+        if bundled.exists() {
+            return Some(MarkdownPublishLauncher {
+                program: "node".to_string(),
+                args: vec![bundled.into_os_string()],
+            });
+        }
+    }
+
+    // 2. 项目 node_modules（开发环境）
+    if let Some(project_root) = current_project_root() {
+        let local = project_root
+            .join("node_modules")
+            .join("@abstractwebunit")
+            .join("markdown-publish")
+            .join("tools")
+            .join("cli")
+            .join("cli.mjs");
+        if local.exists() {
+            return Some(MarkdownPublishLauncher {
+                program: "node".to_string(),
+                args: vec![local.into_os_string()],
+            });
+        }
+    }
+
+    // 3. 全局 npm 安装的 markdown-publish 命令（Windows 下为 markdown-publish.cmd）
+    for name in ["markdown-publish", "markdown-publish.cmd", "markdown-publish.exe"] {
+        if let Some(path) = find_on_path(name) {
+            return Some(MarkdownPublishLauncher {
+                program: path.to_string_lossy().into_owned(),
+                args: vec![],
+            });
+        }
+    }
+
+    None
+}
+
+/// 返回当前工作目录的上一级（项目根目录），用于开发环境下定位 node_modules / postbuild。
+fn current_project_root() -> Option<PathBuf> {
+    let cwd = std::env::current_dir().ok()?;
+    cwd.parent().map(|p| p.to_path_buf())
+}
+
+/// 在 PATH 环境变量中查找可执行文件，返回完整路径（Windows 上含 .cmd/.exe 后缀）。
+fn find_on_path(name: &str) -> Option<PathBuf> {
+    let path_var = std::env::var_os("PATH")?;
+    let cwd = std::env::current_dir().ok();
+    for dir in std::env::split_paths(&path_var) {
+        for candidate in candidate_bin_paths(&dir, name, cwd.as_deref()) {
+            if candidate.is_file() {
+                return Some(candidate);
+            }
+        }
+    }
+    None
+}
+
+fn candidate_bin_paths(dir: &Path, name: &str, _cwd: Option<&Path>) -> Vec<PathBuf> {
+    let mut out = vec![dir.join(name)];
+    if cfg!(windows) {
+        out.push(dir.join(format!("{name}.cmd")));
+        out.push(dir.join(format!("{name}.exe")));
+        out.push(dir.join(format!("{name}.bat")));
+    }
+    out
 }
 
 /// 使用 Node.js 内置 HTTP 服务器预览静态网站

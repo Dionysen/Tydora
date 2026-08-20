@@ -69,7 +69,7 @@ Click the "Reset" button to restore **all** shortcuts to their default values. I
 If a newly set shortcut conflicts with an existing binding, the system will prompt for confirmation to avoid silent overwrites that break commands.
 
 > [!WARNING]
-> In the default configuration, `Ctrl+O` and `Ctrl+P` are each shared by two commands (Quick Open / Ordered List, Command Palette / Split Preview). At runtime, the global command takes precedence. If you have reassigned the related commands, pay attention to the actual behavior. See [[07-Settings/04-Shortcut-Reference]] for details.
+> In the default configuration, `Ctrl+O` is shared by two commands (Quick Open / Ordered List). At runtime, the global command takes precedence. If you have reassigned the related commands, pay attention to the actual behavior. See [[07-Settings/04-Shortcut-Reference]] for details.
 
 ## Related Documents
 

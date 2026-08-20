@@ -43,7 +43,6 @@ Source View displays **pure Markdown text**, with professional syntax highlighti
 | Method | Action |
 | --- | --- |
 | Shortcut | `Ctrl+/` cycles between IR ↔ SV |
-| Shortcut (direct) | `Ctrl+Alt+7` switches to Instant Rendering; `Ctrl+Alt+8` switches to Source View |
 | Status Bar | Click the mode indicator on the bottom status bar (showing the current mode); it is clickable to switch |
 | Settings | Set the default mode in [[07-Settings/02-Editor-Settings]] |
 

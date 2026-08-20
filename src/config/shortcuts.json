@@ -39,12 +39,9 @@
     { "id": "redo", "label": "重做", "keys": ["Ctrl", "Y"], "group": "编辑" },
     { "id": "select-all", "label": "全选（代码块内）", "keys": ["Ctrl", "A"], "group": "编辑" },
     { "id": "toggle-sidebar", "label": "切换侧栏", "keys": ["Ctrl", "Tab"], "group": "视图" },
-    { "id": "fullscreen", "label": "全屏", "keys": ["Ctrl", "'"], "group": "视图" },
-    { "id": "split-view", "label": "分屏预览", "keys": ["Ctrl", "P"], "group": "视图" },
     { "id": "typewriter", "label": "打字机模式", "keys": ["Ctrl", "Alt", "T"], "group": "视图" },
     { "id": "open-mindmap", "label": "打开思维导图", "keys": ["Ctrl", "M"], "group": "视图" },
-    { "id": "mode-ir", "label": "切换到即时渲染模式", "keys": ["Ctrl", "Alt", "7"], "group": "模式" },
-    { "id": "mode-sv", "label": "切换到源码模式", "keys": ["Ctrl", "Alt", "8"], "group": "模式" },
+    { "id": "toggle-mode", "label": "模式切换", "keys": ["Ctrl", "/"], "group": "模式" },
     { "id": "escape", "label": "关闭提示", "keys": ["Escape"], "group": "系统" },
     { "id": "quick-open", "label": "快速打开文件", "keys": ["Ctrl", "O"], "group": "系统" },
     { "id": "command-palette", "label": "命令面板", "keys": ["Ctrl", "P"], "group": "系统" }
