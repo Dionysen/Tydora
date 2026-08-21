@@ -320,8 +320,9 @@ function buildMathDecorations(view: EditorView) {
 
     const innerFrom = openEnd;
     const innerTo = closeStart;
-    builder.add(innerFrom, innerTo, isBlock ? mathBlockMark : mathInlineMark);
+    // RangeSetBuilder 要求按 from 位置升序添加，否则会抛 "Ranges must be added sorted" 错误
     builder.add(i, innerFrom, mathDollarMark);
+    builder.add(innerFrom, innerTo, isBlock ? mathBlockMark : mathInlineMark);
     builder.add(innerTo, innerTo + (isBlock ? 2 : 1), mathDollarMark);
     i = innerTo + (isBlock ? 2 : 1);
   }
