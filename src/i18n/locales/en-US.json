@@ -706,7 +706,13 @@
       "createdDesc": "Created (New to Old)",
       "createdAsc": "Created (Old to New)",
       "tooltip": "Sort By"
-    } 
+    },
+    "toolbar": {
+      "newFile": "New File (in current file's folder)",
+      "newFolder": "New Folder (in current file's folder)",
+      "collapseAll": "Collapse All",
+      "expandAll": "Expand All"
+    }
   },
   "editor": {
     "contextMenu": {
