@@ -724,8 +724,17 @@ export function XhsPreviewPanel({
             </svg>
           </button>
           <div className="xhs-zoom-body">
-            {/* 仅卡片区域拦截点击；点击空白处（body）冒泡到遮罩关闭 */}
-            <div className="xhs-zoom-stage" onClick={(e) => e.stopPropagation()} ref={zoomStageRef}>
+            {/* 点击卡片、关闭按钮、页码时阻止冒泡避免误关；点击背景阴影时让事件冒泡到遮罩关闭 */}
+            <div
+              className="xhs-zoom-stage"
+              onClick={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest(".xhs-zoom-dom, .xhs-zoom-close, .xhs-zoom-page")) {
+                  e.stopPropagation();
+                }
+              }}
+              ref={zoomStageRef}
+            >
               <button
                 className="xhs-zoom-close"
                 onClick={() => setZoomIndex(null)}

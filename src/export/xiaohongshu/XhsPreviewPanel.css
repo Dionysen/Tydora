@@ -262,8 +262,10 @@
   flex-direction: row;
   flex-wrap: wrap;
   align-items: flex-start;
-  align-content: flex-start;
-  justify-content: flex-start;
+  /* 整行水平居中；卡片之间的间距由 gap(18px) 控制，保持紧凑 */
+  justify-content: center;
+  /* 多行时垂直整体居中；溢出时回退为从顶部排列，避免首行被裁切导致滚动不到 */
+  align-content: safe center;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 14px 20px;
