@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useLayoutEffect, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "./i18n";
 import { createPortal } from "react-dom";
@@ -1461,6 +1461,12 @@ function FileTree({
   }, [handleRefresh, setSortDropdownOpen]);
 
   // ── Collapse all / Expand all ──
+  const hasExpandedDir = useMemo(() => {
+    const anyExpanded = (nodes: TreeNode[]): boolean =>
+      nodes.some((n) => (n.expanded ? true : n.children ? anyExpanded(n.children) : false));
+    return anyExpanded(rootNodes);
+  }, [rootNodes]);
+
   const handleCollapseAll = useCallback(() => {
     const collapse = (nodes: TreeNode[]) => {
       for (const n of nodes) {
@@ -2007,23 +2013,20 @@ function FileTree({
         </div>
         <button
           className="sidebar-action-btn"
-          onClick={handleCollapseAll}
-          title={i18n.t("sidebar.toolbar.collapseAll")}
+          onClick={hasExpandedDir ? handleCollapseAll : handleExpandAll}
+          title={hasExpandedDir ? i18n.t("sidebar.toolbar.collapseAll") : i18n.t("sidebar.toolbar.expandAll")}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-            <path d="m7 20 5-5 5 5" />
-            <path d="m7 4 5 5 5-5" />
-          </svg>
-        </button>
-        <button
-          className="sidebar-action-btn"
-          onClick={handleExpandAll}
-          title={i18n.t("sidebar.toolbar.expandAll")}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-            <path d="m7 15 5 5 5-5" />
-            <path d="m7 9 5-5 5 5" />
-          </svg>
+          {hasExpandedDir ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+              <path d="m7 20 5-5 5 5" />
+              <path d="m7 4 5 5 5-5" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+              <path d="m7 15 5 5 5-5" />
+              <path d="m7 9 5-5 5 5" />
+            </svg>
+          )}
         </button>
       </div>
       <div ref={treeRef} className={`sidebar-tree${hidden ? " hidden" : ""}${isDragging ? " dragging" : ""}${dragOverPath === rootPath ? " drag-over" : ""}`} onContextMenu={handleBlankContextMenu} onScroll={handleScroll} onClick={(e) => { if (e.target === e.currentTarget) handleClearSelection(); }} data-path={rootPath} data-is-dir="1">

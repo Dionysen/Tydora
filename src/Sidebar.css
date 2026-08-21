@@ -1388,7 +1388,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 2px;
   padding: 2px 8px 4px;
   flex-shrink: 0;
