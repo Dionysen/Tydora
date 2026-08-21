@@ -135,6 +135,23 @@ function customEmptyTaskLists(md: MarkdownIt, _options?: any) {
 }
 
 export const TaskListExt = TaskList.extend({
+  addAttributes() {
+    return {
+      // 与 tiptap-markdown 的 MarkdownTightLists 对 bulletList/orderedList 的处理
+      // 保持一致：让序列化器 renderList 识别为紧凑列表，避免 IR 模式下输入/生成的
+      // 任务列表在切换到源码模式时每项之间出现空行（prosemirror-markdown 的
+      // renderList 在节点没有 tight 属性时回退到 tightLists=false 的宽松渲染）。
+      tight: {
+        default: true,
+        parseHTML: (element) =>
+          element.getAttribute("data-tight") === "true" ||
+          !element.querySelector("p"),
+        renderHTML: (attributes) => ({
+          "data-tight": attributes.tight ? "true" : null,
+        }),
+      },
+    };
+  },
   addInputRules() {
     return [
       new InputRule({
@@ -233,7 +250,6 @@ export const TaskListExt = TaskList.extend({
       ...(parent?.storage || {}),
       markdown: {
         ...(parent?.storage?.markdown || {}),
-        serialize: parent?.storage?.markdown?.serialize,
         parse: {
           setup: (markdownit: any) => {
             // 必须同时注册官方 markdown-it-task-lists 插件：
