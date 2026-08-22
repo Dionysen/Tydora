@@ -711,7 +711,8 @@
       "newFile": "New File (in current file's folder)",
       "newFolder": "New Folder (in current file's folder)",
       "collapseAll": "Collapse All",
-      "expandAll": "Expand All"
+      "expandAll": "Expand All",
+      "revealActiveFile": "Reveal Active File"
     }
   },
   "editor": {

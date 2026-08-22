@@ -1,4 +1,4 @@
-﻿---
+---
 title: File Preview
 tags: [files]
 ---
@@ -9,7 +9,7 @@ In addition to Markdown, Tydora supports directly previewing a variety of image,
 
 ## Supported Formats
 
-### Images
+1. Images
 
 JPG, PNG, GIF, WebP, BMP, SVG, AVIF, HEIC, ICO
 
@@ -29,7 +29,7 @@ PDF
 
 - **Double-click** a non-Markdown file in the file tree to open the preview.
 - Click an image link in the Markdown body to preview it at the current position.
-- Images embedded with `![[image.png]]` are displayed directly in the note (see [[03-Knowledge-Management/02-Embedded-Content]]).
+- Images embedded with `<img src="image.png" alt="image.png" data-wiki-embed="1">` are displayed directly in the note (see [[03-Knowledge-Management/02-Embedded-Content]]).
 
 ## Image Preview
 
@@ -54,8 +54,7 @@ PDF
 - Supports page turning and zooming
 - Suitable for comparing materials alongside notes
 
-> [!NOTE]
-> The storage location and naming rules for images can be configured in [[07-Settings/06-Image-Settings]]; the behavior when pasting / dragging in images is also controlled by that setting.
+> [!NOTE]The storage location and naming rules for images can be configured in ; the behavior when pasting / dragging in images is also controlled by that setting.
 
 ## Related Settings
 

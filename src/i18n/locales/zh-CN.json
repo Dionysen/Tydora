@@ -711,7 +711,8 @@
       "newFile": "新建文件（在当前选中文件所在目录）",
       "newFolder": "新建文件夹（在当前选中文件所在目录）",
       "collapseAll": "折叠全部",
-      "expandAll": "展开全部"
+      "expandAll": "展开全部",
+      "revealActiveFile": "定位当前文件"
     }
   },
   "editor": {

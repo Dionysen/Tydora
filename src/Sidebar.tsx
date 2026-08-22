@@ -1354,6 +1354,14 @@ function FileTree({
   const lastClickedPathRef = useRef<string | null>(null);
   const treeRef = useRef<HTMLDivElement>(null);
   const lastScrollTopRef = useRef(0);
+  const pendingRevealPathRef = useRef<string | null>(null);
+
+  const scrollToPath = useCallback((path: string) => {
+    const node = treeRef.current?.querySelector(`[data-path="${CSS.escape(path)}"]`);
+    if (node) {
+      node.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, []);
 
   const handleStartEdit = useCallback((path: string) => {
     setEditingPath(path);
@@ -1459,6 +1467,24 @@ function FileTree({
     setRootNodes(sortTreeNodes(rootNodesRef.current, settings));
     handleRefresh();
   }, [handleRefresh, setSortDropdownOpen]);
+
+  const handleRevealActiveFile = useCallback(async () => {
+    if (!activePath || !activePath.startsWith(rootPath)) return;
+    const dirs = ancestorDirs(parentPath(activePath), rootPath);
+    if (dirs.length === 0) {
+      scrollToPath(activePath);
+      return;
+    }
+    pendingRevealPathRef.current = activePath;
+    await handleReload(dirs);
+  }, [activePath, rootPath, handleReload, scrollToPath]);
+
+  useLayoutEffect(() => {
+    const pending = pendingRevealPathRef.current;
+    if (!pending) return;
+    pendingRevealPathRef.current = null;
+    scrollToPath(pending);
+  }, [rootNodes, scrollToPath]);
 
   // ── Collapse all / Expand all ──
   const hasExpandedDir = useMemo(() => {
@@ -2011,6 +2037,20 @@ function FileTree({
             </div>
           )}
         </div>
+        <button
+          className="sidebar-action-btn"
+          onClick={handleRevealActiveFile}
+          disabled={!activePath || !activePath.startsWith(rootPath)}
+          title={i18n.t("sidebar.toolbar.revealActiveFile")}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+            <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+            <line x1="7" y1="12" x2="17" y2="12" />
+          </svg>
+        </button>
         <button
           className="sidebar-action-btn"
           onClick={hasExpandedDir ? handleCollapseAll : handleExpandAll}

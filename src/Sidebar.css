@@ -1415,6 +1415,11 @@
   color: var(--text-primary);
 }
 
+.sidebar-action-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .sidebar-sort-wrap {
   position: relative;
   display: flex;
