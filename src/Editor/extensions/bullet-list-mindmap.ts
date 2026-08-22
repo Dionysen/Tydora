@@ -176,27 +176,34 @@ function createBulletListDecorations(doc: ProsemirrorNode): DecorationSet {
 
     if (headingUsable) {
       // icon 作为 heading 的 inline widget，放在“首个完整代码点之后”：
-      // 渲染为 <h1> 的子元素（可相对 h1 绝对定位到行号列），且不会切断 emoji 代理对
+      // 渲染为 <h1> 的子元素（可相对 h1 绝对定位到行号列），且不会切断 emoji 代理对。
+      // heading 内容从 heading.pos + 1 开始，首代码点占 w 个 UTF-16 单元，
+      // 因此“首个完整代码点之后”是 heading.pos + 1 + w（旧写法 heading.pos + w 会
+      // 在 emoji 代理对中间切分文本节点，导致 emoji 损坏）
       decorations.push(
-        Decoration.widget(heading.pos + w, () =>
+        Decoration.widget(heading.pos + 1 + w, () =>
           createMindmapIcon(pos, heading.text),
         { side: -1 }),
       );
     } else {
-      // 无 heading：给列表容器添加 position:relative，让绝对定位的图标正确定位
+      // 无 heading：给列表容器添加 class，用于隐藏首行行号
       decorations.push(
         Decoration.node(pos, pos + node.nodeSize, {
           class: "bullet-list-mindmap-list-container",
         }),
       );
 
-      // widget 放在 <ul> 内容开头（第一个 <li> 之前）：
-      // 避免放入 listItem/taskItem 的 contentDOM 导致定位异常，也避免切分列表文本（emoji 安全）
-      decorations.push(
-        Decoration.widget(pos + 1, () =>
-          createMindmapIcon(pos, ""),
-        { side: 1 }),
-      );
+      // 把图标放到首个列表项（li）的内容开头。
+      // li 本身已设置 position:relative 且是行号的定位基准，这样图标与首行行号列对齐，
+      // 不会和列表文字重叠。
+      const firstItem = node.child(0);
+      if (firstItem) {
+        decorations.push(
+          Decoration.widget(pos + 2, () =>
+            createMindmapIcon(pos, ""),
+          { side: 1 }),
+        );
+      }
     }
   });
 

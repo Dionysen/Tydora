@@ -1,5 +1,5 @@
 import { useRef, useEffect, forwardRef, useImperativeHandle, useMemo } from "react";
-import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, Decoration, ViewPlugin, placeholder } from "@codemirror/view";
+import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, Decoration, ViewPlugin, placeholder, ViewUpdate } from "@codemirror/view";
 import { EditorState, Compartment, RangeSetBuilder } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
@@ -100,6 +100,8 @@ const markdownTheme = EditorView.theme({
   ".cm-content": {
     caretColor: "var(--text-primary, #333)",
     padding: "20px 0",
+    // 文末留白：允许滚动到文末后继续下滚，把最后一行放到窗口中间附近
+    paddingBottom: "calc(20px + var(--editor-end-scroll-space, 0px))",
   },
   ".cm-cursor, .cm-dropCursor": {
     borderLeftColor: "var(--text-primary, #333)",
@@ -349,22 +351,27 @@ interface CodeMirrorEditorProps {
   onChange: (value: string) => void;
   onWordCount?: (count: number) => void;
   filePath?: string | null;
+  /** 选区（Markdown 源码偏移）变化时回调，用于跨模式保留光标位置 */
+  onSelectionChange?: (selection: { anchor: number; head: number }) => void;
 }
 
 export interface CodeMirrorEditorHandle {
   getValue: () => string;
   setValue: (value: string) => void;
   focus: () => void;
+  /** 设置选区（Markdown 源码偏移）并将焦点移入编辑器 */
+  setSelectionAndFocus: (anchor: number, head: number) => void;
 }
 
 const highlightCompartment = new Compartment();
 
 const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(
-  ({ value, onChange, onWordCount, filePath }, ref) => {
+  ({ value, onChange, onWordCount, filePath, onSelectionChange }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const viewRef = useRef<EditorView | null>(null);
     const onChangeRef = useRef(onChange);
     const onWordCountRef = useRef(onWordCount);
+    const onSelectionChangeRef = useRef(onSelectionChange);
     const isInternalRef = useRef(false);
     const filePathRef = useRef(filePath);
     filePathRef.current = filePath;
@@ -372,6 +379,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
 
     onChangeRef.current = onChange;
     onWordCountRef.current = onWordCount;
+    onSelectionChangeRef.current = onSelectionChange;
 
     useImperativeHandle(ref, () => ({
       getValue: () => {
@@ -392,6 +400,15 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       focus: () => {
         viewRef.current?.focus();
       },
+      setSelectionAndFocus: (anchor: number, head: number) => {
+        const view = viewRef.current;
+        if (!view) return;
+        const len = view.state.doc.length;
+        const a = Math.max(0, Math.min(anchor, len));
+        const h = Math.max(0, Math.min(head, len));
+        view.dispatch({ selection: { anchor: a, head: h } });
+        view.focus();
+      },
     }));
 
     // 根据 filePath 获取语言扩展
@@ -400,7 +417,9 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     useEffect(() => {
       if (!containerRef.current) return;
 
-      const updateListener = EditorView.updateListener.of((update: { docChanged: boolean; state: { doc: { toString: () => string } } }) => {
+      const updateListener = EditorView.updateListener.of((update: ViewUpdate) => {
+        const main = update.state.selection.main;
+        onSelectionChangeRef.current?.({ anchor: main.anchor, head: main.head });
         if (update.docChanged) {
           if (isInternalRef.current) {
             isInternalRef.current = false;
@@ -460,8 +479,24 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       });
 
       viewRef.current = view;
+      onSelectionChangeRef.current?.({
+        anchor: view.state.selection.main.anchor,
+        head: view.state.selection.main.head,
+      });
+
+      // 文末留白：到达文末后仍可继续向下滚动，让最后一行能滚到窗口中间附近（手动滚动）
+      const wrapper = containerRef.current.closest(".editor-wrapper") as HTMLElement | null;
+      const updateEndScrollSpace = () => {
+        if (!wrapper) return;
+        const space = Math.max(120, Math.round(view.scrollDOM.clientHeight / 2));
+        wrapper.style.setProperty("--editor-end-scroll-space", `${space}px`);
+      };
+      updateEndScrollSpace();
+      const endSpaceObserver = new ResizeObserver(updateEndScrollSpace);
+      endSpaceObserver.observe(view.scrollDOM);
 
       return () => {
+        endSpaceObserver.disconnect();
         view.destroy();
         viewRef.current = null;
       };

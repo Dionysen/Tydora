@@ -62,6 +62,7 @@ import { loadShortcuts, matchShortcut } from "./shortcuts";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import CodeMirrorEditor, { type CodeMirrorEditorHandle } from "./CodeMirrorEditor";
+import { buildPositionMap, mdOffsetToPmPos, pmPosToMdOffset } from "./markdown-position-map";
 import { ContextMenu } from "./ContextMenu";
 import { LinkDialog } from "./LinkDialog";
 import { MathDialog } from "./MathDialog";
@@ -143,6 +144,11 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
     typewriterModeRef.current = typewriterMode;
     const imageSettingsRef = useRef(imageSettings);
     const sourceEditorRef = useRef<CodeMirrorEditorHandle>(null);
+    // 记录源码编辑器中最近一次的选区（Markdown 源码偏移），用于 SV → IR 时恢复光标
+    const sourceSelectionRef = useRef<{ anchor: number; head: number }>({ anchor: 0, head: 0 });
+    const handleSourceSelectionChange = useCallback((selection: { anchor: number; head: number }) => {
+      sourceSelectionRef.current = selection;
+    }, []);
     const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
     const [tableToolbar, setTableToolbar] = useState<{ table: HTMLElement } | null>(null);
     const linkEditRef = useRef<{ from: number; to: number } | null>(null);
@@ -1599,6 +1605,54 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
       }
     }, [value, editor, currentFilePath, mode]);
 
+    // 在 IR ↔ SV 之间切换时保留焦点与光标位置：
+    // 模式切换发生在同一 React 提交中，CodeMirrorEditor 挂载/卸载完成后，
+    // 旧编辑器的选区仍可通过各自的状态/ref 读取，据此在两个表示之间映射光标。
+    const prevModeForCursorRef = useRef(mode);
+    useEffect(() => {
+      const prevMode = prevModeForCursorRef.current;
+      prevModeForCursorRef.current = mode;
+      if (!editor) return;
+
+      if (mode === "sv" && prevMode === "ir") {
+        // IR → SV：把 PM 光标映射为 Markdown 源码偏移，在 CodeMirror 中恢复并聚焦
+        const { from, to } = editor.state.selection;
+        const map = buildPositionMap(editor);
+        sourceEditorRef.current?.setSelectionAndFocus(
+          pmPosToMdOffset(map, from),
+          pmPosToMdOffset(map, to),
+        );
+      } else if (mode === "ir" && prevMode === "sv") {
+        // SV → IR：把源码中的偏移映射回 PM 位置，聚焦并恢复选区
+        const sel = sourceSelectionRef.current;
+        const map = buildPositionMap(editor);
+        const anchorPos = mdOffsetToPmPos(map, sel.anchor);
+        const headPos = mdOffsetToPmPos(map, sel.head);
+        const from = Math.min(anchorPos, headPos);
+        const to = Math.max(anchorPos, headPos);
+        editor.chain().focus().setTextSelection({ from, to }).run();
+      }
+    }, [mode, editor]);
+
+    // 文末留白：文本到达末尾后仍可继续向下滚动，让最后一行能滚到窗口中间附近（手动滚动，非打字机模式）
+    useEffect(() => {
+      if (!editor) return;
+      const wrapper = containerRef.current?.closest(".editor-wrapper") as HTMLElement | null;
+      const scrollContainer = containerRef.current?.querySelector(".tiptap-editor") as HTMLElement | null;
+      if (!wrapper || !scrollContainer) return;
+
+      const updateEndScrollSpace = () => {
+        // 留白高度约为可视区高度的一半，保证最后一行可以滚到窗口中部
+        const space = Math.max(120, Math.round(scrollContainer.clientHeight / 2));
+        wrapper.style.setProperty("--editor-end-scroll-space", `${space}px`);
+      };
+
+      updateEndScrollSpace();
+      const endSpaceObserver = new ResizeObserver(updateEndScrollSpace);
+      endSpaceObserver.observe(scrollContainer);
+      return () => endSpaceObserver.disconnect();
+    }, [editor, mode]);
+
     if (mode === "sv") {
       return (
         <CodeMirrorEditor
@@ -1607,6 +1661,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
           onChange={onChange}
           onWordCount={onWordCount}
           filePath={currentFilePath}
+          onSelectionChange={handleSourceSelectionChange}
         />
       );
     }

@@ -165,6 +165,8 @@
   font-size: var(--editor-font-size, 16px);
   line-height: var(--editor-line-height, 1.6);
   padding: 2rem 3rem;
+  /* 文末留白：允许滚动到文末后继续下滚，把最后一行放到窗口中间附近 */
+  padding-bottom: calc(2rem + var(--editor-end-scroll-space, 0px));
   min-height: 100%;
   outline: none;
   max-width: var(--editor-max-width, 880px);
@@ -752,8 +754,8 @@
 /* 列表思维导图图标 — 按钮定位到行号列（与行号同列，替代该行行号） */
 
 /* 有思维导图按钮的标题行：不再显示行号，由按钮替代。
-   widget 渲染为 h1 的直接子元素；用 :has() 精准匹配（不依赖会被丢弃的节点 class） */
-.tiptap-editor .tiptap :is(h1, h2, h3, h4, h5, h6):has(> .bullet-list-mindmap-icon)::before {
+   widget 渲染为 h1 的直接子元素；用 :has() 匹配（同时兼容后代，防止 widget 被包裹） */
+.tiptap-editor .tiptap :is(h1, h2, h3, h4, h5, h6):has(.bullet-list-mindmap-icon)::before {
   content: none;
 }
 
@@ -789,8 +791,8 @@
   z-index: 1;
 }
 
-/* 无 heading 时（bulletList/taskList widget）：icon 相对列表容器（ul, position:relative）
-   绝对定位到第一行的行号列 */
+/* 无 heading 时（bulletList/taskList widget）：icon 作为首个 li 的子元素，
+   相对 li（position:relative，与行号同一定位基准）绝对定位到第一行的行号列 */
 .bullet-list-mindmap-icon.list-icon {
   position: absolute;
   right: -2.25rem;
@@ -798,13 +800,13 @@
   z-index: 1;
 }
 
-/* 无 heading 时：给列表容器添加 position:relative，让 list-icon 正确定位 */
+/* 无 heading 时：给列表容器添加 class，用于隐藏首行行号 */
 .tiptap-editor .bullet-list-mindmap-list-container {
   position: relative;
 }
 
 /* 有按钮的列表第一行：不再显示行号，由按钮替代 */
-.tiptap-editor .bullet-list-mindmap-list-container:has(> .bullet-list-mindmap-icon) > li:first-child::before {
+.tiptap-editor .bullet-list-mindmap-list-container:has(.bullet-list-mindmap-icon) > li:first-child::before {
   content: none;
 }
 

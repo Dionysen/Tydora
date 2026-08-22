@@ -3,18 +3,17 @@ title: About Tydora
 tags: [getting-started]
 ---
 
-# About Tydora
+1. About Tydora
 
 Tydora is a modern desktop Markdown editor built with Tauri v2 + React 19. It supports WYSIWYG & source dual-mode editing, WikiLink bidirectional links, knowledge graph, mind maps, and a whiteboard canvas. The name comes from *Type/Typography* and the Ancient Greek *δῶρον* (gift), meaning "gift at your fingertips."
 
-> [!NOTE]
-> Tydora is open-source software licensed under the Apache License 2.0. Issues, discussions, and code contributions are welcome on GitHub.
+> [!NOTE]Tydora is open-source software licensed under the Apache License 2.0. Issues, discussions, and code contributions are welcome on GitHub.
 
 ## Version Info
 
 | Item | Details |
 | --- | --- |
-| Current Version | 0.2.0 | <!-- x-release-please-version -->
+| Current Version | 0.2.0 |
 | Build Framework | Tauri v2 |
 | Frontend Framework | React 19 |
 | Editor Engine | TipTap 3.x (WYSIWYG) + CodeMirror 6 (Source) |
@@ -30,14 +29,13 @@ Manual check steps:
 2. Switch to the "About" tab.
 3. Click "Check for Updates."
 
-> [!TIP]
-> Automatic updates rely on signed files (`.sig` and `latest.json`) on GitHub Releases. See [[09-blog/Auto-Update-Configuration]] for contributor setup details.
+> [!TIP]Automatic updates rely on signed files (.sig and latest.json) on GitHub Releases. See  for contributor setup details.
 
 ## Feature Overview
 
 - **Dual-Mode Editing**: WYSIWYG (IR) + Source Mode (SV), toggle with `Ctrl+/`
 - **Multi-Vault Management**: Folder-based vaults with drag-and-drop file tree
-- **WikiLink Bidirectional Links**: `[[Note Name]]` syntax, autocomplete + backlinks panel
+- **WikiLink Bidirectional Links**: `<a data-note="Note Name">Note Name</a>` syntax, autocomplete + backlinks panel
 - **Knowledge Graph**: D3.js force-directed graph visualizing note relationships
 - **Mind Map**: Auto-generated from Markdown heading hierarchy, powered by markmap
 - **Whiteboard Canvas**: Infinite React Flow canvas with text / note / image / media / URL / group nodes
@@ -72,8 +70,7 @@ Encountered an issue or have a suggestion? Reach out through:
 - **GitHub Issues**: Submit bug reports and feature requests
 - **GitHub Discussions**: Participate in usage discussions and experience sharing
 
-> [!TIP]
-> When submitting an issue, include your OS version, Tydora version, and reproduction steps — it helps us locate the problem faster.
+> [!TIP]When submitting an issue, include your OS version, Tydora version, and reproduction steps — it helps us locate the problem faster.
 
 ## Related Documents
 
