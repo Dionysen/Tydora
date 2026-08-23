@@ -1,4 +1,5 @@
 import { Node, mergeAttributes, InputRule } from "@tiptap/core";
+import { applyOutsideCodeSpans } from "../../wikilink/codeSpanGuard";
 
 /** HTML 属性值转义，防止 XSS */
 function encodeNote(s: string): string {
@@ -346,12 +347,14 @@ export const WikiLink = Node.create({
             markdownit.core.ruler.before('inline', 'wiki_link', (mdState: any) => {
               mdState.tokens.forEach((token: any) => {
                 if (token.type === 'inline' && token.content) {
-                  token.content = token.content
-                    .replace(/!\[\[([^\]]+)\]\]/g, replaceWikiImageSyntax)
-                    .replace(
-                      /\[\[([^\]]+)\]\]/g,
-                      replaceWikiLinkSyntax
-                    );
+                  token.content = applyOutsideCodeSpans(token.content, (text) =>
+                    text
+                      .replace(/!\[\[([^\]]+)\]\]/g, replaceWikiImageSyntax)
+                      .replace(
+                        /\[\[([^\]]+)\]\]/g,
+                        replaceWikiLinkSyntax
+                      )
+                  );
                 }
               });
             });

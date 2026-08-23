@@ -472,6 +472,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const wikiPreviewDepthRef = useRef(-1);
   const wikiShowTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
   const wikiHideTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  // 当前待显示的预览（鼠标停留延迟未到时），用于鼠标提前离开时取消
+  const pendingShowRef = useRef<{ depth: number; timer: ReturnType<typeof setTimeout> } | null>(null);
 
   // 知识图谱状态
   const [graphViewOpen, setGraphViewOpen] = useState(false);
@@ -1694,15 +1696,26 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       return -1;
     };
 
+    const HOVER_DELAY = 400; // 鼠标需在 wikilink 上停留该毫秒数才显示预览
+
     const handleHover = (e: Event) => {
       const { noteName, heading, element, depth: eventDepth } = (e as CustomEvent).detail;
       if (!noteName) return;
+
+      // 预览弹窗内的 wiki link 不再触发新的预览，避免嵌套弹框
+      if (element && (element as HTMLElement).closest?.('.wiki-link-preview')) return;
 
       const targetPath = LinkIndexService.findFileByNoteName(noteName);
       if (!targetPath) return;
 
       const depth = eventDepth ?? 0;
       const showDepth = depth + 1;
+
+      // 取消上一次尚未触发的待显示定时器（鼠标在延迟前离开/切换到其它链接）
+      if (pendingShowRef.current) {
+        clearTimeout(pendingShowRef.current.timer);
+        pendingShowRef.current = null;
+      }
 
       // 清除该深度及更深层次的定时器
       for (const [d, t] of showTimers) { if (d >= showDepth) { clearTimeout(t); showTimers.delete(d); } }
@@ -1711,16 +1724,16 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       // 清除更深层次的预览
       setWikiPreviewStack(prev => prev.filter(p => p.depth < showDepth));
 
-      // 延迟显示
+      // 延迟显示：鼠标必须停留在 wikilink 上一段时间才弹出预览
       const rect = (element as HTMLElement).getBoundingClientRect();
       const timer = setTimeout(() => {
-        showTimers.delete(showDepth);
+        pendingShowRef.current = null;
         setWikiPreviewStack(prev => {
           const filtered = prev.filter(p => p.depth < showDepth);
           return [...filtered, { noteName, heading: heading || null, anchorRect: rect, depth: showDepth }];
         });
-      }, 300);
-      showTimers.set(showDepth, timer);
+      }, HOVER_DELAY);
+      pendingShowRef.current = { depth: showDepth, timer };
     };
 
     const handleHoverEnd = (e: Event) => {
@@ -1729,6 +1742,12 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       const detail = (e as CustomEvent).detail;
       const relatedTarget = (detail?.relatedTarget || (e as MouseEvent).relatedTarget) as HTMLElement | null;
       const leavingDepth = getDepthFromTarget(relatedTarget);
+
+      // 鼠标在延迟前离开 wikilink：取消待显示的预览（否则划过后仍会弹出）
+      if (pendingShowRef.current) {
+        clearTimeout(pendingShowRef.current.timer);
+        pendingShowRef.current = null;
+      }
 
       // 鼠标仍在同一深度或更深的预览中 → 不关闭
       if (leavingDepth >= 0 && leavingDepth >= wikiPreviewDepthRef.current) return;
@@ -1782,6 +1801,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     return () => {
       window.removeEventListener("wiki-link-hover", handleHover);
       window.removeEventListener("wiki-link-hover-end", handleHoverEnd);
+      if (pendingShowRef.current) {
+        clearTimeout(pendingShowRef.current.timer);
+        pendingShowRef.current = null;
+      }
       showTimers.forEach(t => clearTimeout(t));
       hideTimers.forEach(t => clearTimeout(t));
       showTimers.clear();

@@ -5,6 +5,7 @@ import { readTextFile } from "@tauri-apps/plugin-fs";
 import katex from "katex";
 import { mathMarkdownItPlugin } from "../Editor/extensions/math";
 import { LinkIndexService } from "./LinkIndexService";
+import { applyOutsideCodeSpans } from "./codeSpanGuard";
 
 const md = new MarkdownIt({
   html: true,
@@ -25,13 +26,16 @@ const CACHE_MAX = 50;
 function renderMarkdown(text: string): string {
   const body = text.replace(/^---[\s\S]*?---\n?/, "");
   // 预处理 WikiLink 语法，转换为 HTML
-  let processed = body.replace(
-    /\[\[([^\]|]+?)(?:#([^\]|]+?))?(?:\|([^\]]+?))?\]\]/g,
-    (_match, note, heading, display) => {
-      const label = display || note;
-      const headingAttr = heading ? ` data-heading="${heading}"` : '';
-      return `<a class="wiki-link" data-note="${note}"${headingAttr} href="#">${label}</a>`;
-    }
+  // 注意：需跳过反引号包裹的内联代码，避免代码内的 [[...]] 被错误转成链接
+  let processed = applyOutsideCodeSpans(body, (text) =>
+    text.replace(
+      /\[\[([^\]|]+?)(?:#([^\]|]+?))?(?:\|([^\]]+?))?\]\]/g,
+      (_match, note, heading, display) => {
+        const label = display || note;
+        const headingAttr = heading ? ` data-heading="${heading}"` : '';
+        return `<a class="wiki-link" data-note="${note}"${headingAttr} href="#">${label}</a>`;
+      }
+    )
   );
   // 预处理任务列表：将 - [ ] / - [x] 转换为 HTML checkbox
   processed = processed.replace(
@@ -265,12 +269,10 @@ export function WikiLinkPreview({
     }
   }, [html, heading]);
 
-  // 阻止预览弹窗内链接的点击导航 + 支持 wiki link 悬停预览
+  // 阻止预览弹窗内链接的点击导航
   useEffect(() => {
     const el = bodyRef.current;
     if (!el) return;
-
-    let currentLink: HTMLElement | null = null;
 
     const clickHandler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -280,47 +282,13 @@ export function WikiLinkPreview({
       }
     };
 
-    // 使用 mouseover/mouseout（会冒泡）代替 mouseenter/mouseleave（不冒泡）
-    const overHandler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const link = target.closest?.('a.wiki-link, a[data-note]') as HTMLElement | null;
-      // 如果鼠标已经在同一个链接上（包括在父元素和子元素之间移动），不需要重新触发
-      if (link && link === currentLink) return;
-
-      currentLink = link;
-      if (!link) return;
-      const noteName = link.getAttribute('data-note');
-      if (!noteName) return;
-      const heading = link.getAttribute('data-heading') || null;
-      window.dispatchEvent(new CustomEvent("wiki-link-hover", {
-        detail: { noteName, heading, element: link, depth }
-      }));
-    };
-
-    const outHandler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const relatedTarget = e.relatedTarget as HTMLElement | null;
-      const link = target.closest?.('a.wiki-link, a[data-note]') as HTMLElement | null;
-      if (!link) return;
-      if (link !== currentLink) return;
-
-      // 如果鼠标移动到了同一个链接的子元素中（如 <strong>、<em>），不要触发离开事件
-      if (relatedTarget && link.contains(relatedTarget)) return;
-
-      currentLink = null;
-      // 传递 relatedTarget 给 handleHoverEnd，以便正确判断鼠标去向
-      window.dispatchEvent(new CustomEvent("wiki-link-hover-end", {
-        detail: { relatedTarget }
-      }));
-    };
+    // 注意：预览弹窗内的 wiki link 不再触发嵌套预览弹框
+    // （由 App.tsx 的 handleHover 通过 closest('.wiki-link-preview') 拦截，
+    //  且此处不再派发 wiki-link-hover / wiki-link-hover-end 事件）
 
     el.addEventListener("click", clickHandler, true);
-    el.addEventListener("mouseover", overHandler, true);
-    el.addEventListener("mouseout", outHandler, true);
     return () => {
       el.removeEventListener("click", clickHandler, true);
-      el.removeEventListener("mouseover", overHandler, true);
-      el.removeEventListener("mouseout", outHandler, true);
     };
   }, [html]);
 
