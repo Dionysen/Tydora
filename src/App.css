@@ -1195,6 +1195,12 @@
   position: relative;
 }
 
+/* 上下预留半屏内边距，配合 JS 让光标所在行始终垂直居中 */
+.typewriter-mode .tiptap-editor .ProseMirror {
+  padding-top: var(--typewriter-pad, 0px);
+  padding-bottom: var(--typewriter-pad, 0px);
+}
+
 /* ========== 编辑器布局适配 ========== */
 
 /* 编辑器填满面板 */

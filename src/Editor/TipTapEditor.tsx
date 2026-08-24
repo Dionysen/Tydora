@@ -142,6 +142,42 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
     const typewriterModeRef = useRef(typewriterMode);
     const typewriterRafRef = useRef<number | null>(null);
     typewriterModeRef.current = typewriterMode;
+
+    // 打字机模式：给内容区上下预留约半屏内边距，使首行/末行也能垂直居中
+    useEffect(() => {
+      const wrapper = containerRef.current?.closest('.editor-wrapper') as HTMLElement | null;
+      if (!wrapper) return;
+      const applyPad = () => {
+        const sc = containerRef.current?.querySelector('.tiptap-editor') as HTMLElement | null;
+        if (!sc) return;
+        if (typewriterMode) {
+          const pad = Math.max(0, Math.floor(sc.clientHeight * 0.45));
+          wrapper.style.setProperty('--typewriter-pad', `${pad}px`);
+        } else {
+          wrapper.style.removeProperty('--typewriter-pad');
+        }
+      };
+      applyPad();
+      // 开启时立即将当前光标所在行居中
+      if (typewriterMode) {
+        const sc = containerRef.current?.querySelector('.tiptap-editor') as HTMLElement | null;
+        if (sc && editor) {
+          const { from } = editor.state.selection;
+          const coords = editor.view.coordsAtPos(from);
+          if (coords) {
+            const lineCenterInContent =
+              (coords.top + coords.bottom) / 2 - sc.getBoundingClientRect().top + sc.scrollTop;
+            sc.scrollTop = Math.max(0, lineCenterInContent - sc.clientHeight / 2);
+          }
+        }
+      }
+      window.addEventListener('resize', applyPad);
+      return () => {
+        window.removeEventListener('resize', applyPad);
+        wrapper.style.removeProperty('--typewriter-pad');
+      };
+    }, [typewriterMode]);
+
     const imageSettingsRef = useRef(imageSettings);
     const sourceEditorRef = useRef<CodeMirrorEditorHandle>(null);
     // 记录源码编辑器中最近一次的选区（Markdown 源码偏移），用于 SV → IR 时恢复光标
@@ -874,6 +910,16 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
           ? md.length
           : text.replace(/\s/g, "").length;
         onWordCountRef.current?.(count);
+
+        // 全选后删除会把文档清空：部分浏览器下视图的 DOM 选区会失同步，
+        // 导致光标不再闪烁。此时重新同步 DOM 选区即可恢复光标闪烁。
+        if (ed.isEmpty && ed.isFocused) {
+          requestAnimationFrame(() => {
+            if (ed.isEmpty && ed.isFocused) {
+              ed.commands.focus();
+            }
+          });
+        }
       },
       onSelectionUpdate: ({ editor: ed }) => {
         if (!typewriterModeRef.current) return;
@@ -885,9 +931,12 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
           const { from } = ed.state.selection;
           const coords = ed.view.coordsAtPos(from);
           if (!coords) return;
+          // 以光标所在行的垂直中心为基准，而非行顶
+          const lineCenter = (coords.top + coords.bottom) / 2;
           const containerTop = scrollContainer.getBoundingClientRect().top;
-          const cursorYInContent = coords.top - containerTop + scrollContainer.scrollTop;
-          const targetScroll = cursorYInContent - scrollContainer.clientHeight / 2;
+          const lineCenterInContent = lineCenter - containerTop + scrollContainer.scrollTop;
+          const targetScroll = lineCenterInContent - scrollContainer.clientHeight / 2;
+          // 内容区上下已预留半屏内边距，故首行/末行也能居中（无需 clamp 到 0）
           scrollContainer.scrollTop = Math.max(0, targetScroll);
         });
       },
