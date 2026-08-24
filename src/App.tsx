@@ -2656,11 +2656,20 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
             setQuickOpenOpen(false);
             handleSelectFile(path);
           }}
+          onSelectFileInNewWindow={(path) => {
+            setQuickOpenOpen(false);
+            handleNewWindow(path);
+          }}
           onSelectVault={async (vaultPath) => {
             setQuickOpenOpen(false);
             const win = getCurrentWindow();
             const [size, scale] = await Promise.all([win.innerSize(), win.scaleFactor()]);
             invoke("open_vault_in_new_window", { vaultPath, width: size.width / scale, height: size.height / scale });
+          }}
+          onSelectVaultCurrent={(vaultPath) => {
+            setQuickOpenOpen(false);
+            const index = vaults.findIndex((v) => v.path === vaultPath);
+            if (index >= 0) setActiveVaultIndex(index);
           }}
           onClose={() => setQuickOpenOpen(false)}
         />

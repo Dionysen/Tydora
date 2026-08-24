@@ -1259,6 +1259,38 @@
   color: var(--text-secondary);
 }
 
+.quick-open-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.quick-open-tab {
+  flex: 1;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  transition: all 0.15s ease;
+}
+
+.quick-open-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface);
+}
+
+.quick-open-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent, #89b4fa);
+}
+
 .quick-open-results {
   max-height: 400px;
   overflow-y: auto;
@@ -1382,9 +1414,12 @@
 }
 
 .quick-open-hint {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-right: 12px;
   font-size: 12px;
   color: var(--text-secondary);
-  line-height: 1.4;
+  line-height: 1.6;
 }
 
 .quick-open-hint kbd {
@@ -1399,9 +1434,12 @@
 }
 
 .quick-open-count {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  text-align: right;
   font-size: 12px;
   color: var(--text-secondary);
-  line-height: 1.4;
+  line-height: 1.6;
 }
 
 /* ========== 命令面板 ========== */

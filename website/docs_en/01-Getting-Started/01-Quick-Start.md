@@ -5,7 +5,7 @@ tags: [getting-started]
 
 # Quick Start
 
-Tydora is a modern desktop Markdown editor built with Tauri v2 + React 19. It features WYSIWYG live preview, dual-mode editing, WikiLink bidirectional links, a knowledge graph, mind maps, and a whiteboard canvas. This page gets you from installation to your first note in about 5 minutes.
+1. Tydora is a modern desktop Markdown editor built with Tauri v2 + React 19. It features WYSIWYG live preview, dual-mode editing, WikiLink bidirectional links, a knowledge graph, mind maps, and a whiteboard canvas. This page gets you from installation to your first note in about 5 minutes.
 
 > [!NOTE] If you've used Obsidian or Typora, many interactions in Tydora will feel familiar: the Vault concept, bidirectional link syntax, and WYSIWYG editing all share the same philosophy.
 
@@ -30,7 +30,7 @@ Tydora uses the "Vault" concept to manage your notes. **Each vault corresponds t
 3. In the file picker, choose a folder as your note vault (or create an empty folder).
 4. After confirmation, the left sidebar immediately shows the **file tree** for that folder.
 
-> [!ABSTRACT] Vaults only record folder paths — Tydora does not move or copy your files. You can add multiple vaults at any time and manage them by project or topic. See [[04-File-Management/01-Vaults]].
+> [!ABSTRACT] Vaults only record folder paths — Tydora does not move or copy your files. You can add multiple vaults at any time and manage them by project or topic. See .
 
 ## 3. Create Your First Note
 
