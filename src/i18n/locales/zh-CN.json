@@ -815,6 +815,8 @@
     "tabVault": "搜索知识库",
     "switchTab": "切换",
     "openNewWindow": "新窗口打开",
+    "splitRight": "右侧分屏打开",
+    "splitDown": "下方分屏打开",
     "select": "选择",
     "open": "打开",
     "close": "关闭",

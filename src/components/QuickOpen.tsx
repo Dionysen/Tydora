@@ -12,6 +12,7 @@ interface QuickOpenProps {
   files?: FileItem[];  // Optional: external file list
   onSelect: (path: string) => void;                       // 打开文件（当前窗口）
   onSelectFileInNewWindow?: (path: string) => void;       // 打开文件（新窗口）
+  onSelectFileInSplitPane?: (path: string, dir: "lr" | "tb") => void;  // 在聚焦编辑器分屏（右侧/下方）打开
   onSelectVault: (vaultPath: string) => void;             // 打开知识库（新窗口）
   onSelectVaultCurrent?: (vaultPath: string) => void;     // 打开知识库（当前窗口）
   onClose: () => void;
@@ -104,6 +105,7 @@ export default function QuickOpen({
   files: externalFiles,
   onSelect,
   onSelectFileInNewWindow = () => {},
+  onSelectFileInSplitPane = () => {},
   onSelectVault,
   onSelectVaultCurrent = () => {},
   onClose,
@@ -247,6 +249,24 @@ export default function QuickOpen({
         setSelectedIndex((i) => Math.max(i - 1, 0));
         return;
       }
+      // Ctrl+\ 在聚焦编辑器右侧分屏打开选中文件
+      if ((e.ctrlKey || e.metaKey) && (e.key === "\\" || e.key === "|")) {
+        e.preventDefault();
+        e.stopPropagation();
+        (e.nativeEvent as KeyboardEvent)?.stopImmediatePropagation?.();
+        const item = currentItems[selectedIndex];
+        if (item && mode === "file") onSelectFileInSplitPane(item.path, "lr");
+        return;
+      }
+      // Ctrl+- 在聚焦编辑器下方分屏打开选中文件
+      if ((e.ctrlKey || e.metaKey) && (e.key === "-" || e.key === "_")) {
+        e.preventDefault();
+        e.stopPropagation();
+        (e.nativeEvent as KeyboardEvent)?.stopImmediatePropagation?.();
+        const item = currentItems[selectedIndex];
+        if (item && mode === "file") onSelectFileInSplitPane(item.path, "tb");
+        return;
+      }
 
       switch (e.key) {
         case "ArrowDown":
@@ -280,7 +300,7 @@ export default function QuickOpen({
           break;
       }
     },
-    [mode, currentItems, totalItems, selectedIndex, onSelect, onSelectFileInNewWindow, onSelectVault, onSelectVaultCurrent, onClose],
+    [mode, currentItems, totalItems, selectedIndex, onSelect, onSelectFileInNewWindow, onSelectFileInSplitPane, onSelectVault, onSelectVaultCurrent, onClose],
   );
 
   // 聚焦输入框
@@ -410,6 +430,8 @@ export default function QuickOpen({
             <kbd>↑</kbd> <kbd>↓</kbd> or <kbd>Ctrl+J</kbd> <kbd>Ctrl+K</kbd> {t("quickOpen.select")}&nbsp;
             <kbd>Enter</kbd> {t("quickOpen.open")}&nbsp;
             <kbd>Ctrl+Enter</kbd> {t("quickOpen.openNewWindow")}&nbsp;
+            <kbd>Ctrl+\</kbd> {t("quickOpen.splitRight")}&nbsp;
+            <kbd>Ctrl+-</kbd> {t("quickOpen.splitDown")}&nbsp;
             <kbd>Esc</kbd> {t("quickOpen.close")}
           </span>
           <span className="quick-open-count">

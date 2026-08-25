@@ -1694,6 +1694,71 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
   }, [fileName, isCurrentFileMarkdown, canvasFilePath, previewFilePath, activeVaultIndex, vaults, t]);
 
+  // QuickOpen 的 Ctrl+\ / Ctrl+-：
+  // 把选中文件在激活编辑器的指定方向（Ctrl+\ 右侧 / Ctrl+- 下方）分屏打开，
+  // 做法：在激活 leaf 位置用一个新的 SplitGroup(dir) 替换该 leaf —— 第一个孩子是原 leaf（保留原内容），
+  // 第二个孩子是新 leaf（绑定要打开的新文件）。其他窗格/区域完全不变。
+  // 示例：当前 lr[a, b] 且激活 b → Ctrl+- → lr[a, tb[b, c]]（左a不变，右侧变成 b在上 c在下）
+  const handleOpenInSplit = useCallback(async (path: string, dir: "lr" | "tb") => {
+    // 白板/预览模式不支持分屏打开
+    if (canvasFilePath || previewFilePath) return;
+    const name = path.split(/[/\\]/).pop() || path;
+    if (!isMarkdownFile(name)) return;
+    try {
+      const activeId = activePaneIdRef.current;
+      const currentPanes = panesRef.current;
+      const active = currentPanes.find((p) => p.id === activeId) ?? currentPanes[0];
+
+      // 准备新文件的 buffer：复用已打开的同名文件缓冲（同步视图），否则读取新建
+      const existing = buffersRef.current.find((b) => b.fileName === path);
+      let bufferId: string;
+      if (existing) {
+        bufferId = existing.id;
+      } else {
+        const text = await readTextFile(path);
+        const newBuf: FileBuffer = { id: bid(), fileName: path, content: text, savedContent: text, modified: false };
+        setBuffers((bs) => [...bs, newBuf]);
+        bufferId = newBuf.id;
+      }
+
+      // 新建 pane 绑定新文件 buffer
+      const newPane: Pane = { id: pid(), bufferId, mode: active.mode };
+      setPanes((ps) => [...ps, newPane]);
+
+      // 布局替换：激活 leaf → SplitGroup(dir)[原leaf, 新leaf]，其余完全不动
+      const found = findPaneInTree(splitLayoutRef.current, activeId);
+      const keepLeaf: PaneLeaf = found ? found.leaf : { type: "leaf", paneId: activeId, flex: 1 };
+      const newLeaf: PaneLeaf = { type: "leaf", paneId: newPane.id, flex: 1 };
+      const wrapFlex = found?.leaf.flex ?? 1;
+      const replacement: SplitGroup = { type: "group", groupId: gid(), dir, flex: wrapFlex, children: [keepLeaf, newLeaf] };
+      if (!found) setSplitLayout(replacement);
+      else setSplitLayout(replaceNodeByPath(splitLayoutRef.current, found.path, replacement));
+
+      setActivePaneId(newPane.id);
+
+      // 匿名统计 + 更新最近访问文件列表
+      track(ANALYTICS_EVENTS.FILE_OPEN);
+      trackPageview("/file");
+      const activeVault = activeVaultIndex >= 0 ? vaults[activeVaultIndex] : null;
+      if (activeVault) {
+        setRecentFiles((prev) => {
+          const vaultPath = activeVault.path;
+          const existingRecent = prev[vaultPath] || [];
+          const filtered = existingRecent.filter((p) => p !== path);
+          const updated = [path, ...filtered].slice(0, MAX_RECENT_FILES);
+          return { ...prev, [vaultPath]: updated };
+        });
+      }
+
+      // 延迟聚焦新窗格编辑器，等待挂载
+      setTimeout(() => {
+        paneHandlesRef.current[newPane.id]?.focus();
+      }, 60);
+    } catch (e) {
+      console.error(t("app.error.openFileFailed"), e);
+    }
+  }, [canvasFilePath, previewFilePath, activeVaultIndex, vaults, t]);
+
   // 关闭指定窗格：从布局树移除对应 leaf，并压缩只剩 1 个孩子的空组。
   // 若为激活窗格，焦点切到相邻 leaf；同时清理孤儿缓冲。至少保留一个窗格。
   const closePane = useCallback((paneId: string) => {
@@ -3283,6 +3348,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           onSelectFileInNewWindow={(path) => {
             setQuickOpenOpen(false);
             handleNewWindow(path);
+          }}
+          onSelectFileInSplitPane={(path, dir) => {
+            setQuickOpenOpen(false);
+            handleOpenInSplit(path, dir);
           }}
           onSelectVault={async (vaultPath) => {
             setQuickOpenOpen(false);
