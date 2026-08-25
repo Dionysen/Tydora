@@ -76,6 +76,8 @@ interface SidebarProps {
   onSelectHeading: (level: number, text: string, line: number) => void;
   onRemoveVault: (index: number) => void;
   onNewWindow: (filePath: string) => void;
+  onOpenInNewPanel: (filePath: string) => void;
+  canOpenInNewPanel: boolean;
   onPublish: () => void;
   onSelectVault: (index: number) => void;
   collapsed: boolean;
@@ -688,6 +690,7 @@ interface FileActions {
   onNewWindow: () => void;
   onBookmark: () => void;
   onMoveTo: () => void;
+  onOpenInNewPanel: () => void;
 }
 
 // 右键菜单图标（线条风格，与顶部栏菜单保持一致）
@@ -718,6 +721,12 @@ const MENU_ICONS = {
       <rect x="2.5" y="3" width="14.5" height="16" rx="3" />
       <rect x="7.5" y="6" width="13.5" height="13" rx="3" />
       <line x1="9.5" y1="15.8" x2="19.5" y2="15.8" strokeWidth="1.5" />
+    </>,
+  ),
+  newPanel: menuIcon(
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <line x1="12" y1="4" x2="12" y2="20" />
     </>,
   ),
   favorite: menuIcon(<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />),
@@ -796,13 +805,29 @@ const MENU_ICONS = {
   ),
 };
 
-function getFileMenuItems(actions: FileActions, t: (key: string) => string): ContextMenuItem[] {
+// 判断文件名是否为 Markdown（与编辑器分屏区一致，仅支持 Markdown 在新面板打开）
+function isMarkdownFileName(name: string): boolean {
+  const ext = name.split(".").pop()?.toLowerCase() ?? "";
+  return ["md", "markdown", "mdx"].includes(ext);
+}
+
+function getFileMenuItems(
+  actions: FileActions,
+  t: (key: string) => string,
+  opts: { canOpenInNewPanel: boolean; targetIsMarkdown: boolean },
+): ContextMenuItem[] {
   return [
-    { label: t("sidebar.contextMenu.newFile"), icon: MENU_ICONS.newFile, onClick: actions.onNewFile },
-    { label: t("sidebar.contextMenu.newCanvas"), icon: MENU_ICONS.newCanvas, onClick: actions.onNewWhiteboard },
-    { label: t("sidebar.contextMenu.newFolder"), icon: MENU_ICONS.newFolder, onClick: actions.onNewFolder, separator: true },
+    {
+      label: t("sidebar.contextMenu.openInNewPanel"),
+      icon: MENU_ICONS.newPanel,
+      onClick: actions.onOpenInNewPanel,
+      disabled: !opts.canOpenInNewPanel || !opts.targetIsMarkdown,
+    },
     { label: t("sidebar.contextMenu.openInNewWindow"), icon: MENU_ICONS.newWindow, onClick: actions.onNewWindow },
-    { label: t("sidebar.contextMenu.favorite"), icon: MENU_ICONS.favorite, onClick: actions.onBookmark },
+    { label: t("sidebar.contextMenu.newFile"), icon: MENU_ICONS.newFile, onClick: actions.onNewFile, separator: true },
+    { label: t("sidebar.contextMenu.newCanvas"), icon: MENU_ICONS.newCanvas, onClick: actions.onNewWhiteboard },
+    { label: t("sidebar.contextMenu.newFolder"), icon: MENU_ICONS.newFolder, onClick: actions.onNewFolder },
+    { label: t("sidebar.contextMenu.favorite"), icon: MENU_ICONS.favorite, onClick: actions.onBookmark, separator: true },
     { label: t("sidebar.contextMenu.rename"), icon: MENU_ICONS.rename, onClick: actions.onRename, separator: true },
     {
       label: t("sidebar.contextMenu.duplicate"),
@@ -995,6 +1020,8 @@ function TreeNodeComp({
   onStartEdit,
   onFinishEdit,
   onNewWindow,
+  onOpenInNewPanel,
+  canOpenInNewPanel,
   onBookmark,
   selectedPaths,
   onMultiSelect,
@@ -1015,6 +1042,8 @@ function TreeNodeComp({
   onStartEdit: (path: string) => void;
   onFinishEdit: (path: string, newName: string, isDirectory: boolean) => void;
   onNewWindow: (filePath: string) => void;
+  onOpenInNewPanel: (filePath: string) => void;
+  canOpenInNewPanel: boolean;
   onBookmark: (filePath: string, isDirectory: boolean) => void;
   selectedPaths: Set<string>;
   onMultiSelect: (paths: string[], mode: 'toggle' | 'range' | 'replace') => void;
@@ -1207,11 +1236,15 @@ function TreeNodeComp({
     onOpenTerminal: handleOpenTerminal,
     onBookmark: () => onBookmark(node.path, node.isDirectory),
     onMoveTo: () => onMoveTo(node.path, node.isDirectory),
+    onOpenInNewPanel: () => onOpenInNewPanel(node.path),
   };
 
   const menuItems = node.isDirectory
     ? getFolderMenuItems(actions, i18n.t)
-    : getFileMenuItems(actions, i18n.t);
+    : getFileMenuItems(actions, i18n.t, {
+        canOpenInNewPanel,
+        targetIsMarkdown: isMarkdownFileName(node.name),
+      });
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -1288,6 +1321,8 @@ function TreeNodeComp({
               onStartEdit={onStartEdit}
               onFinishEdit={onFinishEdit}
               onNewWindow={onNewWindow}
+              onOpenInNewPanel={onOpenInNewPanel}
+              canOpenInNewPanel={canOpenInNewPanel}
               onBookmark={onBookmark}
               selectedPaths={selectedPaths}
               onMultiSelect={onMultiSelect}
@@ -1332,6 +1367,8 @@ function FileTree({
   onSelect,
   refreshKey,
   onNewWindow,
+  onOpenInNewPanel,
+  canOpenInNewPanel,
   onScrollToTop,
   hidden,
   onBookmark,
@@ -1341,6 +1378,8 @@ function FileTree({
   onSelect: (path: string) => void;
   refreshKey: number;
   onNewWindow: (filePath: string) => void;
+  onOpenInNewPanel: (filePath: string) => void;
+  canOpenInNewPanel: boolean;
   onScrollToTop?: () => void;
   hidden?: boolean;
   onBookmark: (filePath: string, isDirectory: boolean) => void;
@@ -1858,6 +1897,7 @@ function FileTree({
     onOpenTerminal: handleOpenRootTerminal,
     onBookmark: () => {},
     onMoveTo: () => {},
+    onOpenInNewPanel: () => {},
   };
 
   const handleBlankContextMenu = useCallback((e: React.MouseEvent) => {
@@ -2087,6 +2127,8 @@ function FileTree({
             onStartEdit={handleStartEdit}
             onFinishEdit={handleFinishEdit}
             onNewWindow={onNewWindow}
+            onOpenInNewPanel={onOpenInNewPanel}
+            canOpenInNewPanel={canOpenInNewPanel}
             onBookmark={onBookmark}
             selectedPaths={selectedPaths}
             onMultiSelect={handleMultiSelect}
@@ -2498,6 +2540,8 @@ export default function Sidebar({
   onSelectHeading,
   onRemoveVault,
   onNewWindow,
+  onOpenInNewPanel,
+  canOpenInNewPanel,
   onPublish,
   onSelectVault,
   collapsed,
@@ -2628,6 +2672,8 @@ export default function Sidebar({
             onSelect={handleSelectFile}
             refreshKey={refreshKey}
             onNewWindow={onNewWindow}
+            onOpenInNewPanel={onOpenInNewPanel}
+            canOpenInNewPanel={canOpenInNewPanel}
             onBookmark={onBookmark}
           />
         ) : (

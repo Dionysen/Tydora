@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useMemo, Component, lazy, Suspense } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo, Component, Fragment, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { getCurrentWindow, availableMonitors } from "@tauri-apps/api/window";
 import { PhysicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
@@ -133,15 +133,200 @@ function getCommandShortcut(id: string): string | undefined {
   return appShortcut ? appShortcut.join("+") : undefined;
 }
 
+// ── N 窗格“共享缓冲” + 树形嵌套分屏模型 ──
+// FileBuffer：一个打开文件的缓冲（内容 + 已保存快照 + 脏标记）。
+// Pane：一个窗格，指向某个 bufferId；多个窗格指向同一 bufferId 即为“同文件同步”视图。
+// SplitNode：布局树节点 —— 要么是编辑器叶子（leaf），要么是分屏组（group，含方向和子节点），
+//            通过嵌套 group 支持混合方向的分屏（例：左右分屏中的某一边再上下分）。
+interface FileBuffer {
+  id: string;
+  fileName: string | null;
+  content: string;
+  savedContent: string;
+  modified: boolean;
+}
+interface Pane {
+  id: string;
+  bufferId: string;
+  mode: EditorMode;
+}
+interface PaneLeaf {
+  type: "leaf";
+  paneId: string;
+  flex: number;
+}
+interface SplitGroup {
+  type: "group";
+  groupId: string;
+  dir: "lr" | "tb";
+  flex: number;           // 该组作为父组 child 时的 flex 占比
+  children: SplitNode[];
+}
+type SplitNode = PaneLeaf | SplitGroup;
+
+// 生成唯一 id（窗格 / 缓冲 / 分屏组）
+const bid = (): string => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `buf-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+const pid = (): string => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `pane-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+const gid = (): string => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `grp-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
+// ── 布局树工具函数 ──
+// 在树中查找指定 paneId 所在的叶子节点路径（父组链 + 叶子本身），返回 {path, leaf}
+// path 中的每一项为 {group, childIndex}，从根到目标叶子的路径。
+interface TreePathStep { group: SplitGroup; childIndex: number }
+function findPaneInTree(root: SplitNode, paneId: string): { path: TreePathStep[]; leaf: PaneLeaf } | null {
+  if (root.type === "leaf") return root.paneId === paneId ? { path: [], leaf: root } : null;
+  const walk = (node: SplitNode, path: TreePathStep[]): { path: TreePathStep[]; leaf: PaneLeaf } | null => {
+    if (node.type === "leaf") return node.paneId === paneId ? { path, leaf: node } : null;
+    for (let i = 0; i < node.children.length; i++) {
+      const r = walk(node.children[i], [...path, { group: node, childIndex: i }]);
+      if (r) return r;
+    }
+    return null;
+  };
+  return walk(root, []);
+}
+// 不可变地按路径替换树中的节点（path = 从根到目标的步骤），返回新树。
+function replaceNodeByPath(root: SplitNode, path: TreePathStep[], replacement: SplitNode): SplitNode {
+  if (path.length === 0) return replacement;
+  const cloneGroup = (g: SplitGroup): SplitGroup => ({ ...g, children: [...g.children] });
+  let newRoot = root.type === "group" ? cloneGroup(root) : root;
+  let parent: SplitGroup | null = null;
+  let current: SplitNode = newRoot;
+  for (let i = 0; i < path.length; i++) {
+    if (current.type !== "group") break;
+    const cloned = cloneGroup(current as SplitGroup);
+    if (parent === null) newRoot = cloned;
+    else parent.children[path[i - 1].childIndex] = cloned;
+    parent = cloned;
+    current = cloned.children[path[i].childIndex];
+  }
+  if (parent) parent.children[path[path.length - 1].childIndex] = replacement;
+  return newRoot;
+}
+// 不可变地更新树中某个 group 内部的 children flexes（按 groupId 查找）。
+function updateGroupFlexes(root: SplitNode, groupId: string, patch: (children: SplitNode[]) => SplitNode[]): SplitNode {
+  const walk = (n: SplitNode): SplitNode => {
+    if (n.type === "leaf") return n;
+    if (n.groupId === groupId) return { ...n, children: patch([...n.children]) };
+    return { ...n, children: n.children.map(walk) };
+  };
+  return walk(root);
+}
+// 在树中找到包含指定 paneId 的 group 链，返回直接父组（如果是嵌套）；用于按钮 active 高亮判断。
+function getImmediateParentGroupDir(root: SplitNode, paneId: string): "none" | "lr" | "tb" {
+  const r = findPaneInTree(root, paneId);
+  if (!r || r.path.length === 0) return "none";
+  return r.path[r.path.length - 1].group.dir;
+}
+// 收集整棵树中所有 paneId（用于删除后孤儿缓冲清理）。
+function collectPaneIds(root: SplitNode): string[] {
+  const out: string[] = [];
+  const walk = (n: SplitNode) => {
+    if (n.type === "leaf") out.push(n.paneId);
+    else n.children.forEach(walk);
+  };
+  walk(root);
+  return out;
+}
+// 删除叶子节点并"压缩"只剩 1 个孩子的空组（把唯一孩子上提）。返回 {root, removed, adjacentPaneId}
+// adjacentPaneId 用于激活窗格切换：删除后让相邻的窗格获得焦点。
+function removePaneAndCollapse(root: SplitNode, paneId: string): { root: SplitNode; removed: boolean; adjacentPaneId: string | null } {
+  let adjacent: string | null = null;
+  const walk = (n: SplitNode): SplitNode | null => {
+    if (n.type === "leaf") return n.paneId === paneId ? null : n;
+    const newChildren: SplitNode[] = [];
+    let removedIdx = -1;
+    for (let i = 0; i < n.children.length; i++) {
+      const beforeLen = newChildren.length;
+      const c = walk(n.children[i]);
+      if (c !== null) newChildren.push(c);
+      if (c === null && beforeLen === newChildren.length) removedIdx = i;
+    }
+    if (removedIdx >= 0) {
+      // 找相邻 paneId：优先同级右侧，再同级左侧
+      if (removedIdx < n.children.length) {
+        const right = n.children[removedIdx];
+        if (right && right.type === "leaf") adjacent = right.paneId;
+      }
+      if (!adjacent && removedIdx - 1 >= 0) {
+        const left = n.children[removedIdx - 1];
+        if (left && left.type === "leaf") adjacent = left.paneId;
+      }
+      // 如果上层没找到，递归到 newChildren 中的某个邻居（上提后跨层级相邻，无需额外处理）
+    }
+    if (newChildren.length === 0) return null;
+    if (newChildren.length === 1) {
+      // 压缩：单孩子上提，但需要继承被折叠组在其父级槽位上的 flex 比例
+      const only = newChildren[0];
+      return { ...only, flex: n.flex ?? only.flex };
+    }
+    return { ...n, children: newChildren };
+  };
+  const newRoot = walk(root);
+  if (newRoot === null) return { root, removed: false, adjacentPaneId: null };
+  // 如果没找到该 pane（没删除），保持原 root 不变并报告 removed=false
+  const beforeIds = collectPaneIds(root);
+  const afterIds = collectPaneIds(newRoot);
+  const removed = beforeIds.length !== afterIds.length;
+  if (!removed) return { root, removed: false, adjacentPaneId: null };
+  // adjacent 为空时：降级取 afterIds 第一个作为邻居（极端兜底：根就是叶子）
+  if (!adjacent && newRoot.type === "leaf") adjacent = newRoot.paneId;
+  return { root: newRoot, removed: true, adjacentPaneId: adjacent };
+}
+
 function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string | null; initialVaultPath?: string | null }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const [content, setContent] = useState("");
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [modified, setModified] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "modified" | "saved">("idle");
   const [editorSettings, setEditorSettings] = useState<EditorSettings>(() => loadEditorSettings());
-  const [viewMode, setViewMode] = useState<EditorMode>(editorSettings.defaultMode);
+  // ── N 窗格共享缓冲 + 树形嵌套布局 ──
+  const initialPaneId = pid();
+  const [buffers, setBuffers] = useState<FileBuffer[]>(() => [{ id: bid(), fileName: null, content: "", savedContent: "", modified: false }]);
+  const [panes, setPanes] = useState<Pane[]>(() => [{ id: initialPaneId, bufferId: buffers[0].id, mode: editorSettings.defaultMode }]);
+  const [activePaneId, setActivePaneId] = useState<string>(() => initialPaneId);
+  // 布局树根节点：单窗格时就是一个 PaneLeaf，分屏时会嵌套 SplitGroup
+  const [splitLayout, setSplitLayout] = useState<SplitNode>(() => ({ type: "leaf", paneId: initialPaneId, flex: 1 }));
+  // 拖拽分割线时临时关闭文本选择
+  const [splitResizing, setSplitResizing] = useState(false);
+
+  // 派生：当前激活窗格与其缓冲。content/fileName/modified 保持原名（派生常量），
+  // 供所有既有读取点（字数、大纲、链接索引、标题、查找替换、导出等）继续使用。
+  // 加兜底空对象，避免极端情况下 panes/buffers 临时为空导致读取 .content/.id 等 undefined 崩溃
+  const activePane = panes.find((p) => p.id === activePaneId) ?? panes[0] ?? ({ id: initialPaneId, bufferId: "", mode: editorSettings.defaultMode } as Pane);
+  const activeBuffer = buffers.find((b) => b.id === activePane.bufferId) ?? buffers[0] ?? ({ id: "", fileName: null, content: "", savedContent: "", modified: false } as FileBuffer);
+  const content = activeBuffer.content;
+  const fileName = activeBuffer.fileName;
+  const modified = activeBuffer.modified;
+  const viewMode: EditorMode = activePane.mode ?? editorSettings.defaultMode;
+  const effectiveMode: EditorMode = viewMode;
+
+  // 同步 ref（供在挂载时注册的回调 / 空依赖回调读取最新激活窗格 / 缓冲）
+  const activeBufferIdRef = useRef(activeBuffer.id);
+  activeBufferIdRef.current = activeBuffer.id;
+  const activePaneIdRef = useRef(activePane.id);
+  activePaneIdRef.current = activePane.id;
+  const buffersRef = useRef(buffers);
+  buffersRef.current = buffers;
+  const panesRef = useRef(panes);
+  panesRef.current = panes;
+  const splitLayoutRef = useRef(splitLayout);
+  splitLayoutRef.current = splitLayout;
+  // 每个分屏组对应的外层 DOM（用于该组内部拖拽计算尺寸）；key = groupId
+  const splitGroupRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  // 每个窗格的编辑器手柄；editorHandleRef 始终指向当前激活窗格的手柄
+  const paneHandlesRef = useRef<Record<string, EditorHandle | null>>({});
+  const editorHandleRef = useRef<EditorHandle>(null);
+
+  // 更新指定缓冲（patch 可为对象或基于旧值的函数）
+  const updateBuffer = useCallback((id: string, patch: Partial<FileBuffer> | ((b: FileBuffer) => Partial<FileBuffer>)) => {
+    setBuffers((bs) => bs.map((b) => (b.id === id ? { ...b, ...(typeof patch === "function" ? patch(b) : patch) } : b)));
+  }, []);
+  // 以下 setter 为兼容包装：操作激活窗格的缓冲，使既有调用点无需改动
+  const setContent = useCallback((v: string) => updateBuffer(activeBufferIdRef.current, { content: v }), [updateBuffer]);
+  const setFileName = useCallback((v: string | null) => updateBuffer(activeBufferIdRef.current, { fileName: v }), [updateBuffer]);
+  const setModified = useCallback((v: boolean) => updateBuffer(activeBufferIdRef.current, { modified: v }), [updateBuffer]);
+  // 切换激活窗格的编辑模式（per-pane mode 存于 pane.mode）
+  const setViewMode = useCallback((m: EditorMode) => setPanes((ps) => ps.map((p) => (p.id === activePaneIdRef.current ? { ...p, mode: m } : p))), []);
   const [typewriterMode, setTypewriterMode] = useState(() => {
     try {
       const raw = localStorage.getItem("zmd-general-settings");
@@ -518,17 +703,17 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   });
 
   // 顶部栏固定项（思维导图、关系图谱、导出）
-  const [pinnedItems, setPinnedItems] = useState<{ mindmap: boolean; graph: boolean; export: boolean }>(() => {
+  const [pinnedItems, setPinnedItems] = useState<{ mindmap: boolean; graph: boolean; export: boolean; splitLr: boolean; splitTb: boolean }>(() => {
     try {
       const saved = localStorage.getItem(PINNED_ITEMS_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        return { mindmap: !!parsed.mindmap, graph: !!parsed.graph, export: !!parsed.export };
+        return { mindmap: !!parsed.mindmap, graph: !!parsed.graph, export: !!parsed.export, splitLr: !!parsed.splitLr, splitTb: !!parsed.splitTb };
       }
     } catch {
       // ignore
     }
-    return { mindmap: false, graph: false, export: false };
+    return { mindmap: false, graph: false, export: false, splitLr: false, splitTb: false };
   });
 
   // Persist pinned items
@@ -661,22 +846,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }).catch(() => {});
   }, []);
 
-  // 将文件内容推送到编辑器（绕过 React state → useEffect 同步链的不可靠性）
-  // 冷启动时编辑器挂载可能较慢，延长重试窗口避免内容推送失败导致空编辑器
-  const pushContentToEditor = useCallback((text: string, retries = 40) => {
-    const tryPush = (remaining: number) => {
-      if (editorHandleRef.current) {
-        editorHandleRef.current.setValue(text);
-        return;
-      }
-      if (remaining > 0) {
-        setTimeout(() => tryPush(remaining - 1), 100);
-      }
-    };
-    tryPush(retries);
-  }, []);
-
-  // 新窗口：打开指定文件（通过 URL 参数）
+  // 新窗口：打开指定文件（通过 URL 参数）。内容直接写入激活缓冲，
+  // 由 Editor 的 value 同步机制驱动视图（无需手动 setValue 推送）。
   useEffect(() => {
     if (!initialFilePath) return;
     const matchingVaultIndex = vaults.findIndex((v) =>
@@ -696,19 +867,13 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
     readTextFile(initialFilePath)
       .then((text) => {
-        savedContentRef.current = text;
-        setContent(text);
-        setFileName(initialFilePath);
-        setModified(false);
+        updateBuffer(activeBufferIdRef.current, { content: text, fileName: initialFilePath, savedContent: text, modified: false });
         setSaveStatus("idle");
-        pushContentToEditor(text);
       })
       .catch((e) => {
         console.error(t("app.error.openFileFailed"), e);
         const errText = `> Failed to open file: ${String(e)}\n\nPath: ${initialFilePath}`;
-        setContent(errText);
-        setFileName(initialFilePath);
-        pushContentToEditor(errText);
+        updateBuffer(activeBufferIdRef.current, { content: errText, fileName: initialFilePath });
       });
   }, []);
 
@@ -850,70 +1015,85 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }, 500);
   }, []);
 
-  const handleChange = useCallback((value: string) => {
-    setContent(value);
-    const isModified = value !== savedContentRef.current;
-    setModified(isModified);
-    if (isModified) setSaveStatus("modified");
-    // Clear search highlights when user edits
-    editorHandleRef.current?.clearHighlight();
-    // Sync content to mindmap window if open
-    syncMindmapContent(value);
+  // 某窗格内容变更：更新该窗格指向的缓冲（同步窗格共享同一缓冲，TipTap value 同步
+  // 不会触发它们的 onChange，仅编辑中的窗格会触发本回调）。激活窗格额外维护
+  // 保存状态闪烁、搜索高亮清理、思维导图同步与自动补全光标检查等副作用。
+  const handlePaneChange = useCallback((paneId: string, value: string) => {
+    const pane = panesRef.current.find((p) => p.id === paneId);
+    if (!pane) return;
+    const buf = buffersRef.current.find((b) => b.id === pane.bufferId);
+    const isModified = value !== (buf?.savedContent ?? value);
+    updateBuffer(pane.bufferId, { content: value, modified: isModified });
+    if (pane.id === activePaneIdRef.current) {
+      setSaveStatus(isModified ? "modified" : "idle");
+      // Clear search highlights when user edits
+      editorHandleRef.current?.clearHighlight();
+      // Sync content to mindmap window if open
+      syncMindmapContent(value);
 
-    // 如果 WikiLink 自动补全已打开，检查 [[ 或 【【 是否还在光标附近
-    if (wikiAutocompleteVisible) {
-      const cursorPos = editorHandleRef.current?.getCursorOffset();
-      if (cursorPos !== undefined && cursorPos !== null) {
-        const textBefore = value.slice(Math.max(0, cursorPos - 200), cursorPos);
-        const hasOpenWikiLink = /\[\[[^\]]*$/.test(textBefore) || /【【[^】]*$/.test(textBefore) || /@\S*$/.test(textBefore);
-        if (!hasOpenWikiLink) {
-          setWikiAutocompleteVisible(false);
+      // 如果 WikiLink 自动补全已打开，检查 [[ 或 【【 是否还在光标附近
+      if (wikiAutocompleteVisible) {
+        const cursorPos = editorHandleRef.current?.getCursorOffset();
+        if (cursorPos !== undefined && cursorPos !== null) {
+          const textBefore = value.slice(Math.max(0, cursorPos - 200), cursorPos);
+          const hasOpenWikiLink = /\[\[[^\]]*$/.test(textBefore) || /【【[^】]*$/.test(textBefore) || /@\S*$/.test(textBefore);
+          if (!hasOpenWikiLink) {
+            setWikiAutocompleteVisible(false);
+          }
+        }
+      }
+
+      // 如果 Tag 自动补全已打开，检查 # 是否还在光标附近
+      if (tagAutocompleteVisible) {
+        const cursorPos = editorHandleRef.current?.getCursorOffset();
+        if (cursorPos !== undefined && cursorPos !== null) {
+          const textBefore = value.slice(Math.max(0, cursorPos - 200), cursorPos);
+          const hasOpenTag = /(^|\s)#[^\s#\]\)\}，,。！？；;：:"'`、/\\]*$/.test(textBefore);
+          if (!hasOpenTag) {
+            setTagAutocompleteVisible(false);
+          }
         }
       }
     }
+  }, [syncMindmapContent, updateBuffer, wikiAutocompleteVisible, tagAutocompleteVisible]);
 
-    // 如果 Tag 自动补全已打开，检查 # 是否还在光标附近
-    if (tagAutocompleteVisible) {
-      const cursorPos = editorHandleRef.current?.getCursorOffset();
-      if (cursorPos !== undefined && cursorPos !== null) {
-        const textBefore = value.slice(Math.max(0, cursorPos - 200), cursorPos);
-        const hasOpenTag = /(^|\s)#[^\s#\]\)\}，,。！？；;：:"'`、/\\]*$/.test(textBefore);
-        if (!hasOpenTag) {
-          setTagAutocompleteVisible(false);
-        }
-      }
-    }
-  }, [syncMindmapContent, wikiAutocompleteVisible, tagAutocompleteVisible]);
+  // 兼容包装：对激活窗格的内容变更（供 CodeMirror / 自动补全选中回调等既有调用点使用）
+  const handleChange = useCallback((value: string) => handlePaneChange(activePaneIdRef.current, value), [handlePaneChange]);
 
-  // 用 ref 保存最新值，避免 Ctrl+S 回调频繁重建
+  // 用 ref 保存激活缓冲内容最新值，供仅在挂载时注册的快捷键（如思维导图）读取
   const contentRef = useRef(content);
-  const fileNameRef = useRef(fileName);
-  const modifiedRef = useRef(modified);
   contentRef.current = content;
-  fileNameRef.current = fileName;
-  modifiedRef.current = modified;
 
-  const handleSave = useCallback(async (): Promise<boolean> => {
+  // 保存指定缓冲（默认激活缓冲）。有 fileName 直接写回；新建未保存文件走“另存为”。
+  const handleSave = useCallback(async (targetBufferId?: string): Promise<boolean> => {
+    const bufId = targetBufferId ?? activeBufferIdRef.current;
+    let buf = buffersRef.current.find((b) => b.id === bufId);
+    if (!buf) return false;
     try {
-      let path = fileNameRef.current;
+      let path = buf.fileName;
       if (!path) {
+        // 仅激活缓冲可触发“另存为”
+        if (bufId !== activeBufferIdRef.current) return false;
         const result = await save({
           filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
           defaultPath: "untitled.md",
         });
         if (!result) return false;
         path = result;
-        setFileName(path);
+        updateBuffer(bufId, { fileName: path });
+        buf = buffersRef.current.find((b) => b.id === bufId) ?? buf;
       }
-      await writeTextFile(path, contentRef.current);
-      savedContentRef.current = contentRef.current;
-      setModified(false);
-      setSaveStatus("saved");
+      // 对话框期间内容可能变化，重新读取最新内容
+      const latest = buffersRef.current.find((b) => b.id === bufId) ?? buf;
+      const contentToWrite = latest.content;
+      await writeTextFile(path, contentToWrite);
+      updateBuffer(bufId, { savedContent: contentToWrite, modified: false });
+      if (bufId === activeBufferIdRef.current) setSaveStatus("saved");
       // 更新链接索引和标签索引
       const activeVault = activeVaultIndex >= 0 ? vaults[activeVaultIndex] : null;
       if (activeVault) {
         LinkIndexService.updateFileLinks(path, activeVault.path);
-        TagIndexService.updateFileTags(path, contentRef.current);
+        TagIndexService.updateFileTags(path, contentToWrite);
         try { localStorage.setItem("zmd-link-index", LinkIndexService.serialize()); } catch {}
       }
       return true;
@@ -921,7 +1101,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       console.error(t("app.error.saveFailed"), e);
       return false;
     }
-  }, []);
+  }, [activeVaultIndex, vaults, t, updateBuffer]);
 
   // 保存成功后绿灯闪烁效果
   useEffect(() => {
@@ -946,26 +1126,27 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     return () => window.removeEventListener("keydown", handler);
   }, [handleSave, canvasFilePath]);
 
-  // 自动保存：内容变化且有已保存的文件路径时，延迟 1 秒自动写入
+  // 自动保存：任意缓冲有未保存修改且有源文件路径时，延迟 1 秒自动写入（debounce）
   useEffect(() => {
-    if (!modified || !fileNameRef.current) return;
+    if (!buffers.some((b) => b.modified && b.fileName)) return;
     const timer = setTimeout(async () => {
       try {
         const raw = localStorage.getItem("zmd-general-settings");
         if (!raw) return;
         const settings = JSON.parse(raw);
         if (!settings.autoSave) return;
-        const path = fileNameRef.current;
-        if (!path) return;
-        await writeTextFile(path, contentRef.current);
-        savedContentRef.current = contentRef.current;
-        setModified(false);
-        setSaveStatus("saved");
-        // 更新链接索引和标签索引
         const activeVault = activeVaultIndex >= 0 ? vaults[activeVaultIndex] : null;
+        for (const b of buffersRef.current) {
+          if (!b.modified || !b.fileName) continue;
+          await writeTextFile(b.fileName, b.content);
+          updateBuffer(b.id, { savedContent: b.content, modified: false });
+          if (b.id === activeBufferIdRef.current) setSaveStatus("saved");
+          if (activeVault) {
+            LinkIndexService.updateFileLinks(b.fileName, activeVault.path);
+            TagIndexService.updateFileTags(b.fileName, b.content);
+          }
+        }
         if (activeVault) {
-          LinkIndexService.updateFileLinks(path, activeVault.path);
-          TagIndexService.updateFileTags(path, contentRef.current);
           try { localStorage.setItem("zmd-link-index", LinkIndexService.serialize()); } catch {}
         }
       } catch (e) {
@@ -973,7 +1154,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       }
     }, 1000);
     return () => clearTimeout(timer);
-  }, [content, modified]);
+  }, [buffers, activeVaultIndex, vaults, t, updateBuffer]);
 
   // Ctrl+O 快速打开文件
   useEffect(() => {
@@ -1042,15 +1223,18 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   // ── File tree callbacks ──
 
+  // openFile 在下方声明，handleSelectFile 需在它之前定义；用 ref 转发以避免“先使用后声明”
+  const openFileRef = useRef<(path: string, line?: number, query?: string) => Promise<void>>(async () => {});
+
   const handleSelectFile = useCallback((path: string, line?: number, query?: string) => {
     // 点击文件时关闭关系图谱
     setGraphViewOpen(false);
 
     // 判断文件类型
-    const fileName = path.split(/[/\\]/).pop() || path;
+    const name = path.split(/[/\\]/).pop() || path;
 
     // .canvas 文件：在主区域显示白板
-    if (fileName.endsWith('.canvas')) {
+    if (name.endsWith('.canvas')) {
       setCanvasFilePath(path);
       setFileName(path);
       setPreviewFilePath(null);
@@ -1060,7 +1244,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       return;
     }
 
-    if (!isEditableFile(fileName)) {
+    if (!isEditableFile(name)) {
       // 非文本文件，直接预览，同时更新 fileName 以显示选中状态
       setFileName(path);
       setPreviewFilePath(path);
@@ -1069,15 +1253,17 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       return;
     }
 
-    // 文本文件，检查是否有未保存的修改
-    if (modified && fileName) {
+    // 文本文件：若激活缓冲有未保存修改，且该缓冲仅由当前窗格持有，则先确认保存
+    const activeBuf = buffersRef.current.find((b) => b.id === activeBufferIdRef.current);
+    const soleHolder = !activeBuf || panesRef.current.filter((p) => p.bufferId === activeBuf.id).length <= 1;
+    if (activeBuf?.modified && activeBuf.fileName && soleHolder) {
       setPendingFilePath(path);
       pendingLineRef.current = line ?? null;
       pendingQueryRef.current = query ?? null;
       setSaveConfirmOpen(true);
     } else {
       openFileGenerationRef.current++;
-      openFile(path, line, query);
+      openFileRef.current(path, line, query);
     }
   }, [modified]);
 
@@ -1169,13 +1355,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const openFile = useCallback(async (path: string, line?: number, query?: string) => {
     const myGeneration = openFileGenerationRef.current;
     try {
-      const text = await readTextFile(path);
-      if (openFileGenerationRef.current !== myGeneration) return; // 被更新的文件切换覆盖
-      savedContentRef.current = text;
-      setContent(text);
-      setFileName(path);
-      setModified(false);
-      setSaveStatus("idle");
       setPreviewFilePath(null); // 关闭预览模式
       setCanvasFilePath(null); // 关闭白板模式
       setIsCurrentFileMarkdown(isMarkdownFile(path));
@@ -1183,6 +1362,31 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       // 匿名统计：打开文档计为一次页面浏览（不含文件名等隐私信息）
       track(ANALYTICS_EVENTS.FILE_OPEN);
       trackPageview("/file");
+
+      const activePaneObj = panesRef.current.find((p) => p.id === activePaneIdRef.current) ?? panesRef.current[0];
+      // 检查激活窗格的 buffer 是否被多个窗格共享（分屏同步状态）
+      const activeBufferId = activePaneObj.bufferId;
+      const activeBufferHolders = panesRef.current.filter((p) => p.bufferId === activeBufferId).length;
+      const isSharedBuffer = activeBufferHolders > 1;
+      // 若该文件已在某个缓冲中打开，复用之（同步视图）；否则读取并写入激活缓冲
+      const existing = buffersRef.current.find((b) => b.fileName === path);
+      if (existing) {
+        setPanes((ps) => ps.map((p) => (p.id === activePaneObj.id ? { ...p, bufferId: existing.id } : p)));
+        setSaveStatus("idle");
+      } else {
+        const text = await readTextFile(path);
+        if (openFileGenerationRef.current !== myGeneration) return; // 被更新的文件切换覆盖
+        if (isSharedBuffer) {
+          // 分屏共享缓冲状态：创建新缓冲并让激活窗格单独指向它，避免同步窗格也被替换
+          const newBuf: FileBuffer = { id: bid(), fileName: path, content: text, savedContent: text, modified: false };
+          setBuffers((bs) => [...bs, newBuf]);
+          setPanes((ps) => ps.map((p) => (p.id === activePaneObj.id ? { ...p, bufferId: newBuf.id } : p)));
+        } else {
+          // 非共享缓冲：直接更新激活缓冲内容
+          updateBuffer(activePaneObj.bufferId, { content: text, fileName: path, savedContent: text, modified: false });
+        }
+        setSaveStatus("idle");
+      }
 
       // 跳转到指定行并高亮搜索结果
       if (line != null || query) {
@@ -1212,9 +1416,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       if (activeVault) {
         setRecentFiles((prev) => {
           const vaultPath = activeVault.path;
-          const existing = prev[vaultPath] || [];
+          const existingRecent = prev[vaultPath] || [];
           // 移除已存在的该文件（避免重复）
-          const filtered = existing.filter((p) => p !== path);
+          const filtered = existingRecent.filter((p) => p !== path);
           // 将新文件添加到最前面
           const updated = [path, ...filtered].slice(0, MAX_RECENT_FILES);
           return { ...prev, [vaultPath]: updated };
@@ -1223,7 +1427,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     } catch (e) {
       console.error(t("app.error.openFileFailed"), e);
     }
-  }, [activeVaultIndex, vaults]);
+  }, [activeVaultIndex, vaults, t, updateBuffer]);
+  // 转发 openFile 给在上方定义的 handleSelectFile（避免“先使用后声明”）
+  openFileRef.current = openFile;
 
   const openFileByType = useCallback((path: string) => {
     const name = path.split(/[/\\]/).pop() || path;
@@ -1360,6 +1566,239 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
   }, []);
 
+  // 分屏：在当前激活窗格“当前所在层级”，按指定方向插入一个同步克隆（共享 buffer，编辑联动）。
+  // - 单窗格时：根变成 SplitGroup(dir = 点击方向，两孩子 = 原 + 新)。
+  // - 已有分屏时：不改变其他区域，只在激活窗格的位置把它替换为新的 SplitGroup(dir)，
+  //   例如：左右分屏中激活右边，再点“上下”，结果是 [左不变, 新 Group(tb)[右上, 右下]]。
+  const handleSplit = useCallback((dir: "lr" | "tb") => {
+    const activeId = activePaneIdRef.current;
+    const currentPanes = panesRef.current;
+    const active = currentPanes.find((p) => p.id === activeId) ?? currentPanes[0];
+    // 1) 创建新的 Pane（同步克隆），并入 panes 数组
+    const newPane: Pane = { id: pid(), bufferId: active.bufferId, mode: active.mode };
+    setPanes((ps) => [...ps, newPane]);
+    // 2) 在布局树中找到激活窗格的位置 → 用新 SplitGroup(dir) 替换该 leaf 自身：
+    //    两个孩子：[原 leaf(flex=1), 新 leaf(flex=1)]
+    const found = findPaneInTree(splitLayoutRef.current, activeId);
+    const oldFlex = found?.leaf.flex ?? 1;
+    const newLeafActive: PaneLeaf = { type: "leaf", paneId: activeId, flex: 1 };
+    const newLeafClone: PaneLeaf = { type: "leaf", paneId: newPane.id, flex: 1 };
+    const replacement: SplitGroup = { type: "group", groupId: gid(), dir, flex: oldFlex, children: [newLeafActive, newLeafClone] };
+    if (!found) {
+      // 罕见兜底：找不到就根级套一层 group
+      setSplitLayout(replacement);
+    } else {
+      const nextTree = replaceNodeByPath(splitLayoutRef.current, found.path, replacement);
+      setSplitLayout(nextTree);
+    }
+  }, []);
+
+  // 文件树右键“在新面板打开”：
+  // - 活动窗格若有同步兄弟（同 buffer 的另一窗格），则把活动窗格切换为新文件（原文件保留在兄弟窗格）；
+  // - 否则（活动窗格是该文件唯一持有者）在激活窗格位置以“左右分屏”新插入一个 group 显示新文件（原文件留在活动窗格）。
+  // 新文件若已在某缓冲中打开则复用（同步），否则读取后新建缓冲。
+  const handleOpenInNewPanel = useCallback(async (path: string) => {
+    // 活动窗格必须已是打开的 Markdown 文件
+    if (!fileName || !isCurrentFileMarkdown || canvasFilePath || previewFilePath) return;
+    const name = path.split(/[/\\]/).pop() || path;
+    if (!isMarkdownFile(name)) return; // 仅支持 Markdown 在新面板打开
+    try {
+      const currentPanes = panesRef.current;
+      const activeId = activePaneIdRef.current;
+      const active = currentPanes.find((p) => p.id === activeId) ?? currentPanes[0];
+      // 准备目标缓冲：复用已打开的同名文件缓冲（同步），否则读取文件新建缓冲
+      const existing = buffersRef.current.find((b) => b.fileName === path);
+      let bufferId: string;
+      if (existing) {
+        bufferId = existing.id;
+      } else {
+        const text = await readTextFile(path);
+        const newBuf: FileBuffer = { id: bid(), fileName: path, content: text, savedContent: text, modified: false };
+        setBuffers((bs) => [...bs, newBuf]);
+        bufferId = newBuf.id;
+      }
+      // 活动窗格是否与另一窗格共享同一缓冲（即存在同步副本）
+      const hasSyncedSibling = currentPanes.some((p) => p.id !== active.id && p.bufferId === active.bufferId);
+      let focusPaneId: string;
+      if (hasSyncedSibling) {
+        // 有同步副本：把活动窗格切换为新文件，原文件保留在兄弟窗格（不新增窗格）
+        setPanes((ps) => ps.map((p) => (p.id === active.id ? { ...p, bufferId } : p)));
+        focusPaneId = active.id;
+      } else {
+        // 无同步副本：在激活 leaf 处套一个左右 Group，原 leaf 不变，新 pane 放第二位
+        const newPane: Pane = { id: pid(), bufferId, mode: active.mode };
+        setPanes((ps) => [...ps, newPane]);
+        const found = findPaneInTree(splitLayoutRef.current, activeId);
+        const keepLeaf: PaneLeaf = found ? found.leaf : { type: "leaf", paneId: activeId, flex: 1 };
+        const newLeaf: PaneLeaf = { type: "leaf", paneId: newPane.id, flex: 1 };
+        // 若激活 leaf 本来就在 lr group 中：直接在其右侧插入新 leaf（保持该组方向）
+        const inGroup = found && found.path.length > 0;
+        const lastStep = inGroup ? found!.path[found!.path.length - 1] : null;
+        if (lastStep && lastStep.group.dir === "lr") {
+          // 在同组中，在激活 leaf 之后插入一个兄弟新 leaf
+          const siblings = [...lastStep.group.children];
+          siblings.splice(lastStep.childIndex + 1, 0, newLeaf);
+          const patchedGroup: SplitGroup = { ...lastStep.group, children: siblings };
+          const parentPath = found!.path.slice(0, -1);
+          setSplitLayout(replaceNodeByPath(splitLayoutRef.current, parentPath, patchedGroup));
+        } else {
+          // 其他情况（单窗格 / 非 lr 组）：在该 leaf 处新套一层 lr group
+          const wrapFlex = found?.leaf.flex ?? 1;
+          const replacement: SplitGroup = { type: "group", groupId: gid(), dir: "lr", flex: wrapFlex, children: [keepLeaf, newLeaf] };
+          if (!found) setSplitLayout(replacement);
+          else setSplitLayout(replaceNodeByPath(splitLayoutRef.current, found.path, replacement));
+        }
+        setActivePaneId(newPane.id);
+        focusPaneId = newPane.id;
+      }
+
+      // 匿名统计 + 更新最近访问文件列表
+      track(ANALYTICS_EVENTS.FILE_OPEN);
+      trackPageview("/file");
+      const activeVault = activeVaultIndex >= 0 ? vaults[activeVaultIndex] : null;
+      if (activeVault) {
+        setRecentFiles((prev) => {
+          const vaultPath = activeVault.path;
+          const existingRecent = prev[vaultPath] || [];
+          const filtered = existingRecent.filter((p) => p !== path);
+          const updated = [path, ...filtered].slice(0, MAX_RECENT_FILES);
+          return { ...prev, [vaultPath]: updated };
+        });
+      }
+      // 延迟聚焦目标窗格的编辑器，等待挂载
+      setTimeout(() => {
+        paneHandlesRef.current[focusPaneId]?.focus();
+      }, 60);
+    } catch (e) {
+      console.error(t("app.error.openFileFailed"), e);
+    }
+  }, [fileName, isCurrentFileMarkdown, canvasFilePath, previewFilePath, activeVaultIndex, vaults, t]);
+
+  // 关闭指定窗格：从布局树移除对应 leaf，并压缩只剩 1 个孩子的空组。
+  // 若为激活窗格，焦点切到相邻 leaf；同时清理孤儿缓冲。至少保留一个窗格。
+  const closePane = useCallback((paneId: string) => {
+    const beforeIds = collectPaneIds(splitLayoutRef.current);
+    if (beforeIds.length <= 1) return; // 至少保留一个窗格
+    const { root: nextLayout, removed, adjacentPaneId } = removePaneAndCollapse(splitLayoutRef.current, paneId);
+    if (!removed) return;
+    // 从 panes 数组中移除
+    setPanes((ps) => ps.filter((p) => p.id !== paneId));
+    setSplitLayout(nextLayout);
+    // 若关闭的是激活窗格，焦点切到相邻窗格（由 removePaneAndCollapse 给出的 adjacent）
+    if (activePaneIdRef.current === paneId && adjacentPaneId) {
+      setActivePaneId(adjacentPaneId);
+      editorHandleRef.current = paneHandlesRef.current[adjacentPaneId] ?? null;
+    }
+    // 清理孤儿缓冲：基于同步的 panesRef + remainingPaneIds 先计算仍被引用的 bufferId，
+    // 再用函数式 setBuffers 基于最新 panes 二次确认，避免因 setState 时序错删。
+    const remainingPaneIds = collectPaneIds(nextLayout);
+    const remainingSet = new Set(remainingPaneIds);
+    const usedBufferIds = new Set<string>();
+    panesRef.current.forEach((p) => {
+      if (p.id !== paneId && remainingSet.has(p.id)) usedBufferIds.add(p.bufferId);
+    });
+    setBuffers((bs) => {
+      // 基于同一时刻的 panes 再次计算，确保批处理中 panes 已变化时不会错删
+      const currentPanes = panesRef.current.filter((p) => p.id !== paneId && remainingSet.has(p.id));
+      currentPanes.forEach((p) => usedBufferIds.add(p.bufferId));
+      // 至少保留一个缓冲（兜底，防止 buffers 为空导致派生 activeBuffer undefined 崩溃）
+      if (usedBufferIds.size === 0 && bs.length > 0) usedBufferIds.add(bs[0].id);
+      return bs.filter((b) => usedBufferIds.has(b.id));
+    });
+  }, []);
+
+  // 拖拽某个 group 内部相邻两个节点间的分割线，调整二者 flex 比例。
+  // groupId：所在分屏组 ID；dividerIndex：该组 children 中第 dividerIndex 与 dividerIndex+1 之间
+  const handleSplitResizeDown = useCallback((e: React.MouseEvent, groupId: string, dividerIndex: number) => {
+    e.preventDefault();
+    const container = splitGroupRefs.current[groupId];
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    // 从布局树查找该 group 的 dir
+    const findDir = (n: SplitNode): "lr" | "tb" | null => {
+      if (n.type === "leaf") return null;
+      if (n.groupId === groupId) return n.dir;
+      for (const c of n.children) {
+        const r = findDir(c);
+        if (r) return r;
+      }
+      return null;
+    };
+    const dir = findDir(splitLayoutRef.current);
+    if (!dir) return;
+    const horizontal = dir === "lr";
+    const total = horizontal ? rect.width : rect.height;
+    const origin = horizontal ? rect.left : rect.top;
+    if (total <= 0) return;
+    setSplitResizing(true);
+    const onMove = (ev: MouseEvent) => {
+      const root = splitLayoutRef.current;
+      let foundGroup: SplitGroup | null = null;
+      const walk = (n: SplitNode) => {
+        if (n.type === "group" && n.groupId === groupId) foundGroup = n;
+        if (n.type === "group") n.children.forEach(walk);
+      };
+      walk(root);
+      if (!foundGroup) return;
+      const groupNode: SplitGroup = foundGroup;
+      const children: SplitNode[] = groupNode.children;
+      if (dividerIndex < 0 || dividerIndex >= children.length - 1) return;
+      const flexes: number[] = children.map((c: SplitNode) => c.flex);
+      const flexSum: number = flexes.reduce((a: number, b: number) => a + b, 0) || 1;
+      const panePx: number[] = flexes.map((f: number) => (f / flexSum) * total);
+      let leftEdge = 0;
+      for (let i = 0; i <= dividerIndex; i++) leftEdge += panePx[i];
+      const delta = (horizontal ? ev.clientX : ev.clientY) - origin - leftEdge;
+      const minPx = 0.1 * total;
+      const newA = panePx[dividerIndex] + delta;
+      const newB = panePx[dividerIndex + 1] - delta;
+      if (newA < minPx || newB < minPx) return;
+      panePx[dividerIndex] = newA;
+      panePx[dividerIndex + 1] = newB;
+      const newFlexes: number[] = panePx.map((px: number) => (px / total) * flexSum);
+      setSplitLayout(updateGroupFlexes(root, groupId, (kids) => kids.map((k, i) => ({ ...k, flex: newFlexes[i] ?? 1 }))));
+    };
+    const onUp = () => {
+      setSplitResizing(false);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, []);
+
+  // 渲染一个 Markdown 编辑窗格（按 Pane 渲染，分屏时复用）。
+  // 每个窗格从其 bufferId 取内容与文件路径；onChange 路由到该窗格的缓冲；
+  // 仅激活窗格的字数回调会更新全局 wordCount。ref 按窗格 id 注册到 paneHandlesRef。
+  const renderPane = (pane: Pane) => {
+    const buf = buffers.find((b) => b.id === pane.bufferId) ?? buffers[0];
+    const refCb = (h: EditorHandle | null) => {
+      if (h) paneHandlesRef.current[pane.id] = h;
+      else delete paneHandlesRef.current[pane.id];
+      if (pane.id === activePaneIdRef.current) editorHandleRef.current = h;
+    };
+    return (
+      <EditorErrorBoundary>
+        <Editor
+          ref={refCb}
+          value={buf.content}
+          onChange={(v) => handlePaneChange(pane.id, v)}
+          mode={pane.mode}
+          theme={theme}
+          typewriterMode={typewriterMode}
+          previewMaxWidth={previewMaxWidth}
+          lineHeight={lineHeight}
+          irLineNumbers={irLineNumbers}
+          editorSettings={editorSettings}
+          imageSettings={imageSettings}
+          currentFilePath={buf.fileName}
+          activeVaultPath={activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null}
+          onWordCount={(c) => { if (pane.id === activePaneIdRef.current) setWordCount(c); }}
+        />
+      </EditorErrorBoundary>
+    );
+  };
+
   // 顶部栏更多菜单 - 文件操作
   const handleBookmarkCurrentFile = useCallback(() => {
     if (fileName) handleShowBookmarkDialog(fileName, false);
@@ -1443,9 +1882,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
   }, []);
 
-  // 检查是否有未保存的修改（文本文件或内嵌白板）
+  // 检查是否有未保存的修改（任意缓冲或内嵌白板）
   const hasUnsavedChanges = useCallback(() => {
-    return modifiedRef.current || useCanvasStore.getState().isModified;
+    return buffersRef.current.some((b) => b.modified) || useCanvasStore.getState().isModified;
   }, []);
 
   // 弹出关闭确认对话框（防止重复弹出）
@@ -1487,16 +1926,26 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           await canvasStore.saveCanvas();
           if (useCanvasStore.getState().isModified) return; // 保存失败，中止关闭
         }
-      } else if (fileNameRef.current || contentRef.current) {
-        // 文本模式（新建未保存文件时走另存为对话框）
-        const ok = await handleSave();
-        if (!ok) return; // 用户取消另存为或保存失败，中止关闭
+      } else {
+        // 文本模式：保存所有已修改的缓冲。
+        // 有源文件路径的直接写回；激活缓冲为新建未保存文件（无 fileName）时走另存为。
+        for (const b of buffersRef.current) {
+          if (!b.modified) continue;
+          if (b.fileName) {
+            await writeTextFile(b.fileName, b.content);
+            updateBuffer(b.id, { savedContent: b.content, modified: false });
+          } else if (b.id === activeBufferIdRef.current) {
+            // 激活缓冲为新建未保存文件：走另存为对话框
+            const ok = await handleSave(b.id);
+            if (!ok) return; // 用户取消或保存失败，中止关闭
+          }
+        }
       }
     } catch (e) {
       return; // 保存异常，中止关闭
     }
     await performClose();
-  }, [handleSave, performClose]);
+  }, [handleSave, performClose, updateBuffer]);
 
   // 关闭确认：不保存并关闭
   const handleCloseConfirmDiscard = useCallback(async () => {
@@ -1541,7 +1990,13 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         if (label === "settings" || label === "mindmap") {
           win.close();
         } else {
-          handleClose();
+          // 多面板时优先关闭当前激活面板，仅剩单面板时才走窗口关闭流程
+          const paneCount = collectPaneIds(splitLayoutRef.current).length;
+          if (paneCount > 1) {
+            closePane(activePaneIdRef.current);
+          } else {
+            handleClose();
+          }
         }
       }
       if (matchShortcut(e, shortcutsConfig.app["find"])) {
@@ -1555,7 +2010,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [handleClose]);
+  }, [handleClose, closePane]);
 
   const toggleTypewriterMode = useCallback(() => {
     setTypewriterMode((prev: boolean) => !prev);
@@ -1573,15 +2028,20 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     return () => window.removeEventListener("keydown", handler);
   }, [toggleTypewriterMode]);
 
-  // 模式循环切换（底部栏按钮用）
+  // 模式循环切换（底部栏按钮用）：始终切换激活窗格的模式（pane.mode）
   const cycleMode = useCallback(() => {
-    setViewMode((prev) => (prev === "ir" ? "sv" : "ir"));
-  }, []);
+    setViewMode(viewMode === "ir" ? "sv" : "ir");
+  }, [viewMode, setViewMode]);
 
   // Ctrl+/ 模式切换（ir ↔ sv）
   const toggleIrSv = useCallback(() => {
-    setViewMode((prev) => (prev === "ir" ? "sv" : "ir"));
-  }, []);
+    setViewMode(viewMode === "ir" ? "sv" : "ir");
+  }, [viewMode, setViewMode]);
+
+  // 设置激活窗格的模式，供命令面板/工具栏使用
+  const setActiveMode = useCallback((m: EditorMode) => {
+    setViewMode(m);
+  }, [setViewMode]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -1641,6 +2101,24 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     window.addEventListener("keydown", handler, { capture: true });
     return () => window.removeEventListener("keydown", handler, { capture: true });
   }, []);
+
+  // 分屏快捷键（Ctrl+\ 左右分屏 / Alt+\ 上下分屏，配置见 shortcuts.json 的 app.split-lr / split-tb）
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (matchShortcut(e, shortcutsConfig.app["split-lr"])) {
+        e.preventDefault();
+        if (fileName && isCurrentFileMarkdown) handleSplit("lr");
+        return;
+      }
+      if (matchShortcut(e, shortcutsConfig.app["split-tb"])) {
+        e.preventDefault();
+        if (fileName && isCurrentFileMarkdown) handleSplit("tb");
+        return;
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleSplit, fileName, isCurrentFileMarkdown]);
 
   // 监听 wikilink 点击
   useEffect(() => {
@@ -1959,18 +2437,19 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   // ── Refs ──
 
-  const editorHandleRef = useRef<EditorHandle>(null);
-  // 用于跟踪已加载文件的内容原文，避免把"打开新文件"误判为修改
-  const savedContentRef = useRef<string>("");
   const pendingLineRef = useRef<number | null>(null);
   const pendingQueryRef = useRef<string | null>(null);
   const pendingHeadingRef = useRef<string | null>(null);
   const openFileGenerationRef = useRef(0);
   const title = fileName && typeof fileName === "string" ? fileName.split(/[/\\]/).pop() || "untitled.md" : "Tydora";
+  // 标题栏始终反映激活窗格缓冲的文件与保存状态（N 窗格模型下不再区分 A/B）
+  const displayedFileName = fileName;
+  const displayedTitle = title;
+  const displayedSaveStatus = saveStatus;
 
   // ── 导出 ──
   const handleExport = async (format: ExportFormat) => {
-    if (exporting || viewMode === "sv") return;
+    if (exporting || effectiveMode === "sv") return;
     track(`export.${format}`);
     setShowExportFormatPicker(false);
     setExporting(true);
@@ -1993,13 +2472,13 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   // 打开小红书图文分栏预览（源码模式下自动切到 IR）
   const handleOpenXhs = useCallback(() => {
-    if (viewMode === "sv") {
-      setViewMode("ir");
+    if (effectiveMode === "sv") {
+      setActiveMode("ir");
     }
     setShowExportFormatPicker(false);
     setXhsPreviewOpen(true);
     track(ANALYTICS_EVENTS.EXPORT_XHS);
-  }, [viewMode]);
+  }, [effectiveMode, setActiveMode]);
 
   // 复制为 Markdown — 直接获取编辑器 Markdown 源码并写入剪贴板，无需预览
   const [markdownCopied, setMarkdownCopied] = useState(false);
@@ -2054,6 +2533,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "toggle-sidebar", label: t("app.command.labels.toggleSidebar"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("toggle-sidebar"), action: handleSidebarToggle },
     { id: "toggle-mode", label: t("app.command.labels.toggleEditMode"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("toggle-mode"), action: cycleMode },
     { id: "toggle-typewriter", label: t("app.command.labels.toggleTypewriter"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("toggle-typewriter"), action: toggleTypewriterMode },
+    { id: "split-lr", label: t("app.menu.splitLeftRight"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("split-lr"), aliases: t("app.command.aliases.splitLeftRight").split(", "), action: () => { if (fileName && isCurrentFileMarkdown) handleSplit("lr"); } },
+    { id: "split-tb", label: t("app.menu.splitTopBottom"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("split-tb"), aliases: t("app.command.aliases.splitTopBottom").split(", "), action: () => { if (fileName && isCurrentFileMarkdown) handleSplit("tb"); } },
     { id: "open-mindmap", label: t("app.command.labels.openMindmap"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("open-mindmap"), action: () => {
       localStorage.setItem("zmd-mindmap-mode", "document");
       localStorage.setItem("zmd-mindmap-content", content);
@@ -2090,8 +2571,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "export-xiaohongshu", label: t("app.command.labels.exportXhs"), category: t("app.command.categories.export"), aliases: t("app.command.aliases.exportXhs").split(", "), action: handleOpenXhs },
 
     // 编辑模式
-    { id: "mode-ir", label: viewMode === "ir" ? t("app.command.labels.irModeActive") : t("app.command.labels.irMode"), category: t("app.command.categories.mode"), aliases: t("app.command.aliases.irMode").split(", "), action: () => setViewMode("ir") },
-    { id: "mode-sv", label: viewMode === "sv" ? t("app.command.labels.svModeActive") : t("app.command.labels.svMode"), category: t("app.command.categories.mode"), aliases: t("app.command.aliases.svMode").split(", "), action: () => setViewMode("sv") },
+    { id: "mode-ir", label: viewMode === "ir" ? t("app.command.labels.irModeActive") : t("app.command.labels.irMode"), category: t("app.command.categories.mode"), aliases: t("app.command.aliases.irMode").split(", "), action: () => setActiveMode("ir") },
+    { id: "mode-sv", label: viewMode === "sv" ? t("app.command.labels.svModeActive") : t("app.command.labels.svMode"), category: t("app.command.categories.mode"), aliases: t("app.command.aliases.svMode").split(", "), action: () => setActiveMode("sv") },
 
     // 格式化
     { id: "bold", label: t("app.command.labels.bold"), category: t("app.command.categories.format"), shortcut: getCommandShortcut("bold"), action: () => editorHandleRef.current?.executeCommand("bold") },
@@ -2139,7 +2620,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "settings-image", label: t("app.command.labels.imageSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.imageSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "image"); invoke("open_settings_window"); } },
     { id: "settings-canvas", label: t("app.command.labels.canvasSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.canvasSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "canvas"); invoke("open_settings_window"); } },
     { id: "settings-about", label: t("app.command.labels.about"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.about").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "about"); invoke("open_settings_window"); } },
-  ], [t, handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, setViewMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings, handleOpenXhs, handlePublish]);
+  ], [t, handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, setViewMode, setActiveMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings, handleOpenXhs, handlePublish]);
 
   return (
     <div className="app">
@@ -2155,6 +2636,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           onSelectHeading={handleSelectHeading}
           onRemoveVault={handleRemoveVault}
           onNewWindow={handleNewWindow}
+          onOpenInNewPanel={handleOpenInNewPanel}
+          canOpenInNewPanel={!!fileName && isCurrentFileMarkdown && !canvasFilePath && !previewFilePath && !graphViewOpen}
           onPublish={handlePublish}
           onSelectVault={setActiveVaultIndex}
           collapsed={!sidebarOpen}
@@ -2209,9 +2692,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                 </div>
               )}
             </div>
-            <span className="editor-file-name" title={fileName || "Tydora"}>
-              {title}
-              <span className={`traffic-light traffic-light--${fileName ? saveStatus : "idle"}`} />
+            <span className="editor-file-name" title={displayedFileName || "Tydora"}>
+              {displayedTitle}
+              <span className={`traffic-light traffic-light--${displayedFileName ? displayedSaveStatus : "idle"}`} />
             </span>
             <div className="window-controls">
               {pinnedItems.mindmap && (
@@ -2247,9 +2730,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                 <button
                   className="window-control-btn"
                   title={t("app.toolbar.exportAndCopy")}
-                  disabled={viewMode === "sv" || exporting}
+                  disabled={effectiveMode === "sv" || exporting}
                   onClick={() => {
-                    if (viewMode === "sv" || exporting) return;
+                    if (effectiveMode === "sv" || exporting) return;
                     track(ANALYTICS_EVENTS.EXPORT_OPEN);
                     setMarkdownCopied(false);
                     setShowExportFormatPicker(true);
@@ -2259,6 +2742,32 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="17 8 12 3 7 8" />
                     <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                </button>
+              )}
+              {pinnedItems.splitLr && (
+                <button
+                  className="window-control-btn"
+                  title={t("app.menu.splitLeftRight")}
+                  disabled={!fileName || !isCurrentFileMarkdown}
+                  onClick={() => { if (!fileName || !isCurrentFileMarkdown) return; handleSplit('lr'); }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <line x1="12" y1="4" x2="12" y2="20" />
+                  </svg>
+                </button>
+              )}
+              {pinnedItems.splitTb && (
+                <button
+                  className="window-control-btn"
+                  title={t("app.menu.splitTopBottom")}
+                  disabled={!fileName || !isCurrentFileMarkdown}
+                  onClick={() => { if (!fileName || !isCurrentFileMarkdown) return; handleSplit('tb'); }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <line x1="3" y1="12" x2="21" y2="12" />
                   </svg>
                 </button>
               )}
@@ -2321,12 +2830,70 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                     <div className="editor-topbar-more-menu-divider" />
                     <div
                       className={`editor-topbar-more-menu-item${!fileName ? ' disabled' : ''}`}
+                      onClick={() => { if (!fileName) return; handleRenameCurrentFile(); }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="16 3 21 8 8 21 3 21 3 16" />
+                      </svg>
+                      <span className="editor-topbar-more-menu-label">{t("app.menu.rename")}</span>
+                    </div>
+                    <div
+                      className={`editor-topbar-more-menu-item${!fileName ? ' disabled' : ''}`}
                       onClick={() => { if (!fileName) return; handleBookmarkCurrentFile(); }}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
                       </svg>
                       <span className="editor-topbar-more-menu-label">{t("app.menu.favorite")}</span>
+                    </div>
+                    <div className="editor-topbar-more-menu-divider" />
+                    <div
+                      className={`editor-topbar-more-menu-item${(!fileName || !isCurrentFileMarkdown) ? ' disabled' : ''}${getImmediateParentGroupDir(splitLayout, activePaneId) === 'lr' ? ' active' : ''}`}
+                      onClick={() => { if (!fileName || !isCurrentFileMarkdown) return; handleSplit('lr'); setMoreMenuOpen(false); }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="16" rx="2" />
+                        <line x1="12" y1="4" x2="12" y2="20" />
+                      </svg>
+                      <span className="editor-topbar-more-menu-label">{t("app.menu.splitLeftRight")}</span>
+                      <button
+                        className={`editor-topbar-more-menu-pin${pinnedItems.splitLr ? ' pinned' : ''}`}
+                        title={pinnedItems.splitLr ? t("app.toolbar.unpin") : t("app.toolbar.pinToToolbar")}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPinnedItems(prev => ({ ...prev, splitLr: !prev.splitLr }));
+                        }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="12" y1="17" x2="12" y2="22" />
+                          <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
+                          {pinnedItems.splitLr && <line x1="2" y1="2" x2="22" y2="22" />}
+                        </svg>
+                      </button>
+                    </div>
+                    <div
+                      className={`editor-topbar-more-menu-item${(!fileName || !isCurrentFileMarkdown) ? ' disabled' : ''}${getImmediateParentGroupDir(splitLayout, activePaneId) === 'tb' ? ' active' : ''}`}
+                      onClick={() => { if (!fileName || !isCurrentFileMarkdown) return; handleSplit('tb'); setMoreMenuOpen(false); }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="16" rx="2" />
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                      </svg>
+                      <span className="editor-topbar-more-menu-label">{t("app.menu.splitTopBottom")}</span>
+                      <button
+                        className={`editor-topbar-more-menu-pin${pinnedItems.splitTb ? ' pinned' : ''}`}
+                        title={pinnedItems.splitTb ? t("app.toolbar.unpin") : t("app.toolbar.pinToToolbar")}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPinnedItems(prev => ({ ...prev, splitTb: !prev.splitTb }));
+                        }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="12" y1="17" x2="12" y2="22" />
+                          <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
+                          {pinnedItems.splitTb && <line x1="2" y1="2" x2="22" y2="22" />}
+                        </svg>
+                      </button>
                     </div>
                     <div
                       className={`editor-topbar-more-menu-item${!fileName ? ' disabled' : ''}`}
@@ -2339,15 +2906,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       </svg>
                       <span className="editor-topbar-more-menu-label">{t("app.menu.openInNewWindow")}</span>
                     </div>
-                    <div
-                      className={`editor-topbar-more-menu-item${!fileName ? ' disabled' : ''}`}
-                      onClick={() => { if (!fileName) return; handleRenameCurrentFile(); }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polygon points="16 3 21 8 8 21 3 21 3 16" />
-                      </svg>
-                      <span className="editor-topbar-more-menu-label">{t("app.menu.rename")}</span>
-                    </div>
+                    <div className="editor-topbar-more-menu-divider" />
                     <div className={`editor-topbar-more-menu-item has-submenu${!fileName ? ' disabled' : ''}`}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -2454,9 +3013,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       </button>
                     </div>
                     <div
-                      className={`editor-topbar-more-menu-item${viewMode === "sv" || exporting ? ' disabled' : ''}`}
+                      className={`editor-topbar-more-menu-item${effectiveMode === "sv" || exporting ? ' disabled' : ''}`}
                       onClick={() => {
-                        if (viewMode === "sv" || exporting) return;
+                        if (effectiveMode === "sv" || exporting) return;
                         track(ANALYTICS_EVENTS.EXPORT_OPEN);
                         setMoreMenuOpen(false);
                         setMarkdownCopied(false);
@@ -2566,24 +3125,68 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                 </div>
               </div>
             ) : isCurrentFileMarkdown ? (
-              <EditorErrorBoundary>
-                <Editor
-                  ref={editorHandleRef}
-                  value={content}
-                  onChange={handleChange}
-                  mode={viewMode}
-                  theme={theme}
-                  typewriterMode={typewriterMode}
-                  previewMaxWidth={previewMaxWidth}
-                  lineHeight={lineHeight}
-                  irLineNumbers={irLineNumbers}
-                  editorSettings={editorSettings}
-                  imageSettings={imageSettings}
-                  currentFilePath={fileName}
-                  activeVaultPath={activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null}
-                  onWordCount={setWordCount}
-                />
-              </EditorErrorBoundary>
+              // 递归渲染布局树：根若为 leaf 就是单窗格，否则为（嵌套）分屏组。
+              (() => {
+                const totalPanes = collectPaneIds(splitLayout).length;
+                const renderSplitNode = (node: SplitNode, keySeed: string): React.ReactNode => {
+                  if (node.type === "leaf") {
+                    const pane = panes.find((p) => p.id === node.paneId) ?? panes[0];
+                    return (
+                      <div
+                        key={`leaf-${keySeed}-${node.paneId}`}
+                        className="editor-split-pane"
+                        style={{ flex: `${node.flex ?? 1} 1 0` }}
+                        onFocus={() => {
+                          setActivePaneId(pane.id);
+                          editorHandleRef.current = paneHandlesRef.current[pane.id] ?? null;
+                        }}
+                      >
+                        {renderPane(pane)}
+                        {totalPanes > 1 && (
+                          <button
+                            className="editor-pane-close"
+                            onClick={() => closePane(pane.id)}
+                            title={t("app.toolbar.close")}
+                            aria-label={t("app.toolbar.close")}
+                          >
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="6" y1="6" x2="18" y2="18" />
+                              <line x1="18" y1="6" x2="6" y2="18" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  }
+                  // SplitGroup：渲染一个分屏容器，children 之间放分隔线
+                  const group = node;
+                  const groupRefCb = (el: HTMLDivElement | null) => {
+                    if (el) splitGroupRefs.current[group.groupId] = el;
+                    else delete splitGroupRefs.current[group.groupId];
+                  };
+                  return (
+                    <div
+                      key={`grp-${keySeed}-${group.groupId}`}
+                      ref={groupRefCb}
+                      className={`editor-split editor-split-${group.dir}${splitResizing ? " resizing" : ""}`}
+                      style={{ flex: `${group.flex ?? 1} 1 0` }}
+                    >
+                      {group.children.map((child, i) => (
+                        <Fragment key={`${group.groupId}-child-${i}`}>
+                          {i > 0 && (
+                            <div
+                              className="editor-split-divider"
+                              onMouseDown={(e) => handleSplitResizeDown(e, group.groupId, i - 1)}
+                            />
+                          )}
+                          {renderSplitNode(child, `${keySeed}-${group.groupId}-${i}`)}
+                        </Fragment>
+                      ))}
+                    </div>
+                  );
+                };
+                return renderSplitNode(splitLayout, "root");
+              })()
             ) : (
               <EditorErrorBoundary>
                 <CodeMirrorEditor
@@ -2597,7 +3200,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
             )}
           </div>
 
-          {xhsPreviewOpen && isCurrentFileMarkdown && !canvasFilePath && !graphViewOpen && !previewFilePath && (
+          {xhsPreviewOpen && isCurrentFileMarkdown && panes.length === 1 && !canvasFilePath && !graphViewOpen && !previewFilePath && (
             <XhsPreviewPanel
               title={title.replace(/\.[^.]+$/, "")}
               content={content}
@@ -2616,9 +3219,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
             <button
               className="editor-mode-toggle source-mode-toggle floating-mode-toggle"
               onClick={cycleMode}
-              title={`${MODE_LABELS[viewMode]} (Ctrl+/)`}
+              title={`${MODE_LABELS[effectiveMode]} (Ctrl+/)`}
             >
-              {MODE_LABELS[viewMode]}
+              {MODE_LABELS[effectiveMode]}
             </button>
           )}
           {!canvasFilePath && !graphViewOpen && (

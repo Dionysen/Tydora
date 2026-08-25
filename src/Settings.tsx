@@ -1182,6 +1182,8 @@ function ShortcutsSettingsContent() {
     "toggle-sidebar": t("settings.shortcuts.labels.toggle-sidebar"),
     typewriter: t("settings.shortcuts.labels.typewriter"),
     "open-mindmap": t("settings.shortcuts.labels.open-mindmap"),
+    "split-lr": t("settings.shortcuts.labels.split-lr", "左右分屏"),
+    "split-tb": t("settings.shortcuts.labels.split-tb", "上下分屏"),
     "toggle-mode": t("settings.shortcuts.labels.toggle-mode"),
     escape: t("settings.shortcuts.labels.escape"),
     "quick-open": t("settings.shortcuts.labels.quick-open"),

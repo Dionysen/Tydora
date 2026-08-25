@@ -1209,6 +1209,103 @@
   height: 100%;
 }
 
+/* ========== 分屏（左右 / 上下） ========== */
+.editor-split {
+  display: flex;
+  /* 宽高不设为 100%：嵌套场景下内层 SplitGroup 应该由父级 flex 分配占比（inline flex），
+     硬写 100% 会强制内层组等于父容器全尺寸，挤压兄弟 pane，导致布局错乱、分割线不可见 */
+  min-height: 0;
+  min-width: 0;
+}
+.editor-split-lr {
+  flex-direction: row;
+}
+.editor-split-tb {
+  flex-direction: column;
+}
+.editor-split-pane {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+.editor-split-divider {
+  flex: 0 0 1px;
+  background: var(--border);
+  position: relative;
+  transition: background 0.15s ease;
+}
+/* 扩大可点击/拖拽的命中区域，便于抓取分割线 */
+.editor-split-divider::before {
+  content: "";
+  position: absolute;
+  /* 默认：左右分屏（竖线）→ 左右扩展 4px（宽 9px 命中区），上下铺满 */
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  right: -4px;
+}
+/* 上下分屏（横线）→ 上下扩展 4px（高 9px 命中区），左右铺满，否则用户抓不住只有 1px 高的横线 */
+.editor-split-tb .editor-split-divider::before {
+  top: -4px;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+}
+.editor-split-divider:hover,
+.editor-split.resizing .editor-split-divider {
+  background: var(--accent, #4a90e2);
+}
+.editor-split-lr .editor-split-divider {
+  width: 1px;
+  height: 100%;
+  cursor: col-resize;
+}
+.editor-split-tb .editor-split-divider {
+  height: 1px;
+  width: 100%;
+  cursor: row-resize;
+}
+/* 拖拽分割线时禁止选中文本 */
+.editor-split.resizing {
+  user-select: none;
+  cursor: col-resize;
+}
+.editor-split-tb.resizing {
+  cursor: row-resize;
+}
+
+/* 分屏窗格右上角的关闭按钮（仅在多窗格时显示） */
+.editor-pane-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 20;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 9px;
+  background: var(--bg-surface, rgba(127, 127, 127, 0.15));
+  color: var(--text-secondary, #999);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+  -webkit-app-region: no-drag;
+}
+.editor-split-pane:hover .editor-pane-close,
+.editor-pane-close:focus-visible {
+  opacity: 1;
+}
+.editor-pane-close:hover {
+  background: var(--accent, #4a90e2);
+  color: var(--bg-primary, #fff);
+}
+
 /* ========== 快速打开文件弹窗 ========== */
 .quick-open-overlay {
   position: fixed;

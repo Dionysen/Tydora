@@ -1429,6 +1429,14 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         isInternalRef.current = true;
         editor.commands.setContent(val);
       },
+      focus: () => {
+        // SV 模式下聚焦源码编辑器，否则聚焦 TipTap view
+        if (mode === "sv") {
+          sourceEditorRef.current?.focus();
+        } else if (editor) {
+          editor.commands.focus();
+        }
+      },
       insertTextAtCursor: (text: string) => {
         if (!editor) return;
         editor.chain().focus().insertContent(text).run();

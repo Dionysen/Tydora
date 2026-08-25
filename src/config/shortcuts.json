@@ -41,6 +41,8 @@
     { "id": "toggle-sidebar", "label": "切换侧栏", "keys": ["Ctrl", "Tab"], "group": "视图" },
     { "id": "typewriter", "label": "打字机模式", "keys": ["Ctrl", "Alt", "T"], "group": "视图" },
     { "id": "open-mindmap", "label": "打开思维导图", "keys": ["Ctrl", "M"], "group": "视图" },
+    { "id": "split-lr", "label": "左右分屏", "keys": ["Ctrl", "\\"], "group": "视图" },
+    { "id": "split-tb", "label": "上下分屏", "keys": ["Alt", "\\"], "group": "视图" },
     { "id": "toggle-mode", "label": "模式切换", "keys": ["Ctrl", "/"], "group": "模式" },
     { "id": "escape", "label": "关闭提示", "keys": ["Escape"], "group": "系统" },
     { "id": "quick-open", "label": "快速打开文件", "keys": ["Ctrl", "O"], "group": "系统" },
@@ -53,7 +55,9 @@
     "replace": ["Ctrl", "H"],
     "toggle-mode": ["Ctrl", "/"],
     "typewriter": ["Ctrl", "Alt", "T"],
-    "open-mindmap": ["Ctrl", "M"]
+    "open-mindmap": ["Ctrl", "M"],
+    "split-lr": ["Ctrl", "\\"],
+    "split-tb": ["Alt", "\\"]
   },
   "canvas": {
     "undo": ["Ctrl", "Z"],
@@ -69,6 +73,8 @@
     "save": "Ctrl+S",
     "open": "Ctrl+O",
     "toggle-mode": "Ctrl+/",
-    "toggle-typewriter": "Ctrl+Alt+T"
+    "toggle-typewriter": "Ctrl+Alt+T",
+    "split-lr": "Ctrl+\\",
+    "split-tb": "Alt+\\"
   }
 }
