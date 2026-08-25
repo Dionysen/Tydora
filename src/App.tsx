@@ -367,6 +367,19 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     } catch {}
     return true;
   });
+  // 双击 .md 文件外部打开时，是否展开侧栏并自动切换到大纲视图（默认开启）
+  const [expandOutlineOnOpen, setExpandOutlineOnOpen] = useState(() => {
+    try {
+      const raw = localStorage.getItem("zmd-general-settings");
+      if (raw) {
+        const s = JSON.parse(raw);
+        return s.expandOutlineOnOpen ?? true;
+      }
+    } catch {}
+    return true;
+  });
+  // 传递给 Sidebar 的"切到大纲"触发器（每次自增促使 Sidebar 切 tab）
+  const [outlineTrigger, setOutlineTrigger] = useState(0);
   // Ctrl+滚轮调整字号时的右上角提示（停止滚动 1.5s 后自动消失）
   const [fontSizeToast, setFontSizeToast] = useState<number | null>(null);
   const fontSizeToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -450,6 +463,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           }
           if (typeof settings.irLineNumbers === 'boolean') {
             setIrLineNumbers(settings.irLineNumbers);
+          }
+          if (typeof settings.expandOutlineOnOpen === 'boolean') {
+            setExpandOutlineOnOpen(settings.expandOutlineOnOpen);
           }
         }
       } catch {}
@@ -1268,10 +1284,14 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   }, [modified]);
 
   // 处理系统文件关联打开（双击 .md 文件）：
-  // 折叠侧栏（与新窗口打开体验一致），激活文件所属仓库，然后打开文件
+  // 默认折叠侧栏（与新窗口打开体验一致）；若开启"启动时展开大纲"，则展开侧栏并切到大纲
   const handleExternalOpenFile = useCallback((filePath: string) => {
-    // 折叠侧栏
-    setSidebarOpen(false);
+    if (expandOutlineOnOpen) {
+      setSidebarOpen(true);
+      setOutlineTrigger((n) => n + 1);
+    } else {
+      setSidebarOpen(false);
+    }
 
     // 如果文件位于已注册仓库内，激活对应仓库（文件树选中状态、链接索引等随之生效）
     const normalize = (p: string) => p.replace(/\\/g, "/").replace(/\/+$/, "");
@@ -1285,7 +1305,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
 
     handleSelectFile(filePath);
-  }, [vaults, handleSelectFile]);
+  }, [vaults, handleSelectFile, expandOutlineOnOpen]);
 
   // 拉取并处理外部打开文件队列（双击 .md 文件），返回是否处理了文件。
   // 后端不再定时发事件，改为前端就绪后拉取，彻底消除事件竞态导致的"打开为空"问题
@@ -2645,6 +2665,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           width={sidebarWidth}
           onWidthChange={setSidebarWidth}
           onBookmark={handleShowBookmarkDialog}
+          outlineTrigger={outlineTrigger}
         />
 
         {/* 编辑区域 */}

@@ -85,6 +85,7 @@ interface SidebarProps {
   width: number;
   onWidthChange: (width: number) => void;
   onBookmark: (filePath: string, isDirectory: boolean) => void;
+  outlineTrigger?: number;
 }
 
 interface ContextMenuItem {
@@ -2549,6 +2550,7 @@ export default function Sidebar({
   width,
   onWidthChange,
   onBookmark,
+  outlineTrigger,
 }: SidebarProps) {
   const activeVault = activeVaultIndex >= 0 ? vaults[activeVaultIndex] : null;
   const [isResizing, setIsResizing] = useState(false);
@@ -2584,6 +2586,15 @@ export default function Sidebar({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
+
+  // 外部触发切换到大纲（如双击 .md 文件时按设置自动展开大纲）
+  const prevOutlineTriggerRef = useRef<number | undefined>(outlineTrigger);
+  useEffect(() => {
+    if (outlineTrigger === undefined) return;
+    if (prevOutlineTriggerRef.current === outlineTrigger) return;
+    prevOutlineTriggerRef.current = outlineTrigger;
+    switchTab("outline");
+  }, [outlineTrigger, switchTab]);
 
   // Resize logic
   const [startX, setStartX] = useState(0);

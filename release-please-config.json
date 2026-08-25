@@ -33,7 +33,11 @@
         },
         {
           "type": "generic",
-          "path": "website/docs/01-开始使用/02-关于.md"
+          "path": "website/docs_zh/01-开始使用/02-关于.md"
+        },
+        {
+          "type": "generic",
+          "path": "website/docs_en/01-Getting-Started/02-About.md"
         },
         {
           "type": "generic",

@@ -86,6 +86,7 @@ interface GeneralSettings {
   typewriterMode: boolean;
   lineHeight: number;
   irLineNumbers: boolean;
+  expandOutlineOnOpen: boolean;
 }
 
 interface ShortcutItem {
@@ -108,6 +109,7 @@ const DEFAULT_GENERAL: GeneralSettings = {
   typewriterMode: false,
   lineHeight: 1.6,
   irLineNumbers: true,
+  expandOutlineOnOpen: true,
 };
 
 interface MindmapSettings {
@@ -342,6 +344,23 @@ function GeneralSettingsContent({
               type="checkbox"
               checked={settings.autoHideTopbarOnCollapse}
               onChange={(e) => onChange({ ...settings, autoHideTopbarOnCollapse: e.target.checked })}
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+      </div>
+
+      <div className="canvas-settings-card">
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.expandOutlineOnOpen")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.expandOutlineOnOpenDesc")}</span>
+          </div>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={settings.expandOutlineOnOpen}
+              onChange={(e) => onChange({ ...settings, expandOutlineOnOpen: e.target.checked })}
             />
             <span className="settings-switch-slider" />
           </label>

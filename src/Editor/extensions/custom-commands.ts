@@ -1,4 +1,6 @@
 import type { Editor } from "@tiptap/core";
+import { TextSelection } from "prosemirror-state";
+import type { Node } from "prosemirror-model";
 
 export function executeCommand(name: string, editor: Editor | null) {
   if (!editor) return;
@@ -8,7 +10,78 @@ export function executeCommand(name: string, editor: Editor | null) {
   // 标题
   if (name.startsWith("heading-")) {
     const level = parseInt(name.replace("heading-", "")) as 1 | 2 | 3 | 4 | 5 | 6;
-    chain.toggleHeading({ level }).run();
+
+    // 修复：粘贴的多行纯文本会被 hardBreak 节点连在同一个 paragraph 内，
+    // 直接 toggleHeading 会把整段（含多行）都变成标题。
+    // 这里在 toggleHeading 之前先把当前 paragraph 按 hardBreak 分裂为多个 paragraph，
+    // 并把光标移到光标所在行对应的新 paragraph 末尾，使 toggleHeading 只作用于当前行。
+    chain
+      .command(({ tr, state }) => {
+        const { selection, schema } = state;
+        const $pos = selection.$from;
+
+        // 仅在光标（collapsed selection）、位于 paragraph 内、含 hardBreak 时分裂
+        let hasHardBreak = false;
+        $pos.parent.content.forEach((n: Node) => {
+          if (n.type.name === "hardBreak") hasHardBreak = true;
+        });
+        const needSplit =
+          selection.empty &&
+          $pos.parent.type.name === "paragraph" &&
+          hasHardBreak;
+
+        // 不满足条件时不修改任何事务，让后续 toggleHeading 按原行为执行
+        if (!needSplit) return true;
+
+        const paragraph = $pos.parent;
+        const offset = $pos.parentOffset;
+
+        // 按 hardBreak 把 paragraph content 分裂为多行，并计算光标所在行索引
+        let lineIdx = 0;
+        let pos = 0;
+        const lines: Node[][] = [];
+        let current: Node[] = [];
+
+        paragraph.content.forEach((node: Node) => {
+          if (node.type.name === "hardBreak") {
+            // 光标在 hardBreak 之后（offset > pos）时属于下一行
+            if (offset > pos) lineIdx++;
+            lines.push(current);
+            current = [];
+          } else {
+            current.push(node);
+          }
+          pos += node.nodeSize;
+        });
+        lines.push(current);
+
+        // 为每行创建新的 paragraph 节点
+        const newParagraphs: Node[] = lines.map((content) =>
+          schema.nodes.paragraph.create(null, content)
+        );
+
+        const paraStart = $pos.before($pos.depth);
+        const paraEnd = paraStart + paragraph.nodeSize;
+
+        // 用新的 paragraphs 替换原 paragraph
+        tr.replaceWith(paraStart, paraEnd, newParagraphs);
+
+        // 计算光标所在行的新 paragraph 起止位置
+        let targetParaStart = paraStart;
+        for (let i = 0; i < lineIdx; i++) {
+          targetParaStart += newParagraphs[i].nodeSize;
+        }
+        const targetParaEnd =
+          targetParaStart + newParagraphs[lineIdx].nodeSize;
+
+        // 把光标移到目标 paragraph 末尾（closing tag 之前）
+        const $targetEnd = tr.doc.resolve(targetParaEnd - 1);
+        tr.setSelection(TextSelection.near($targetEnd, -1));
+
+        return true;
+      })
+      .toggleHeading({ level })
+      .run();
     return;
   }
 
