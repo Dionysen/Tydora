@@ -7,7 +7,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 
 // ── 模块级状态 ──
-let pmView: EditorView | null = null;
+// 分屏下每个编辑器都会创建插件实例，需收集所有 view，
+// 点击图标时按 DOM 包含关系找到图标所属的 view，避免跨文档位置越界。
+const pmViews: Set<EditorView> = new Set();
 
 // ── 从 bulletList / taskList 节点提取 Markdown ──
 function extractListMarkdown(node: ProsemirrorNode, depth: number = 0): string {
@@ -121,9 +123,27 @@ function installGlobalHandler() {
 
       const el = icon;
       const listPos = Number(el.dataset.listPos);
-      if (!pmView || isNaN(listPos)) return;
+      if (isNaN(listPos)) return;
 
-      const node = pmView.state.doc.nodeAt(listPos);
+      // 找到图标所属的 editor view（分屏下不同面板对应不同文档）
+      let view: EditorView | null = null;
+      for (const v of pmViews) {
+        if (v.dom.contains(el)) {
+          view = v;
+          break;
+        }
+      }
+      if (!view) return;
+
+      // 校验位置合法性，防止文档变更后位置越界
+      if (listPos < 0 || listPos >= view.state.doc.content.size) return;
+
+      let node: ProsemirrorNode | null | undefined = null;
+      try {
+        node = view.state.doc.nodeAt(listPos);
+      } catch {
+        return;
+      }
       if (!node || (node.type.name !== "bulletList" && node.type.name !== "taskList")) return;
 
       const headingText = el.dataset.heading || "";
@@ -218,11 +238,11 @@ function createBulletListMindmapPlugin() {
     key: bulletListMindmapKey,
 
     view(view) {
-      pmView = view;
+      pmViews.add(view);
       installGlobalHandler();
       return {
         destroy() {
-          if (pmView === view) pmView = null;
+          pmViews.delete(view);
         },
       };
     },

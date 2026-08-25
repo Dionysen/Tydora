@@ -2102,7 +2102,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     return () => window.removeEventListener("keydown", handler, { capture: true });
   }, []);
 
-  // 分屏快捷键（Ctrl+\ 左右分屏 / Alt+\ 上下分屏，配置见 shortcuts.json 的 app.split-lr / split-tb）
+  // 分屏快捷键（Ctrl+\ 左右分屏 / Ctrl+- 上下分屏，配置见 shortcuts.json 的 app.split-lr / split-tb）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (matchShortcut(e, shortcutsConfig.app["split-lr"])) {

@@ -978,7 +978,23 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
               for (const shortcut of shortcuts) {
                 const cmdName = commandMap[shortcut.id];
                 if (cmdName && matchShortcut(event, shortcut.keys)) {
+                  // table-row-delete 与 app 级 split-tb 共用 Ctrl+-：
+                  // 仅当光标在表格内时执行删行并阻止冒泡（避免同时触发分屏）；
+                  // 不在表格内则跳过本条，让事件冒泡到 window 触发上下分屏。
+                  if (shortcut.id === "table-row-delete") {
+                    const { $from } = editor.state.selection;
+                    let inTable = false;
+                    for (let d = $from.depth; d > 0; d--) {
+                      const n = $from.node(d);
+                      if (n.type.name === "tableRow" || n.type.name === "table") {
+                        inTable = true;
+                        break;
+                      }
+                    }
+                    if (!inTable) continue;
+                  }
                   event.preventDefault();
+                  event.stopPropagation();
                   executeCommand(cmdName, editor);
                   return true;
                 }

@@ -78,6 +78,7 @@
       "resetToDefault": "重置为默认",
       "resetConfirm": "确定要重置所有快捷键为默认值吗？",
       "pressKeys": "按下快捷键...",
+      "notSet": "未设置，点击设置",
       "format": "格式",
       "list": "列表",
       "heading": "标题",

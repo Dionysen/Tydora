@@ -1246,23 +1246,24 @@
   left: -4px;
   right: -4px;
 }
-/* 上下分屏（横线）→ 上下扩展 4px（高 9px 命中区），左右铺满，否则用户抓不住只有 1px 高的横线 */
-.editor-split-tb .editor-split-divider::before {
+/* 上下分屏（横线）→ 上下扩展 4px（高 9px 命中区），左右铺满，否则用户抓不住只有 1px 高的横线
+   注意：必须用直接子选择器 >，否则嵌套分屏（如 tb 内套 lr）时内层分割线会被外层方向污染 */
+.editor-split-tb > .editor-split-divider::before {
   top: -4px;
   bottom: -4px;
   left: 0;
   right: 0;
 }
 .editor-split-divider:hover,
-.editor-split.resizing .editor-split-divider {
+.editor-split.resizing > .editor-split-divider {
   background: var(--accent, #4a90e2);
 }
-.editor-split-lr .editor-split-divider {
+.editor-split-lr > .editor-split-divider {
   width: 1px;
   height: 100%;
   cursor: col-resize;
 }
-.editor-split-tb .editor-split-divider {
+.editor-split-tb > .editor-split-divider {
   height: 1px;
   width: 100%;
   cursor: row-resize;

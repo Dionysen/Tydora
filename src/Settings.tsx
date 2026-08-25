@@ -1358,13 +1358,15 @@ function ShortcutsSettingsContent() {
                           ✕
                         </button>
                       </>
-                    ) : (
+                    ) : shortcut.keys.length > 0 ? (
                       shortcut.keys.map((key, j) => (
                         <span key={j}>
                           <kbd className="settings-kbd">{key}</kbd>
                           {j < shortcut.keys.length - 1 && <span className="settings-kbd-sep">+</span>}
                         </span>
                       ))
+                    ) : (
+                      <span className="settings-shortcut-hint">{t("settings.shortcuts.notSet")}</span>
                     )}
                   </div>
                   {editingId !== shortcut.id && (

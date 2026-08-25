@@ -1,5 +1,17 @@
 name: Release
 
+# 资源排序说明：
+# GitHub Releases UI 按文件名字母序排列资源，无法通过上传顺序控制。
+# 本工作流通过给文件名加数字前缀实现 Win → macOS → Linux 的稳定分组排序：
+#   01-*  Windows（安装包 + 便携版 + 签名）
+#   02-*  macOS（aarch64 / x86_64 的 dmg + app.tar.gz + 签名）
+#   03-*  Linux（AppImage / deb / rpm + 签名）
+#   latest.json  更新器清单（url 指向前缀化后的资源名）
+#
+# 实现方式：构建矩阵只构建产物并上传为 workflow artifact（不直接发 release），
+# 随后由 release job 按平台分组下载、加前缀、重新生成 latest.json，
+# 最后用 softprops/action-gh-release 一次性上传到草稿 Release。
+
 on:
   workflow_dispatch:
   push:
@@ -7,7 +19,7 @@ on:
       - 'v*'
 
 jobs:
-  publish:
+  build:
     permissions:
       contents: write
     strategy:
@@ -17,16 +29,21 @@ jobs:
           - platform: windows-latest
             # Windows 打包 NSIS 安装包，便携版 zip 由构建后的步骤额外生成
             args: ''
+            label: windows
           - platform: macos-latest
             args: '--target aarch64-apple-darwin'
+            label: macos-aarch64
           - platform: macos-latest
             args: '--target x86_64-apple-darwin'
+            label: macos-x86_64
           - platform: ubuntu-22.04
             args: ''
+            label: linux-amd64
           - platform: ubuntu-22.04-arm
             # Linux ARM64（aarch64）：使用 GitHub 官方 ARM64 托管 runner 原生构建
             # （AppImage 工具链不支持 x86→arm64 交叉编译，公共仓库可直接用该 runner）
             args: ''
+            label: linux-aarch64
 
     runs-on: ${{ matrix.platform }}
 
@@ -60,6 +77,63 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      # 只构建产物，不创建 Release（不传 tagName，tauri-action 不会上传到 Release）
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          args: ${{ matrix.args }}
+
+      # Windows: 额外生成便携版（免安装）zip，内容为 release 构建出的 Tydora.exe
+      - name: Package Windows portable zip
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          $version = (Get-Content VERSION).Trim()
+          $exe = 'src-tauri/target/release/Tydora.exe'
+          if (-not (Test-Path $exe)) { throw "Release exe not found: $exe" }
+          New-Item -ItemType Directory -Force -Path 'release-assets' | Out-Null
+          $zip = Join-Path 'release-assets' "Tydora_${version}_x64_portable.zip"
+          Compress-Archive -Path $exe -DestinationPath $zip -Force
+          Get-Item $zip | Select-Object FullName, Length
+
+      # 汇总所有 bundle 产物（含 .sig 签名）到 release-assets/
+      - name: Stage bundle outputs
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          find src-tauri/target -path '*/bundle/*' -type f \
+            \( -name '*.exe' -o -name '*.exe.sig' \
+               -o -name '*.msi' -o -name '*.msi.sig' \
+               -o -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.app.tar.gz.sig' \
+               -o -name '*.deb' -o -name '*.deb.sig' \
+               -o -name '*.rpm' -o -name '*.rpm.sig' \
+               -o -name '*.AppImage' -o -name '*.AppImage.sig' \) \
+            -exec cp -f {} release-assets/ \;
+          echo "=== Staged assets (${{ matrix.label }}) ==="
+          ls -la release-assets/
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.label }}
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Generate release notes
         uses: orhun/git-cliff-action@v4
         with:
@@ -71,14 +145,21 @@ jobs:
         env:
           OUTPUT: RELEASE_NOTES.md
 
-      - name: Prepare release body
-        id: notes
+      - name: Prepare release metadata
+        id: meta
         shell: bash
         run: |
           VERSION=$(cat VERSION)
+          TAG="v${VERSION}"
+          {
+            echo "version=${VERSION}"
+            echo "tag=${TAG}"
+            echo "name=Tydora v${VERSION}"
+            echo "pub_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } >> "$GITHUB_OUTPUT"
           {
             echo "RELEASE_BODY<<GITCLIFF_EOF"
-            echo "# Tydora v$VERSION"
+            echo "# Tydora v${VERSION}"
             echo ""
             if [ -s RELEASE_NOTES.md ]; then
               cat RELEASE_NOTES.md
@@ -88,38 +169,135 @@ jobs:
             echo "GITCLIFF_EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      # 按平台分组下载各构建产物，保留来源信息以便加前缀
+      - name: Download Windows assets
+        uses: actions/download-artifact@v4
         with:
-          tagName: v__VERSION__
-          releaseName: 'Tydora v__VERSION__'
-          releaseBody: ${{ steps.notes.outputs.RELEASE_BODY }}
-          releaseDraft: true
-          prerelease: false
-          args: ${{ matrix.args }}
+          name: bundle-windows
+          path: assets/windows
 
-      # Windows: 额外生成便携版（免安装）zip，内容为 release 构建出的 Tydora.exe
-      - name: Package Windows portable zip
-        if: matrix.platform == 'windows-latest'
-        shell: pwsh
+      - name: Download macOS aarch64 assets
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-macos-aarch64
+          path: assets/macos-aarch64
+
+      - name: Download macOS x86_64 assets
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-macos-x86_64
+          path: assets/macos-x86_64
+
+      - name: Download Linux amd64 assets
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-linux-amd64
+          path: assets/linux-amd64
+
+      - name: Download Linux aarch64 assets
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-linux-aarch64
+          path: assets/linux-aarch64
+
+      # 按平台加前缀：Windows→01- / macOS→02- / Linux→03-
+      - name: Rename assets with platform order prefixes
+        shell: bash
         run: |
-          $version = (Get-Content VERSION).Trim()
-          $exe = 'src-tauri/target/release/Tydora.exe'
-          if (-not (Test-Path $exe)) { throw "Release exe not found: $exe" }
-          $outDir = 'src-tauri/target/release/bundle/portable'
-          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-          $zip = Join-Path $outDir "Tydora_${version}_x64_portable.zip"
-          Compress-Archive -Path $exe -DestinationPath $zip -Force
-          Get-Item $zip | Select-Object FullName, Length
+          mkdir -p ordered-assets
+          prefix_dir() {
+            local prefix="$1"; shift
+            for d in "$@"; do
+              [ -d "$d" ] || continue
+              for f in "$d"/*; do
+                [ -f "$f" ] || continue
+                local bn
+                bn=$(basename "$f")
+                # latest.json 不加前缀（更新器端点固定为 latest.json）
+                if [ "$bn" = "latest.json" ]; then
+                  cp -f "$f" "ordered-assets/$bn"
+                else
+                  cp -f "$f" "ordered-assets/${prefix}${bn}"
+                fi
+              done
+            done
+          }
+          prefix_dir "01-" assets/windows
+          prefix_dir "02-" assets/macos-aarch64 assets/macos-x86_64
+          prefix_dir "03-" assets/linux-amd64 assets/linux-aarch64
+          echo "=== Ordered assets ==="
+          ls -la ordered-assets/
 
-      # Windows: 把便携版 zip 上传到本次 GitHub Release（tauri-action 已创建 draft release）
-      - name: Upload Windows portable zip to release
-        if: matrix.platform == 'windows-latest'
+      # 重新生成 latest.json：url 指向前缀化后的资源名，signature 取自 .sig 文件内容
+      - name: Generate updater manifest (latest.json)
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          PUB_DATE: ${{ steps.meta.outputs.pub_date }}
+          REPO: ${{ github.repository }}
         run: |
-          gh release upload "v$(cat VERSION)" src-tauri/target/release/bundle/portable/*.zip --clobber
+          BASE="https://github.com/${REPO}/releases/download/${TAG}"
+          read_sig() {
+            local f="$1"
+            if [ -f "ordered-assets/$f" ]; then
+              cat "ordered-assets/$f"
+            else
+              echo ""
+            fi
+          }
+          WIN_SIG=$(read_sig "01-Tydora_${VERSION}_x64-setup.exe.sig")
+          MAC_ARM_SIG=$(read_sig "02-Tydora_${VERSION}_aarch64.app.tar.gz.sig")
+          MAC_X64_SIG=$(read_sig "02-Tydora_${VERSION}_x64.app.tar.gz.sig")
+          LIN_X64_SIG=$(read_sig "03-Tydora_${VERSION}_amd64.AppImage.sig")
+          LIN_ARM_SIG=$(read_sig "03-Tydora_${VERSION}_aarch64.AppImage.sig")
+          NOTES=$(cat RELEASE_NOTES.md 2>/dev/null || echo "")
+          jq -n \
+            --arg version "$VERSION" \
+            --arg notes "$NOTES" \
+            --arg pub_date "$PUB_DATE" \
+            --arg win_sig "$WIN_SIG" \
+            --arg win_url "${BASE}/01-Tydora_${VERSION}_x64-setup.exe" \
+            --arg mac_arm_sig "$MAC_ARM_SIG" \
+            --arg mac_arm_url "${BASE}/02-Tydora_${VERSION}_aarch64.app.tar.gz" \
+            --arg mac_x64_sig "$MAC_X64_SIG" \
+            --arg mac_x64_url "${BASE}/02-Tydora_${VERSION}_x64.app.tar.gz" \
+            --arg lin_x64_sig "$LIN_X64_SIG" \
+            --arg lin_x64_url "${BASE}/03-Tydora_${VERSION}_amd64.AppImage" \
+            --arg lin_arm_sig "$LIN_ARM_SIG" \
+            --arg lin_arm_url "${BASE}/03-Tydora_${VERSION}_aarch64.AppImage" \
+            '{
+              version: $version,
+              notes: $notes,
+              pub_date: $pub_date,
+              platforms: {
+                "windows-x86_64": { signature: $win_sig, url: $win_url },
+                "darwin-aarch64": { signature: $mac_arm_sig, url: $mac_arm_url },
+                "darwin-x86_64": { signature: $mac_x64_sig, url: $mac_x64_url },
+                "linux-x86_64": { signature: $lin_x64_sig, url: $lin_x64_url },
+                "linux-aarch64": { signature: $lin_arm_sig, url: $lin_arm_url }
+              }
+            }' > ordered-assets/latest.json
+          echo "=== latest.json ==="
+          cat ordered-assets/latest.json
+
+      # 一次性创建草稿 Release 并按顺序上传所有资源
+      - name: Create release and upload assets
+        uses: softprops/action-gh-release@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          # workflow_dispatch 触发时 tag 尚不存在，softprops 会基于 target_commitish 创建 tag
+          target_commitish: ${{ github.sha }}
+          name: ${{ steps.meta.outputs.name }}
+          body: ${{ steps.meta.outputs.RELEASE_BODY }}
+          draft: true
+          prerelease: false
+          preserve_order: true
+          fail_on_unmatched_files: false
+          files: |
+            ordered-assets/01-*
+            ordered-assets/02-*
+            ordered-assets/03-*
+            ordered-assets/latest.json
