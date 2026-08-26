@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo, type ReactNode } from "react";
+import { bootStart, bootEnd, bootStamp } from "./boot-timing";
+bootStamp("sidebar_module_imported");
 import { useTranslation } from "react-i18next";
 import i18n from "./i18n";
 import { createPortal } from "react-dom";
@@ -1461,13 +1463,20 @@ function FileTree({
   }, []);
 
   const loadRoot = useCallback(async () => {
+    bootStart("sidebar_load_root");
+    bootStamp("sidebar_load_dir_start");
     const nodes = await loadDirectory(rootPath);
+    bootStamp("sidebar_load_dir_done");
     // Restore expanded state from localStorage
     const savedExpanded = loadExpandedPaths(vaultPath);
     if (savedExpanded.size > 0) {
+      bootStamp("sidebar_restore_expanded_start");
       await restoreExpanded(nodes, savedExpanded);
+      bootStamp("sidebar_restore_expanded_done");
     }
     setRootNodes(nodes);
+    bootStamp("sidebar_setRootNodes_called");
+    bootEnd("sidebar_load_root");
   }, [rootPath, vaultPath]);
 
   const handleRefresh = useCallback(() => {
@@ -2552,6 +2561,8 @@ export default function Sidebar({
   onBookmark,
   outlineTrigger,
 }: SidebarProps) {
+  bootStart("sidebar_component_render");
+  bootStamp("sidebar_component_entered");
   const activeVault = activeVaultIndex >= 0 ? vaults[activeVaultIndex] : null;
   const [isResizing, setIsResizing] = useState(false);
   const [activeTab, setActiveTab] = useState<"files" | "search" | "outline" | "bookmarks">("files");
@@ -2624,6 +2635,8 @@ export default function Sidebar({
     };
   }, [isResizing, onWidthChange, startX, startWidth]);
 
+  bootStamp("sidebar_component_rendered");
+  bootEnd("sidebar_component_render");
   return (
     <div
       className={`sidebar${collapsed ? " collapsed" : ""}${isResizing ? " resizing" : ""}`}

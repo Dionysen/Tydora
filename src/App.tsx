@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef, useEffect, useMemo, Component, Fragment, lazy, Suspense } from "react";
+import { bootStart, bootEnd, bootStamp, bootSummary } from "./boot-timing";
+bootStamp("App_module_imported");
 import { useTranslation } from "react-i18next";
-import { getCurrentWindow, availableMonitors } from "@tauri-apps/api/window";
-import { PhysicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
-import { clampWindowToMonitor } from "./services/windowState";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { readTextFile, writeTextFile, rename, exists } from "@tauri-apps/plugin-fs";
 import { save } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
@@ -286,6 +286,8 @@ function removePaneAndCollapse(root: SplitNode, paneId: string): { root: SplitNo
 }
 
 function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string | null; initialVaultPath?: string | null }) {
+  bootStart("App_body_to_first_effect");
+  bootStamp("App_component_render_enter");
   const { theme } = useTheme();
   const { t } = useTranslation();
   const [saveStatus, setSaveStatus] = useState<"idle" | "modified" | "saved">("idle");
@@ -377,6 +379,12 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   // 匿名统计：首次启动弹窗征得同意后才会上报（未选择前不发送任何数据）
   const [consentVisible, setConsentVisible] = useState<boolean>(() => !hasConsentChoice());
+
+  // 启动埋点：App 组件进入第一个 useEffect = React 完成首次 commit 后
+  useEffect(() => {
+    bootStamp("App_first_useEffect_fired");
+    bootEnd("App_body_to_first_effect");
+  }, []);
 
   // 用户已同意时，上报应用启动事件（仅统计使用情况，不含文件路径/内容等任何数据）
   useEffect(() => {
@@ -779,37 +787,74 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
   }, [initialVaultPath, vaults]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 启动时窗口可见性策略：
-  // - 无仓库且无外部文件（未通过双击 .md 打开文件）：只显示管理仓库窗口，
-  //   并关闭当前主窗口，用户必须新建或打开仓库后才能进入编辑窗口
-  // - 有仓库或有外部文件：显示当前窗口正常使用
+  // 启动时窗口可见性策略（秒开版）：
+  // - 目标：用户点击 exe → 尽可能早看到主窗口（Rust 端 visible=true 已保证创建即显示）
+  // - 正常路径（有仓库 / 双击 .md 打开文件）：始终显示主窗口，不做跨窗口跳转
+  // - 无仓库且无外部文件：先立即显示主窗口（不阻塞），等 pending files 两次拉取结束后
+  //   再异步打开"管理仓库"窗口并隐藏/关闭主窗口，保证"用户始终能看到界面"
+  //
+  // 关键点：这里**不再依赖 externalLaunchSettled 作为前置条件**（否则被迫等 1.2s 的兜底二次拉取），
+  // 而是"先显示再说"——外部文件即便稍后到达也有事件监听 + useLayoutEffect 响应。
   useEffect(() => {
-    // 等待外部文件二次拉取兜底完成后才决定，避免竞态（首次拉取可能遗漏启动初期的事件）
-    if (!externalLaunchSettled) return;
-    if (vaults.length === 0 && !initialFilePath && !hasExternalFile) {
-      // 先确保管理仓库窗口成功打开，再关闭主窗口，避免应用无窗口退出。
-      // 关闭前通知 Rust 标记主窗口即将销毁，防止单实例回调向正在销毁的
-      // 窗口发消息触发 "PostMessage failed（0x80070578 无效的窗口句柄）"
-      (async () => {
-        try {
-          document.title = "DBG:S1-open";
-          await invoke("open_vault_manager_window");
-          document.title = "DBG:S2-notify";
-          await invoke("notify_main_closing");
-          document.title = "DBG:S3-close";
-          await getCurrentWindow().close();
-          document.title = "DBG:S4-closed";
-        } catch (e) {
-          document.title = "DBG:CATCH-" + String(e);
-          console.error("打开管理仓库窗口失败", e);
-          getCurrentWindow().show();
-        }
-      })();
-    } else {
-      document.title = "DBG:ELSE-SHOW";
-      getCurrentWindow().show();
+    const win = getCurrentWindow();
+    // 1) React 挂载完成立刻确保主窗口可见（Rust setup 里应该已经 show，
+    //    这里再调一次兜底：避免被插件、最小化恢复等意外隐藏）
+    bootStart("visibility_show_window");
+    bootStamp("visibility_show_window_called");
+    win.show().then(
+      () => {
+        bootStamp("visibility_window_shown");
+        bootEnd("visibility_show_window");
+        setTimeout(() => bootSummary(), 0);
+      },
+      (e) => {
+        console.warn("getCurrentWindow().show() 失败（忽略）", e);
+      }
+    );
+
+    // 2) 若仓库列表非空 → 直接进入正常路径，完全不等待 pending-files 二次拉取
+    if (vaults.length > 0 || !!initialFilePath) {
+      return;
     }
-  }, [externalLaunchSettled, hasExternalFile]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // 3) 无仓库分支：等 externalLaunchSettled 再做决策（防止"没仓库且也没外部文件"时，
+    //    管理仓库窗口过早抢焦点、或主窗口短暂出现后立刻消失引起闪烁）。
+    //    关键不同：主窗口仍已由上面 show() 显示，用户不会看到黑屏。
+    let cancelled = false;
+    (async () => {
+      // 通过事件订阅 or 轮询 settled：这里直接依赖 React state 的第二次渲染触发。
+      // 第一次渲染时 externalLaunchSettled=false，会走到下面的 early return；
+      // 当 setState(true) 后 effect 重新运行，此时才进入 settled 分支。
+    })();
+
+    if (!externalLaunchSettled) return;
+    if (hasExternalFile) return;
+
+    // 4) settled=true 且确实没有任何外部文件 → 打开管理仓库窗口 + 关闭主窗口
+    (async () => {
+      try {
+        bootStart("visibility_no_vault_path");
+        bootStamp("visibility_no_vault_before_open_vault_manager");
+        await invoke("open_vault_manager_window");
+        bootStamp("visibility_no_vault_after_open_vault_manager");
+        if (cancelled) return;
+        await invoke("notify_main_closing");
+        bootStamp("visibility_no_vault_after_notify_closing");
+        await win.close();
+        bootStamp("visibility_no_vault_after_close");
+        bootEnd("visibility_no_vault_path");
+      } catch (e) {
+        bootStamp("visibility_no_vault_catch_show_fallback");
+        bootEnd("visibility_no_vault_path");
+        console.error("打开管理仓库窗口失败（主窗口保持可见）", e);
+        win.show().catch(() => {});
+        bootStamp("visibility_window_shown_via_fallback");
+        setTimeout(() => bootSummary(), 0);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [externalLaunchSettled, hasExternalFile, vaults, initialFilePath]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 构建链接索引和标签索引（优化版：先缓存恢复 UI → 后台联合构建 → 统一持久化）
   useEffect(() => {
@@ -819,15 +864,21 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
     // 策略 A 第一步：同步加载 localStorage 缓存（毫秒级），让侧栏/反链/标签立即可用
     // 不关心是否成功：失败时 buildIndexesTogether 内部会降级全量构建
+    bootStart("index_restore_and_build");
+    bootStamp("index_restore_from_cache_start");
     const fromCache = restoreIndexesFromCache();
+    bootStamp("index_restore_from_cache_done");
 
     // 放到下一个 tick 再跑重量级 I/O，让首帧 UI 先渲染完成
     // （避免 useEffect 同步阻塞 React commit 阶段的绘制调度）
     const handle = window.setTimeout(async () => {
       try {
+        bootStamp("index_build_start");
         // fromCache 已由上方 restoreIndexesFromCache 确定，传入避免重复读取
         await buildIndexesTogether(vaultPath, { useCache: false, incremental: true, fromCache });
+        bootStamp("index_build_done");
       } catch (e) {
+        bootStamp("index_build_failed_fallback_start");
         // 新流程失败时安全降级到老的独立 buildIndex 组合，保证功能可用
         console.error("[App] 联合索引构建失败，降级为独立构建", e);
         try {
@@ -836,9 +887,13 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         try {
           await TagIndexService.buildIndex(vaultPath);
         } catch { /* ignore */ }
+        bootStamp("index_build_failed_fallback_done");
       } finally {
         // 无论新老流程成功与否，最后统一持久化（让下次启动有缓存可用）
         try { persistIndexesToStorage(); } catch { /* ignore */ }
+        bootStamp("index_persist_done");
+        bootEnd("index_restore_and_build");
+        setTimeout(() => bootSummary(), 0);
       }
     }, 0);
 
@@ -950,39 +1005,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     };
     saveWindowStateRef.current = saveWindowState;
 
-    // 恢复保存的窗口状态
-    (async () => {
-      try {
-        const saved = localStorage.getItem(stateKey);
-        if (!saved) return;
-        const state = JSON.parse(saved) as {
-          x: number; y: number; width: number; height: number; maximized: boolean;
-        };
-
-        // 钳制窗口尺寸和位置到显示器边界
-        const monitors = await availableMonitors();
-        if (monitors && monitors.length > 0 && state.width && state.height) {
-          const clamped = clampWindowToMonitor(
-            { x: state.x ?? 0, y: state.y ?? 0, width: state.width, height: state.height },
-            monitors
-          );
-          // 编辑窗口：位置/尺寸在 Rust 创建窗口时已按保存状态直接设置（或按编辑区尺寸居中），
-          // 前端不再二次移动，避免"先打开窗口再移动"的跳动；仅主窗口需要恢复
-          if (!isEditorWindow) {
-            await win.setSize(new PhysicalSize(clamped.width, clamped.height));
-            await win.setPosition(new PhysicalPosition(clamped.x, clamped.y));
-          }
-        }
-        // 编辑窗口不恢复最大化，保证新窗口宽度始终等于编辑区宽度
-        if (state.maximized && !isEditorWindow) {
-          await win.maximize();
-        }
-      } catch {
-        // 恢复失败则使用默认值
-      }
-    })();
-
     // 监听移动/缩放事件（防抖保存）
+    // 注：窗口启动时的尺寸/位置恢复由 Rust 端 tauri-plugin-window-state 负责
+    // （tauri.conf.json visible=false，setup 前插件恢复 SIZE/POSITION/MAXIMIZED，
+    //  setup 里 show()），比 JS 端启动后再恢复快 ~600ms，且完全没有跳动。
     let moveTimer: ReturnType<typeof setTimeout>;
     let resizeTimer: ReturnType<typeof setTimeout>;
 
@@ -1333,17 +1359,39 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   // 通过文件关联启动（双击 .md 文件）：冷启动时主动拉取队列，
   // 并延迟二次拉取兜底（应用启动初期的外部打开请求可能落在首次拉取之后、事件监听注册之前）
+  // 注意：这个延迟已**不再阻塞窗口显示**（窗口可见性在单独的 effect 中立即执行），
+  // 因此这里的 250ms 仅影响"无仓库且无外部文件时"管理仓库窗口出现的时机。
   useEffect(() => {
     if (initialFilePath) {
       // 新窗口模式（window=editor）：文件路径来自 URL 参数，不走外部队列
+      bootStamp("external_launch_initial_filepath_skip_queue");
       setExternalLaunchSettled(true);
       return;
     }
     (async () => {
-      await processPendingFiles();
+      bootStart("external_launch_pending_queue_fetch");
+      bootStamp("external_launch_first_fetch_start");
+      const openedFirst = await processPendingFiles();
+      bootStamp("external_launch_first_fetch_done");
+      if (openedFirst) {
+        // 首次已经拿到文件：不再等待第二次兜底拉取，立即 settled
+        setExternalLaunchSettled(true);
+        bootStamp("external_launch_settled_true");
+        bootEnd("external_launch_pending_queue_fetch");
+        return;
+      }
+      // 250ms 兜底（之前是 1200ms）：
+      //   - 用户没双击 .md：250ms 后 settled，"无仓库时"才能跳管理窗口
+      //   - 用户双击了但 first fetch 竞态漏掉：250ms 内再次拉取到队列
       setTimeout(() => {
-        processPendingFiles().then(() => setExternalLaunchSettled(true));
-      }, 1200);
+        bootStamp("external_launch_second_fetch_start");
+        processPendingFiles().then(() => {
+          bootStamp("external_launch_second_fetch_done");
+          setExternalLaunchSettled(true);
+          bootStamp("external_launch_settled_true");
+          bootEnd("external_launch_pending_queue_fetch");
+        });
+      }, 250);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -1,14 +1,32 @@
 import { lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
+import { bootStart, bootEnd, bootStamp, bootSummary, connectRustBootTiming } from "./boot-timing";
+
+// —— 最早的 JS 执行时间点（文件解析即执行，无需等待 import 完成）
+bootStart("main_entry_to_root_rendered");
+bootStamp("js_main_entry");
+
 import { ThemeProvider } from "./themes";
 import { LanguageProvider } from "./i18n/LanguageContext";
 import "./i18n"; // init i18next before first render
+bootStamp("i18n_imported_init_done");
+
 import "./themes.css";
 import "./global.css";
 
+// 开始接收 Rust boot-timing 事件（异步：不阻塞当前模块解析）
+connectRustBootTiming();
+bootStamp("rust_boot_listener_registered");
+
 // 按窗口代码分割：每个窗口只加载自身及其依赖的 chunk，
 // 避免启动/打开窗口时解析全部窗口的代码（显著降低首屏与窗口打开耗时）
-const App = lazy(() => import("./App"));
+bootStart("main_window_lazy_chunks_resolve");
+const App = lazy(() =>
+  import("./App").then((m) => {
+    bootStamp("App_chunk_resolved");
+    return m;
+  })
+);
 const Settings = lazy(() => import("./Settings"));
 const VaultManagerWindow = lazy(() => import("./VaultManager/VaultManagerWindow"));
 const MindmapWindow = lazy(() => import("./mindmap").then((m) => ({ default: m.MindmapWindow })));
@@ -42,6 +60,7 @@ if (import.meta.env.DEV) {
 }
 
 function Root() {
+  bootStamp("root_component_entered");
   const urlParams = new URLSearchParams(window.location.search);
   const isSettingsWindow = urlParams.get("window") === "settings";
   const isVaultManagerWindow = urlParams.get("window") === "vault-manager";
@@ -56,23 +75,29 @@ function Root() {
     : null;
 
   if (isSettingsWindow) {
+    bootEnd("main_window_lazy_chunks_resolve");
     return <Settings />;
   }
   if (isVaultManagerWindow) {
+    bootEnd("main_window_lazy_chunks_resolve");
     return <VaultManagerWindow />;
   }
   if (isMindmapWindow) {
+    bootEnd("main_window_lazy_chunks_resolve");
     return <MindmapWindow />;
   }
   if (isGraphWindow) {
+    bootEnd("main_window_lazy_chunks_resolve");
     return <GraphWindow />;
   }
   if (isCanvasWindow) {
+    bootEnd("main_window_lazy_chunks_resolve");
     return <CanvasWindow />;
   }
   return <App initialFilePath={initialFilePath} initialVaultPath={initialVaultPath} />;
 }
 
+bootStart("react_commit_root");
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <ThemeProvider>
     <LanguageProvider>
@@ -82,3 +107,15 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     </LanguageProvider>
   </ThemeProvider>,
 );
+
+// 首帧完成后，在"下一个 rAF + 下一个 macrotask"确认"用户可见第一帧"确实发生（commit→paint）
+requestAnimationFrame(() => {
+  setTimeout(() => {
+    bootStamp("first_paint_likely");
+    bootEnd("react_commit_root");
+    bootEnd("main_entry_to_root_rendered");
+    bootEnd("main_window_lazy_chunks_resolve");
+    // 首阶段时间点先打印一轮，后续 App 内部的埋点会继续追加到 stamps
+    bootSummary();
+  }, 0);
+});

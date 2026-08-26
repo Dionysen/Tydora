@@ -3,6 +3,29 @@ import { initReactI18next } from "react-i18next";
 import zhCN from "./locales/zh-CN.json";
 import enUS from "./locales/en-US.json";
 
+// 启动计时埋点（i18n 是 main.tsx 早期 import，因此这部分运行极早）
+// 必须在"副作用发生前"检查 window 是否存在，避免 SSR / 测试环境 undefined
+const bootStamp = (label: string) => {
+  try {
+    const w = globalThis as unknown as { __TYDORA_BOOT__?: Record<string, number>; performance?: Performance };
+    if (!w.__TYDORA_BOOT__) w.__TYDORA_BOOT__ = {};
+    const now = w.performance?.now?.() ?? Date.now();
+    w.__TYDORA_BOOT__[label] = now;
+    w.performance?.mark?.(`boot:${label}`);
+  } catch { /* ignore */ }
+};
+const bootStart = (label: string) => {
+  bootStamp(`start:${label}`);
+  try { (globalThis as any).console?.time?.(`BOOT:${label}`); } catch { /* ignore */ }
+};
+const bootEnd = (label: string) => {
+  bootStamp(`end:${label}`);
+  try { (globalThis as any).console?.timeEnd?.(`BOOT:${label}`); } catch { /* ignore */ }
+};
+
+bootStart("i18n_full_init_sync");
+bootStamp("i18n_before_getStoredLanguage");
+
 const STORAGE_KEY = "zmd-language";
 
 export const SUPPORTED_LANGUAGES = [
@@ -32,10 +55,12 @@ export function persistLanguage(lang: SupportedLanguage): void {
   }
 }
 
+bootStamp("i18n_before_resources_object");
 const resources = {
   "zh-CN": { translation: zhCN },
   "en-US": { translation: enUS },
 };
+bootStamp("i18n_before_init_call");
 
 i18n.use(initReactI18next).init({
   resources,
@@ -45,5 +70,8 @@ i18n.use(initReactI18next).init({
     escapeValue: false, // React already escapes
   },
 });
+
+bootStamp("i18n_after_init_call");
+bootEnd("i18n_full_init_sync");
 
 export default i18n;

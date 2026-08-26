@@ -7,6 +7,7 @@
   height: 100%;
   overflow: hidden;
   box-sizing: border-box;
+  position: relative;
 }
 
 .terminal-toolbar {
@@ -121,4 +122,320 @@
   height: 8px;
   border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+/* ── 终端右键菜单 ── */
+
+.terminal-context-menu {
+  position: fixed;
+  z-index: 9000;
+  min-width: 200px;
+  background: var(--bg-secondary, #252526);
+  border: 1px solid var(--border, #333);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  padding: 4px;
+}
+
+.terminal-context-menu .context-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary, #d4d4d4);
+  transition: background 0.1s ease;
+  white-space: nowrap;
+  gap: 8px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.terminal-context-menu .context-menu-item:hover {
+  background: var(--accent, #094771);
+  color: var(--bg-primary, #fff);
+}
+
+.terminal-context-menu .context-menu-item.danger:hover {
+  background: var(--danger, #e5484d);
+}
+
+.terminal-context-menu .context-menu-item.disabled {
+  color: var(--text-secondary, #666);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.terminal-context-menu .context-menu-item.disabled:hover {
+  background: transparent;
+  color: var(--text-secondary, #666);
+}
+
+.terminal-context-menu .context-menu-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-secondary, #9da3ab);
+}
+
+.terminal-context-menu .context-menu-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.terminal-context-menu .context-menu-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: 8px;
+  opacity: 0.6;
+}
+
+.terminal-context-menu .context-menu-item.has-submenu.open {
+  background: var(--accent, #094771);
+  color: var(--bg-primary, #fff);
+}
+
+.terminal-context-menu .context-menu-item.has-submenu.open .context-menu-icon,
+.terminal-context-menu .context-menu-item.has-submenu.open .context-menu-chevron {
+  color: var(--bg-primary, #fff);
+  opacity: 0.8;
+}
+
+.terminal-context-menu .context-menu-divider {
+  height: 1px;
+  background: var(--border, #333);
+  margin: 4px 8px;
+}
+
+.terminal-context-menu .context-submenu {
+  position: fixed;
+  z-index: 9001;
+  min-width: 180px;
+  background: var(--bg-secondary, #252526);
+  border: 1px solid var(--border, #333);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  padding: 4px;
+}
+
+/* 浅色主题下的终端右键菜单 */
+.terminal-theme-light .terminal-context-menu {
+  background: #ffffff;
+  border-color: #e3e5e8;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.terminal-theme-light .terminal-context-menu .context-menu-item {
+  color: #1f2328;
+}
+
+.terminal-theme-light .terminal-context-menu .context-menu-item:hover {
+  background: #094771;
+  color: #ffffff;
+}
+
+.terminal-theme-light .terminal-context-menu .context-menu-item.danger:hover {
+  background: #e5484d;
+}
+
+.terminal-theme-light .terminal-context-menu .context-menu-icon {
+  color: #57606a;
+}
+
+.terminal-theme-light .terminal-context-menu .context-menu-divider {
+  background: #e3e5e8;
+}
+
+.terminal-theme-light .terminal-context-menu .context-submenu {
+  background: #ffffff;
+  border-color: #e3e5e8;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* ── 终端查找面板 ── */
+
+.terminal-search-bar {
+  position: absolute;
+  top: 32px;
+  right: 8px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--bg-secondary, #252526);
+  border: 1px solid var(--border, #333);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  animation: terminal-search-in 0.12s ease-out;
+}
+
+@keyframes terminal-search-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.terminal-search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--bg-primary, #1e1e1e);
+  border: 1px solid var(--border, #333);
+  border-radius: 4px;
+  padding: 0 4px;
+  height: 26px;
+  width: 200px;
+}
+
+.terminal-search-icon {
+  color: var(--text-secondary, #666);
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.terminal-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary, #d4d4d4);
+  font-size: 12px;
+  outline: none;
+  height: 100%;
+  line-height: 26px;
+  min-width: 0;
+}
+
+.terminal-search-input::placeholder {
+  color: var(--text-secondary, #666);
+}
+
+.terminal-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: var(--border, #333);
+  border-radius: 50%;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.terminal-search-clear:hover {
+  background: var(--text-secondary, #666);
+  color: var(--bg-primary, #1e1e1e);
+}
+
+.terminal-search-match-count {
+  font-size: 12px;
+  color: var(--text-secondary, #9da3ab);
+  min-width: 48px;
+  text-align: center;
+  user-select: none;
+}
+
+.terminal-search-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.terminal-search-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary, #9da3ab);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.terminal-search-btn:hover:not(:disabled) {
+  background: var(--border, #333);
+  color: var(--text-primary, #d4d4d4);
+}
+
+.terminal-search-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.terminal-search-btn.active {
+  background: var(--accent, #094771);
+  color: #ffffff;
+}
+
+.terminal-search-close:hover {
+  color: var(--danger, #e5484d) !important;
+}
+
+/* 浅色主题下的查找面板 */
+.terminal-theme-light .terminal-search-bar {
+  background: #ffffff;
+  border-color: #e3e5e8;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.terminal-theme-light .terminal-search-input-wrap {
+  background: #ffffff;
+  border-color: #e3e5e8;
+}
+
+.terminal-theme-light .terminal-search-input {
+  color: #1f2328;
+}
+
+.terminal-theme-light .terminal-search-input::placeholder {
+  color: #8b949e;
+}
+
+.terminal-theme-light .terminal-search-icon {
+  color: #57606a;
+}
+
+.terminal-theme-light .terminal-search-match-count {
+  color: #57606a;
+}
+
+.terminal-theme-light .terminal-search-btn {
+  color: #57606a;
+}
+
+.terminal-theme-light .terminal-search-btn:hover:not(:disabled) {
+  background: #e3e5e8;
+  color: #1f2328;
+}
+
+.terminal-theme-light .terminal-search-btn.active {
+  background: #094771;
+  color: #ffffff;
+}
+
+.terminal-theme-light .terminal-search-clear {
+  background: #e3e5e8;
+  color: #57606a;
+}
+
+.terminal-theme-light .terminal-search-clear:hover {
+  background: #57606a;
+  color: #ffffff;
 }

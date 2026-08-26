@@ -5,7 +5,7 @@
  * 分屏/关闭的实际布局操作由父级（App）通过 onSplit / onClose 回调执行，
  * 以保持布局树逻辑集中在 App 中。
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import type { UnlistenFn } from "@tauri-apps/api/event";
@@ -28,6 +28,8 @@ import {
   TERMINAL_MAX_FONT_SIZE,
 } from "./terminal-settings";
 import { createOscTitleParser } from "./oscTitleParser";
+import { TerminalContextMenu } from "./TerminalContextMenu";
+import { TerminalSearch } from "./TerminalSearch";
 
 export type SplitDirection = "lr" | "tb";
 
@@ -58,11 +60,57 @@ export function TerminalView({
   onFontSizeChange,
 }: TerminalViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  // xterm 实例与 fit 插件持有在 ref 中，便于“字号订阅” effect 在挂载后更新字号而不重建会话。
+  // xterm 实例与 fit 插件持有在 ref 中，便于"字号订阅" effect 在挂载后更新字号而不重建会话。
   const termRef = useRef<XTerm | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
-  // 工具栏“智能标题”：默认显示路径，shell/程序通过 OSC 标题序列覆盖为当前运行命令（如 htop）。
+  // 工具栏"智能标题"：默认显示路径，shell/程序通过 OSC 标题序列覆盖为当前运行命令（如 htop）。
   const [title, setTitle] = useState<string>(cwd || "终端");
+  // 右键菜单状态
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+  // 查找面板状态
+  const [showSearch, setShowSearch] = useState(false);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setCtxMenu({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  const handleCopy = useCallback(async () => {
+    const term = termRef.current;
+    if (!term) return;
+    const selection = term.getSelection();
+    if (selection) {
+      try {
+        await navigator.clipboard.writeText(selection);
+      } catch {
+        // fallback: use legacy execCommand
+        const ta = document.createElement("textarea");
+        ta.value = selection;
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand("copy");
+        } catch {}
+        document.body.removeChild(ta);
+      }
+    }
+  }, []);
+
+  const handlePaste = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        await writeTerminal(sessionId, text);
+      }
+    } catch {
+      // clipboard read may fail (permissions); silently ignore
+    }
+  }, [sessionId]);
+
+  const handleFind = useCallback(() => {
+    setShowSearch(true);
+    setCtxMenu(null);
+  }, []);
 
   // 生命周期：依赖于会话 id、工作目录、应用明暗主题（仅 auto 配色方案需要）。
   // 注意：配色/字体/字号的热更新由下方的订阅 effect 处理，不触发此处重建，
@@ -255,7 +303,33 @@ export function TerminalView({
           </button>
         </div>
       </div>
-      <div className="terminal-body" ref={containerRef} />
+      <div
+        className="terminal-body"
+        ref={containerRef}
+        onContextMenu={handleContextMenu}
+        onMouseUp={() => {
+          if (ctxMenu) setCtxMenu(null);
+        }}
+      />
+      {showSearch && termRef.current && (
+        <TerminalSearch
+          terminal={termRef.current}
+          onClose={() => setShowSearch(false)}
+        />
+      )}
+      {ctxMenu && termRef.current && (
+        <TerminalContextMenu
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          hasSelection={termRef.current.hasSelection()}
+          onClose={() => setCtxMenu(null)}
+          onCopy={handleCopy}
+          onPaste={handlePaste}
+          onFind={handleFind}
+          onSplit={(dir) => onSplit(dir)}
+          onClosePane={onClose}
+        />
+      )}
     </div>
   );
 }

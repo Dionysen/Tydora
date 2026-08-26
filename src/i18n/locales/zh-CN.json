@@ -82,6 +82,24 @@
       "fontCustomPlaceholder": "输入字体族名称，回车或失焦生效",
       "fontSize": "字号",
       "fontSizeDesc": "终端文字大小，也可在终端内 Ctrl + 滚轮快速缩放。",
+      "contextMenu": {
+        "copy": "复制",
+        "paste": "粘贴",
+        "find": "查找",
+        "splitPane": "拆分窗格",
+        "splitLeftRight": "左右分屏",
+        "splitTopBottom": "上下分屏",
+        "closePane": "关闭标签页"
+      },
+      "search": {
+        "placeholder": "在终端中查找...",
+        "next": "下一个 (Enter)",
+        "prev": "上一个 (Shift+Enter)",
+        "matchCase": "区分大小写",
+        "clear": "清空",
+        "close": "关闭 (Esc)",
+        "noResults": "无匹配"
+      },
       "scheme": {
         "auto": "自动（跟随主题）",
         "campbell": "Campbell",

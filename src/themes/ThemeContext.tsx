@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
+import { bootStart, bootEnd, bootStamp } from "../boot-timing";
 import { emit, listen } from "@tauri-apps/api/event";
 import { isBuiltinTheme } from "./ThemeManager";
 import { getCodeThemeVariables, getDefaultCodeTheme } from "./codeThemes";
@@ -54,6 +55,8 @@ const STORAGE_KEY = "zmd-theme";
 const EVENT_NAME = "theme-changed";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  bootStart("theme_provider_init");
+  bootStamp("theme_before_init");
   const [theme, setThemeState] = useState<ThemeName>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -103,7 +106,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // 延迟 500ms 加载自定义主题，避免启动时 FS IPC 阻塞首屏
-    const timer = setTimeout(() => refreshCustomThemes(), 500);
+    bootStamp("theme_custom_load_scheduled");
+    const timer = setTimeout(() => {
+      bootStart("theme_custom_themes_load");
+      refreshCustomThemes()
+        .catch(() => {})
+        .finally(() => bootEnd("theme_custom_themes_load"));
+    }, 500);
     return () => clearTimeout(timer);
   }, [refreshCustomThemes]);
 
@@ -131,12 +140,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // 延迟 500ms 加载自定义代码主题，避免启动时 FS IPC 阻塞首屏
-    const timer = setTimeout(() => refreshCustomCodeThemes(), 500);
+    bootStamp("theme_custom_code_load_scheduled");
+    const timer = setTimeout(() => {
+      bootStart("theme_custom_code_themes_load");
+      refreshCustomCodeThemes()
+        .catch(() => {})
+        .finally(() => bootEnd("theme_custom_code_themes_load"));
+    }, 500);
     return () => clearTimeout(timer);
   }, [refreshCustomCodeThemes]);
 
   // ── Apply theme ──
   useEffect(() => {
+    bootStamp("theme_apply_effect_run");
     localStorage.setItem(STORAGE_KEY, theme);
 
     if (isBuiltinTheme(theme)) {
@@ -296,6 +312,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  bootStamp("theme_provider_render_children");
+  bootEnd("theme_provider_init");
   return (
     <ThemeContext.Provider
       value={{

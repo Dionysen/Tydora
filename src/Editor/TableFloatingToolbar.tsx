@@ -26,7 +26,10 @@ export function TableFloatingToolbar({ editor, tableElement, onClose, onContentC
 
   // 调整表格大小（通过 Markdown 操作）
   const handleResizeTable = useCallback((targetRows: number, targetCols: number) => {
-    const md = (editor.storage as any).markdown.getMarkdown();
+    const mdStorage = (editor.storage as any)?.markdown;
+    if (!mdStorage || typeof mdStorage.getMarkdown !== "function") return;
+    const md = mdStorage.getMarkdown();
+    if (typeof md !== "string") return;
     const lines = md.split("\n");
 
     // 找到表格的起止行

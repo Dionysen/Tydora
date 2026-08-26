@@ -82,6 +82,24 @@
       "fontCustomPlaceholder": "Enter font-family, press Enter or blur to apply",
       "fontSize": "Font Size",
       "fontSizeDesc": "Terminal text size. You can also Ctrl + scroll in the terminal to zoom.",
+      "contextMenu": {
+        "copy": "Copy",
+        "paste": "Paste",
+        "find": "Find",
+        "splitPane": "Split Pane",
+        "splitLeftRight": "Split Left Right",
+        "splitTopBottom": "Split Top Bottom",
+        "closePane": "Close Tab"
+      },
+      "search": {
+        "placeholder": "Find in terminal...",
+        "next": "Next (Enter)",
+        "prev": "Previous (Shift+Enter)",
+        "matchCase": "Match Case",
+        "clear": "Clear",
+        "close": "Close (Esc)",
+        "noResults": "No matches"
+      },
       "scheme": {
         "auto": "Auto (follow theme)",
         "campbell": "Campbell",
