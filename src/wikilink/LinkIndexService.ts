@@ -2,6 +2,7 @@
 
 import { readDir, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { parseWikiLinks } from "./LinkParser";
+import type { VaultFileScan } from "../services/vault-file-scanner";
 
 export interface LinkIndex {
   // 出链：文件路径 → 该文件包含的所有链接目标笔记名
@@ -29,7 +30,8 @@ class LinkIndexServiceImpl {
   };
   
   /**
-   * 全量构建索引（批量读取优化）
+   * 全量构建索引（批量读取优化）。
+   * 保留原始签名以向后兼容；新调用点优先使用 buildIndexWithScan。
    */
   async buildIndex(vaultPath: string): Promise<void> {
     this.index = {
@@ -68,20 +70,156 @@ class LinkIndexServiceImpl {
 
       for (let j = 0; j < chunk.length; j++) {
         if (contents[j]) {
-          const links = parseWikiLinks(contents[j]);
-          const targets = links.map(l => l.noteName);
-          this.index.outlinks.set(chunk[j], targets);
-
-          for (const target of targets) {
-            const existing = this.index.backlinks.get(target) || [];
-            if (!existing.includes(chunk[j])) {
-              existing.push(chunk[j]);
-              this.index.backlinks.set(target, existing);
-            }
-          }
+          const noteName = this.pathToNoteName(chunk[j], vaultPath);
+          this.addFileLinksInternal(chunk[j], noteName, contents[j]);
         }
       }
     }
+  }
+
+  /**
+   * 使用外部共享扫描结果构建索引（策略 B：消除重复遍历）。
+   *
+   * 可选传 contents：若 index-builder 已批量 readTextFile 则直接复用（策略 C）；
+   * 否则本方法内部自行批量读取。
+   *
+   * 注意：本方法不清空现有索引。若需要"干净重建"，调用方先自行 clear()
+   * 或在调用时配合 deserialize 做增量刷新。
+   */
+  async buildIndexWithScan(
+    vaultPath: string,
+    scan: VaultFileScan,
+    contents?: Map<string, string>,
+  ): Promise<void> {
+    // 1. 图片索引（同名取路径最短）
+    for (const { path, name } of scan.imageFiles) {
+      const lower = name.toLowerCase();
+      const existing = this.index.imageByName.get(lower);
+      if (!existing || path.length < existing.length) {
+        this.index.imageByName.set(lower, path);
+      }
+    }
+
+    // 2. 文件名索引（md + canvas）
+    const noteFiles: string[] = [];
+    for (const path of scan.mdFiles) {
+      noteFiles.push(path);
+      const noteName = this.pathToNoteName(path, vaultPath);
+      // 同名笔记：优先保留路径更短（层级更浅）的那条（与原 buildIndex 行为一致）
+      const existingPath = this.index.fileByName.get(noteName);
+      if (!existingPath || path.length < existingPath.length) {
+        this.index.fileByName.set(noteName, path);
+      }
+    }
+    for (const path of scan.canvasFiles) {
+      noteFiles.push(path);
+      const noteName = this.pathToNoteName(path, vaultPath);
+      const existingPath = this.index.fileByName.get(noteName);
+      if (!existingPath || path.length < existingPath.length) {
+        this.index.fileByName.set(noteName, path);
+      }
+    }
+
+    // 3. 批量解析链接（策略 C：外部已提供 contents 时直接用；否则自己读）
+    const CHUNK_SIZE = 50;
+    for (let i = 0; i < noteFiles.length; i += CHUNK_SIZE) {
+      const chunk = noteFiles.slice(i, i + CHUNK_SIZE);
+      const chunkContents = await Promise.all(
+        chunk.map((p) => {
+          const cached = contents?.get(p);
+          if (cached !== undefined) return cached;
+          return readTextFile(p).catch(() => "");
+        }),
+      );
+      for (let j = 0; j < chunk.length; j++) {
+        const text = chunkContents[j];
+        if (text) {
+          const noteName = this.pathToNoteName(chunk[j], vaultPath);
+          this.addFileLinksInternal(chunk[j], noteName, text);
+        }
+      }
+    }
+  }
+
+  /**
+   * 已有内容字符串时，同步把 wiki 链接解析结果写入索引。
+   * 供 index-builder（策略 C 共享 readTextFile 结果）或增量刷新复用。
+   */
+  addFileLinksInternal(filePath: string, noteName: string, content: string): void {
+    // 先清旧反链，避免同一文件重复入索引导致反链重复
+    const oldTargets = this.index.outlinks.get(filePath) || [];
+    for (const oldTarget of oldTargets) {
+      const sources = this.index.backlinks.get(oldTarget);
+      if (sources) {
+        const filtered = sources.filter((s) => s !== filePath);
+        if (filtered.length === 0) {
+          this.index.backlinks.delete(oldTarget);
+        } else {
+          this.index.backlinks.set(oldTarget, filtered);
+        }
+      }
+    }
+
+    const links = parseWikiLinks(content);
+    const targets = links.map((l) => l.noteName);
+    this.index.outlinks.set(filePath, targets);
+
+    for (const target of targets) {
+      const existing = this.index.backlinks.get(target) || [];
+      if (!existing.includes(filePath)) {
+        existing.push(filePath);
+        this.index.backlinks.set(target, existing);
+      }
+    }
+
+    // 同步刷新 fileByName：确保该文件能被 WikiLink 自动补全/反链查询定位
+    const existingPath = this.index.fileByName.get(noteName);
+    if (!existingPath || filePath.length < existingPath.length) {
+      this.index.fileByName.set(noteName, filePath);
+    }
+  }
+
+  /** 判断某个文件路径是否已有出链记录（用于增量刷新对比）。 */
+  isIndexed(filePath: string): boolean {
+    return this.index.outlinks.has(filePath);
+  }
+
+  /**
+   * 幂等地把 noteName → filePath 写入 fileByName（同名取路径更短者）。
+   * 供 index-builder 在"只补齐文件名索引、不想重读文件内容"场景下直接调用，
+   * 避免走 buildIndexWithScan 触发对 md/canvas 的不必要 readTextFile。
+   */
+  ensureFileByName(noteName: string, filePath: string): void {
+    const existing = this.index.fileByName.get(noteName);
+    if (!existing || filePath.length < existing.length) {
+      this.index.fileByName.set(noteName, filePath);
+    }
+  }
+
+  /**
+   * 幂等地把图片名（小写，含扩展名）→ 图片路径写入 imageByName。
+   * 同名图片保留路径更短者。
+   */
+  ensureImageByName(lowerName: string, filePath: string): void {
+    const existing = this.index.imageByName.get(lowerName);
+    if (!existing || filePath.length < existing.length) {
+      this.index.imageByName.set(lowerName, filePath);
+    }
+  }
+
+  /** 清空内存中的所有索引数据（切仓库或需要干净重建时使用）。 */
+  clear(): void {
+    this.index = {
+      outlinks: new Map(),
+      backlinks: new Map(),
+      fileByName: new Map(),
+      imageByName: new Map(),
+    };
+  }
+
+  /** 路径转笔记名；原 private，公开后供 index-builder 与外部增量刷新复用。 */
+  toNoteName(filePath: string, vaultPath: string): string {
+    return this.pathToNoteName(filePath, vaultPath);
   }
   
   /**

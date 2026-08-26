@@ -104,7 +104,9 @@
     "react-dom": "^19.0.0",
     "react-i18next": "^17.0.11",
     "tiptap-markdown": "^0.9.0",
-    "zustand": "^5.0.14"
+    "zustand": "^5.0.14",
+    "@xterm/xterm": "^5.5.0",
+    "@xterm/addon-fit": "^0.10.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",

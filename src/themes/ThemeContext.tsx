@@ -102,7 +102,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshCustomThemes();
+    // 延迟 500ms 加载自定义主题，避免启动时 FS IPC 阻塞首屏
+    const timer = setTimeout(() => refreshCustomThemes(), 500);
+    return () => clearTimeout(timer);
   }, [refreshCustomThemes]);
 
   // ── Load custom code themes on mount ──
@@ -128,7 +130,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshCustomCodeThemes();
+    // 延迟 500ms 加载自定义代码主题，避免启动时 FS IPC 阻塞首屏
+    const timer = setTimeout(() => refreshCustomCodeThemes(), 500);
+    return () => clearTimeout(timer);
   }, [refreshCustomCodeThemes]);
 
   // ── Apply theme ──

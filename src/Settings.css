@@ -571,6 +571,37 @@
   color: var(--text-primary);
 }
 
+/* ── Terminal Color Scheme Cards ───────────────────────────────── */
+
+/* 终端配色方案卡片预览：复用 .settings-theme-preview 的尺寸/圆角/裁剪，
+   覆盖其默认浅色底与居中布局，改为按方案背景（内联 style）左对齐排布。 */
+.terminal-scheme-preview {
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+/* 卡片内的迷你终端：背景为方案底色，彩色横条模拟彩色输出，直观预览配色。 */
+.terminal-scheme-mock {
+  width: 100%;
+  height: 100%;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+}
+
+.terminal-scheme-line {
+  height: 5px;
+  border-radius: 3px;
+  opacity: 0.92;
+}
+
+/* 终端字体输入框：给控制区一个舒适的最小宽度（样式沿用 .settings-input）。 */
+.terminal-font-input {
+  min-width: 260px;
+}
+
 /* ── Custom Theme Card ─────────────────────────────────────────── */
 
 .custom-theme-card {

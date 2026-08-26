@@ -1,0 +1,124 @@
+/* 终端面板布局与工具栏样式（浅色 / 深色各一套，避免依赖应用内部 CSS 变量名） */
+
+.terminal-pane {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.terminal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  flex: 0 0 auto;
+  padding: 0 6px 0 10px;
+  font-size: 12px;
+  user-select: none;
+}
+
+.terminal-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 90px);
+}
+
+.terminal-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.terminal-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.75;
+}
+
+.terminal-tool-btn:hover {
+  opacity: 1;
+}
+
+.terminal-tool-close:hover {
+  color: #e5484d;
+}
+
+.terminal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 4px 6px 6px;
+  overflow: hidden;
+}
+
+/* xterm 容器撑满 */
+.terminal-body .xterm {
+  height: 100%;
+}
+
+.terminal-body .xterm .xterm-viewport {
+  overflow-y: auto;
+}
+
+/* ── 浅色主题 ── */
+.terminal-theme-light {
+  background: #ffffff;
+  color: #1f2328;
+}
+.terminal-theme-light .terminal-toolbar {
+  background: #f3f4f6;
+  border-bottom: 1px solid #e3e5e8;
+  color: #57606a;
+}
+.terminal-theme-light .terminal-tool-btn:hover {
+  background: #e3e5e8;
+}
+
+/* ── 深色主题 ── */
+.terminal-theme-dark {
+  background: #1e1e1e;
+  color: #d4d4d4;
+}
+.terminal-theme-dark .terminal-toolbar {
+  background: #252526;
+  border-bottom: 1px solid #333333;
+  color: #9da3ab;
+}
+.terminal-theme-dark .terminal-tool-btn:hover {
+  background: #333333;
+}
+
+/* ── 终端设置页：配色方案色块预览 ────────────────────────────── */
+
+.terminal-scheme-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--settings-border, rgba(0, 0, 0, 0.1));
+  font-size: 11px;
+  line-height: 1;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+.terminal-scheme-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}

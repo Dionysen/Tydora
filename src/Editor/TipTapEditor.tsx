@@ -28,23 +28,9 @@ import HardBreak from "@tiptap/extension-hard-break";
 import { Markdown } from "tiptap-markdown";
 import { defaultMarkdownSerializer } from "prosemirror-markdown";
 import { common, createLowlight } from "lowlight";
-import vimLang from "highlight.js/lib/languages/vim";
-import dockerfileLang from "highlight.js/lib/languages/dockerfile";
-import powershellLang from "highlight.js/lib/languages/powershell";
-import latexLang from "highlight.js/lib/languages/latex";
-import nginxLang from "highlight.js/lib/languages/nginx";
-import cmakeLang from "highlight.js/lib/languages/cmake";
-import scalaLang from "highlight.js/lib/languages/scala";
-import haskellLang from "highlight.js/lib/languages/haskell";
-import elixirLang from "highlight.js/lib/languages/elixir";
-import juliaLang from "highlight.js/lib/languages/julia";
-import tclLang from "highlight.js/lib/languages/tcl";
-import propertiesLang from "highlight.js/lib/languages/properties";
-import gradleLang from "highlight.js/lib/languages/gradle";
 import { Frontmatter } from "./extensions/frontmatter";
 import { Callout } from "./extensions/callout";
 import { Mermaid } from "./extensions/mermaid";
-import { mermaidHljsLang } from "./extensions/mermaid-language";
 import { WikiLink } from "./extensions/wiki-link";
 import { Tag } from "./extensions/tag";
 import { SearchHighlight } from "./extensions/search-highlight";
@@ -75,20 +61,16 @@ import "katex/dist/katex.min.css";
 import "../tags/Tag.css";
 
 const lowlight = createLowlight(common);
-lowlight.register("vim", vimLang);
-lowlight.register("dockerfile", dockerfileLang);
-lowlight.register("powershell", powershellLang);
-lowlight.register("latex", latexLang);
-lowlight.register("nginx", nginxLang);
-lowlight.register("cmake", cmakeLang);
-lowlight.register("scala", scalaLang);
-lowlight.register("haskell", haskellLang);
-lowlight.register("elixir", elixirLang);
-lowlight.register("julia", juliaLang);
-lowlight.register("tcl", tclLang);
-lowlight.register("properties", propertiesLang);
-lowlight.register("gradle", gradleLang);
-lowlight.register("mermaid", mermaidHljsLang);
+// 额外语言（vim/dockerfile/haskell 等 14 种）在首帧渲染后动态 import 注册，
+// 避免启动时同步加载这些语言定义（移入独立 chunk）。
+let extraLanguagesRegistered = false;
+function ensureExtraLanguages() {
+  if (extraLanguagesRegistered) return;
+  extraLanguagesRegistered = true;
+  import("./extra-lowlight-languages").then(({ registerExtraLanguages }) => {
+    registerExtraLanguages(lowlight);
+  }).catch(() => {});
+}
 
 // 图片源码编辑面板：同一时刻只允许一个（所有图片 node view 共享）
 let activeImageSourceEditorClose: (() => void) | null = null;
@@ -198,6 +180,9 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
     currentFilePathRef.current = currentFilePath;
     activeVaultPathRef.current = activeVaultPath;
     imageSettingsRef.current = imageSettings;
+
+    // 首帧渲染后异步注册额外 lowlight 语言（vim/haskell 等 14 种）
+    useEffect(() => { ensureExtraLanguages(); }, []);
 
     const editor = useEditor({
       extensions: [

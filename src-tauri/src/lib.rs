@@ -9,6 +9,9 @@ use commands::watcher_commands::{watch_vault, unwatch_vault, WatcherState};
 use commands::remote_image::{fetch_remote_image, HttpClientState};
 use commands::proxy::{start_proxy_server, fetch_page_title};
 use commands::file_commands::list_dir_with_meta;
+use commands::terminal_commands::{
+    spawn_terminal, write_terminal, resize_terminal, kill_terminal, TerminalManager,
+};
 
 struct PreviewServer(Mutex<Option<std::process::Child>>);
 
@@ -1716,7 +1719,11 @@ pub fn run() {
             create_export_file,
             append_export_file,
             notify_main_closing,
-            list_dir_with_meta
+            list_dir_with_meta,
+            spawn_terminal,
+            write_terminal,
+            resize_terminal,
+            kill_terminal
         ])
         .setup(|app| {
             // 初始化文件监听器状态
@@ -1725,6 +1732,7 @@ pub fn run() {
             app.manage(HttpClientState::new());
             app.manage(PendingFiles(std::sync::Mutex::new(Vec::new())));
             app.manage(MainWindowClosing::default());
+            app.manage(TerminalManager::default());
 
             // 处理命令行参数（从文件管理器"打开方式"启动时传入的文件路径）：
             // 放入待打开队列，由前端加载完成后通过 take_pending_files 主动拉取

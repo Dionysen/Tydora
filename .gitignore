@@ -63,6 +63,7 @@ htmlcov/
 .claude/
 .mimocode/
 .codebuddy/
+.workbuddy/
 .trae/
 
 # Temporary files

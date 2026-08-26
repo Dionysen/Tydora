@@ -85,7 +85,7 @@ class TagIndexServiceImpl {
     return files;
   }
 
-  /** 全量构建标签索引 */
+  /** 全量构建标签索引（保留原始签名以向后兼容；新调用点优先使用 buildIndexWithFiles）。 */
   async buildIndex(vaultPath: string): Promise<void> {
     this.index = {
       fileTags: new Map(),
@@ -95,21 +95,43 @@ class TagIndexServiceImpl {
     if (!vaultPath) return;
 
     const files = await this.getAllMarkdownFiles(vaultPath);
+    await this.buildIndexWithFiles(files);
+  }
+
+  /**
+   * 基于外部提供的 md 文件列表构建索引（策略 B：消除重复的目录遍历 IPC）。
+   * 可选 contents 参数：若 index-builder 已批量 readTextFile 则直接复用（策略 C）。
+   *
+   * 注意：本方法不清空现有索引；切仓库或全量重建时，调用方先 clear() 或配合 deserialize 使用。
+   */
+  async buildIndexWithFiles(
+    mdFiles: string[],
+    contents?: Map<string, string>,
+  ): Promise<void> {
     const CHUNK_SIZE = 50;
-    for (let i = 0; i < files.length; i += CHUNK_SIZE) {
-      const chunk = files.slice(i, i + CHUNK_SIZE);
-      const contents = await Promise.all(
-        chunk.map((f) => readTextFile(f).catch(() => ""))
+    for (let i = 0; i < mdFiles.length; i += CHUNK_SIZE) {
+      const chunk = mdFiles.slice(i, i + CHUNK_SIZE);
+      const chunkContents = await Promise.all(
+        chunk.map((p) => {
+          const cached = contents?.get(p);
+          if (cached !== undefined) return cached;
+          return readTextFile(p).catch(() => "");
+        }),
       );
       for (let j = 0; j < chunk.length; j++) {
-        if (contents[j]) {
-          this.addFileTagsInternal(chunk[j], contents[j]);
+        if (chunkContents[j]) {
+          this.addFileTagsInternalSync(chunk[j], chunkContents[j]);
         }
       }
     }
   }
 
-  private addFileTagsInternal(filePath: string, content: string) {
+  /**
+   * 已有内容字符串时，同步写入标签索引。
+   * 供 index-builder（策略 C 共享 readTextFile 结果）与增量刷新复用。
+   * 原 private addFileTagsInternal 改名并升级为 public，语义一致。
+   */
+  addFileTagsInternalSync(filePath: string, content: string): void {
     // 移除旧的
     this.removeFileTagsInternal(filePath);
 
@@ -125,6 +147,11 @@ class TagIndexServiceImpl {
       }
       this.index.tagCount.set(tag, (this.index.tagCount.get(tag) || 0) + 1);
     }
+  }
+
+  /** 与 addFileTagsInternalSync 语义相同；保留旧名作为内部别名，降低外部引用风险。 */
+  private addFileTagsInternal(filePath: string, content: string): void {
+    this.addFileTagsInternalSync(filePath, content);
   }
 
   private removeFileTagsInternal(filePath: string) {
@@ -145,6 +172,36 @@ class TagIndexServiceImpl {
       }
       this.index.fileTags.delete(filePath);
     }
+  }
+
+  /** 将索引序列化为 JSON（持久化到 localStorage，跨启动复用 → 策略 A）。 */
+  serialize(): string {
+    return JSON.stringify({
+      fileTags: Array.from(this.index.fileTags.entries()),
+      tagFiles: Array.from(this.index.tagFiles.entries()),
+      tagCount: Array.from(this.index.tagCount.entries()),
+    });
+  }
+
+  /** 从 JSON 反序列化恢复索引（毫秒级恢复，策略 A 的关键）。 */
+  deserialize(json: string): void {
+    try {
+      const data = JSON.parse(json) as {
+        fileTags?: Array<[string, string[]]>;
+        tagFiles?: Array<[string, string[]]>;
+        tagCount?: Array<[string, number]>;
+      };
+      this.index.fileTags = new Map(data.fileTags || []);
+      this.index.tagFiles = new Map(data.tagFiles || []);
+      this.index.tagCount = new Map(data.tagCount || []);
+    } catch {
+      // 数据损坏或版本不兼容时忽略，调用方随后会走全量重建兜底。
+    }
+  }
+
+  /** 索引是否为空（用于判断 deserialize 是否生效、决定是否需要全量构建）。 */
+  isEmpty(): boolean {
+    return this.index.fileTags.size === 0;
   }
 
   /** 增量更新单个文件的标签 */
