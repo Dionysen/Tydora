@@ -143,6 +143,14 @@ fn take_pending_files(state: State<'_, PendingFiles>) -> Vec<String> {
     std::mem::take(&mut *state.0.lock().unwrap())
 }
 
+/// 快速检查是否有待打开的文件（不取数据，仅判断是否为空）。
+/// 比 take_pending_files 更轻量（不移动 Vec 内存），前端用于首渲染前
+/// 判断"要不要显示欢迎页"：若队列有文件 → 显示纯白等待（不闪现欢迎卡片）。
+#[tauri::command]
+fn has_pending_files(state: State<'_, PendingFiles>) -> bool {
+    !state.0.lock().unwrap().is_empty()
+}
+
 /// 获取应用版本号（从 tauri.conf.json 读取，单一版本源）
 #[tauri::command]
 fn get_app_version(app: tauri::AppHandle) -> String {
@@ -1739,6 +1747,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_default_content,
             take_pending_files,
+            has_pending_files,
             get_app_version,
             is_store_version,
             is_portable_version,

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useMemo, Component, Fragment, lazy, Suspense } from "react";
+import { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo, Component, Fragment, lazy, Suspense } from "react";
 import { bootStart, bootEnd, bootStamp, bootSummary } from "./boot-timing";
 bootStamp("App_module_imported");
 import { useTranslation } from "react-i18next";
@@ -288,6 +288,32 @@ function removePaneAndCollapse(root: SplitNode, paneId: string): { root: SplitNo
 function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string | null; initialVaultPath?: string | null }) {
   bootStart("App_body_to_first_effect");
   bootStamp("App_component_render_enter");
+
+  // 启动早期的快速判断："是否有外部待打开文件（双击 .md 冷启动）"。
+  // Rust 的 has_pending_files 仅判断队列是否为空（<5ms），远快于完整的 take_pending_files。
+  // 用它来决定首渲染时要不要显示欢迎卡片：
+  //   null  = 快查还没回来 → 先显示纯白（不闪现欢迎卡片，避免双击文件时"先欢迎再跳到编辑器"）
+  //   true  = 有文件 → 继续保持纯白，直到文件打开完毕
+  //   false = 没有文件 → 显示欢迎卡片
+  // initialFilePath 是 URL 传入（editor 新窗口），同步已知有文件，直接跳过欢迎。
+  const pendingFilesCheckRef = useRef<Promise<boolean> | null>(null);
+  if (!initialFilePath && !pendingFilesCheckRef.current && typeof (window as any).__TAURI_INTERNALS__ !== "undefined") {
+    pendingFilesCheckRef.current = invoke<boolean>("has_pending_files").catch(() => false);
+  }
+  const [hasPendingFileResult, setHasPendingFileResult] = useState<boolean | null>(
+    initialFilePath ? true : null
+  );
+  // 第一个 effect：等快查结果返回。useLayoutEffect 早于 paint，但 Promise 本身还是异步。
+  // 即便如此，由于首渲染时 state=null 也不显示欢迎，用户不会看到欢迎卡片。
+  useLayoutEffect(() => {
+    if (initialFilePath) return;
+    if (!pendingFilesCheckRef.current) {
+      setHasPendingFileResult(false);
+      return;
+    }
+    pendingFilesCheckRef.current.then((v) => setHasPendingFileResult(v));
+  }, [initialFilePath]);
+
   const { theme } = useTheme();
   const { t } = useTranslation();
   const [saveStatus, setSaveStatus] = useState<"idle" | "modified" | "saved">("idle");
@@ -797,20 +823,25 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   // 而是"先显示再说"——外部文件即便稍后到达也有事件监听 + useLayoutEffect 响应。
   useEffect(() => {
     const win = getCurrentWindow();
-    // 1) React 挂载完成立刻确保主窗口可见（Rust setup 里应该已经 show，
-    //    这里再调一次兜底：避免被插件、最小化恢复等意外隐藏）
+    // 1) Rust 端 setup 已经调用了 window.show()（正确尺寸/位置后才显示）。
+    //    这里先查 isVisible()，如果窗口已经可见就跳过 show()（避免 ~96ms 的冗余 IPC）。
+    //    仅在被插件、最小化恢复等意外隐藏时才兜底调用 show()。
     bootStart("visibility_show_window");
     bootStamp("visibility_show_window_called");
-    win.show().then(
-      () => {
+    (async () => {
+      try {
+        const visible = await win.isVisible();
+        bootStamp(`visibility_is_visible_check_${visible}`);
+        if (!visible) {
+          await win.show();
+        }
         bootStamp("visibility_window_shown");
         bootEnd("visibility_show_window");
         setTimeout(() => bootSummary(), 0);
-      },
-      (e) => {
-        console.warn("getCurrentWindow().show() 失败（忽略）", e);
+      } catch (e) {
+        console.warn("visibility 检查/显示失败（忽略）", e);
       }
-    );
+    })();
 
     // 2) 若仓库列表非空 → 直接进入正常路径，完全不等待 pending-files 二次拉取
     if (vaults.length > 0 || !!initialFilePath) {
@@ -3388,7 +3419,14 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                   <EmbeddedCanvasView />
                 </Suspense>
               </div>
-            ) : !fileName && !content.trim() && !layoutHasTerminal ? (
+            ) : !fileName && !content.trim() && !layoutHasTerminal &&
+                // initialFilePath / hasExternalFile 明确有文件 → 不显示欢迎
+                // hasPendingFileResult === null：快查未返回 → 保持纯白（不闪现欢迎，避免"先欢迎再编辑器"）
+                // hasPendingFileResult === true：有文件待处理 → 保持纯白
+                // 只有 hasPendingFileResult === false：明确没有文件 → 显示欢迎卡片
+                hasPendingFileResult === false &&
+                !initialFilePath &&
+                !hasExternalFile ? (
               <div className="editor-welcome">
                 <div className="welcome-hint">
                   <div className="welcome-hint-item">

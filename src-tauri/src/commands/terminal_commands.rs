@@ -9,7 +9,8 @@
 
 use std::collections::HashMap;
 use std::io::{Read, Write};
-use std::sync::Mutex;
+use std::path::PathBuf;
+use std::sync::{Mutex, OnceLock};
 use std::thread::JoinHandle;
 
 use base64::engine::general_purpose::STANDARD as BASE64_STD;
@@ -47,17 +48,29 @@ struct TerminalClosed {
     id: String,
 }
 
+/// 进程级缓存的默认 shell：首次确定后整个进程生命周期复用，
+/// 避免每次开终端/分屏都重新探测。
+static DEFAULT_SHELL: OnceLock<String> = OnceLock::new();
+
 /// 根据平台挑选默认 shell：
 /// - Windows：优先 `pwsh.exe`，回退 `cmd.exe`；
 /// - 其他：使用 `$SHELL`，回退 `bash`。
+///
+/// Windows 上的判断方式是**在 PATH 中查找 `pwsh.exe` 文件是否存在**，
+/// 而非 spawn 一个 pwsh 进程来探测。之前的写法 `pwsh.exe -NoProfile -Command exit`
+/// 会从 release 的 GUI 进程（`windows_subsystem = "windows"`，无控制台）spawn
+/// 控制台子系统的 pwsh：Windows 为其新分配一个 conhost 控制台窗口（用户看到的
+/// "打开/分屏时弹出系统终端窗口"），叠加冷启动 + Defender 扫描导致安装版打开终端
+/// 明显卡顿。dev 下因是 `console` 子系统、pwsh 又是热的，所以既不弹窗也不卡。
 fn default_shell() -> String {
+    DEFAULT_SHELL.get_or_init(detect_default_shell).clone()
+}
+
+/// 实际的 shell 探测逻辑（仅执行一次，结果由 `default_shell` 缓存）。
+fn detect_default_shell() -> String {
     #[cfg(target_os = "windows")]
     {
-        if std::process::Command::new("pwsh.exe")
-            .args(["-NoProfile", "-Command", "exit"])
-            .status()
-            .is_ok()
-        {
+        if find_in_path("pwsh.exe").is_some() {
             return "pwsh.exe".to_string();
         }
         "cmd.exe".to_string()
@@ -71,6 +84,20 @@ fn default_shell() -> String {
         }
         "bash".to_string()
     }
+}
+
+/// 在 PATH 环境变量中查找可执行文件，返回完整路径（仅判断文件存在，**不 spawn 进程**）。
+/// 用于替代原先 spawn pwsh 探测存在性的写法，彻底消除 GUI 进程下的控制台窗口分配。
+#[cfg(target_os = "windows")]
+fn find_in_path(name: &str) -> Option<PathBuf> {
+    let path_var = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path_var) {
+        let candidate = dir.join(name);
+        if candidate.is_file() {
+            return Some(candidate);
+        }
+    }
+    None
 }
 
 /// PowerShell 智能标题钩子脚本：重写 `prompt` 函数，把窗口标题设为上一条命令。
