@@ -250,8 +250,8 @@
   border-radius: 6px;
   padding: 1em;
   overflow-x: auto;
-  font-family: var(--editor-font, "Fira Code", "Consolas", monospace);
-  font-size: 0.9em;
+  font-family: var(--font-mono, "Fira Code", "Consolas", monospace);
+  font-size: var(--font-mono-size, 14px);
   line-height: 1.5;
 }
 
@@ -310,8 +310,8 @@
   background: var(--bg-code-inline, rgba(0, 0, 0, 0.06));
   padding: 0.2em 0.4em;
   border-radius: 4px;
-  font-family: var(--editor-font, "Fira Code", "Consolas", monospace);
-  font-size: 0.9em;
+  font-family: var(--font-mono, "Fira Code", "Consolas", monospace);
+  font-size: var(--font-mono-size, 14px);
   color: var(--text-code, #e83e8c);
 }
 
@@ -603,8 +603,8 @@
   background: var(--bg-code-inline, rgba(0, 0, 0, 0.06));
   padding: 0.2em 0.4em;
   border-radius: 4px;
-  font-family: var(--editor-font, "Fira Code", "Consolas", monospace);
-  font-size: 0.9em;
+  font-family: var(--font-mono, "Fira Code", "Consolas", monospace);
+  font-size: var(--font-mono-size, 14px);
   color: var(--text-code, #e83e8c);
 }
 
@@ -614,8 +614,8 @@
   border-radius: 6px;
   padding: 1em;
   overflow-x: auto;
-  font-family: var(--editor-font, "Fira Code", "Consolas", monospace);
-  font-size: 0.9em;
+  font-family: var(--font-mono, "Fira Code", "Consolas", monospace);
+  font-size: var(--font-mono-size, 14px);
   line-height: 1.5;
   color: var(--text-primary, #1f2330);
 }
@@ -1083,7 +1083,7 @@
   padding: 12px 16px;
   overflow-x: auto;
   background: transparent;
-  font-family: var(--editor-font, "JetBrains Mono", "Fira Code", "Consolas", monospace);
+  font-family: var(--font-mono, "JetBrains Mono", "Fira Code", "Consolas", monospace);
   font-size: inherit;
   line-height: 1.6;
   border: none;
@@ -1399,8 +1399,8 @@
   text-align: right;
   user-select: none;
   pointer-events: none;
-  font-family: var(--editor-font, "JetBrains Mono", "Fira Code", monospace);
-  font-size: var(--editor-font-size, 14px);
+  font-family: var(--font-mono, "JetBrains Mono", "Fira Code", monospace);
+  font-size: var(--font-mono-size, 14px);
   line-height: 1.5;
   color: var(--text-secondary, #999);
   opacity: 0.35;
@@ -1413,8 +1413,8 @@
   margin: 0;
   padding: 16px;
   overflow: auto;
-  font-family: var(--editor-font, "Fira Code", "Consolas", monospace);
-  font-size: var(--editor-font-size, 14px);
+  font-family: var(--font-mono, "Fira Code", "Consolas", monospace);
+  font-size: var(--font-mono-size, 14px);
   line-height: 1.5;
   border-radius: 7px;
   background: transparent;

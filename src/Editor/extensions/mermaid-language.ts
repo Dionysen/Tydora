@@ -36,7 +36,7 @@ export const mermaidHljsLang = (hljsApi: any) => ({
 // ── CodeMirror 主题 ──
 export const mermaidTheme = CMView.theme({
   "&": { backgroundColor: "var(--bg-secondary, #f8f9fa)", color: "var(--text-primary, #333)", fontSize: "13px", borderRadius: "0 0 8px 8px" },
-  ".cm-content": { caretColor: "var(--text-primary, #333)", padding: "16px 16px", fontFamily: "var(--editor-font, 'JetBrains Mono', 'Fira Code', monospace)", minHeight: "80px" },
+  ".cm-content": { caretColor: "var(--text-primary, #333)", padding: "16px 16px", fontFamily: "var(--font-mono, 'JetBrains Mono', 'Fira Code', monospace)", minHeight: "80px" },
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--text-primary, #333)" },
   "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": { backgroundColor: "rgba(0, 122, 255, 0.3)" },
   ".cm-gutters": { backgroundColor: "var(--bg-secondary, #f5f5f5)", color: "var(--text-secondary, #999)", border: "none", borderRight: "1px solid var(--border, #e0e0e0)" },

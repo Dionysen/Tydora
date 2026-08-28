@@ -34,7 +34,7 @@ const COLOR_PATTERNS = [
 const FONT_PATTERNS = [/^--font-/, /^--editor-font$/];
 
 // Variables that are sizes
-const SIZE_PATTERNS = [/^--editor-font-size$/, /^--radius$/];
+const SIZE_PATTERNS = [/^--editor-font-size$/, /^--font-mono-size$/, /^--radius$/];
 
 // ── Path Helpers ─────────────────────────────────────────────────────
 

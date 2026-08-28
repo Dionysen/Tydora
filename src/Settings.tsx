@@ -28,6 +28,8 @@ import { CODE_THEMES, type CustomCodeTheme } from "./themes";
 import appIcon from "./assets/icon.png";
 import { useLanguage } from "./i18n/LanguageContext";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "./i18n";
+import { FontPicker } from "./components/FontPicker";
+import { normalizeCodeFontValue, normalizeEditorFontValue } from "./utils/systemFonts";
 import shortcutsConfig from "./config/shortcuts.json";
 import { isAnalyticsEnabled, setAnalyticsEnabled, track, trackPageview, ANALYTICS_EVENTS } from "./analytics";
 import "./Settings.css";
@@ -90,6 +92,10 @@ interface GeneralSettings {
   appearance: "system" | "light" | "dark";
   fontSize: number;
   editorFont: string;
+  /** 代码 / 等宽字体（`system` 或系统字体族名） */
+  codeFont: string;
+  /** 代码 / 等宽字号（px） */
+  codeFontSize: number;
   autoSave: boolean;
   autoHideTopbar: boolean;
   autoHideTopbarOnCollapse: boolean;
@@ -112,7 +118,9 @@ interface ShortcutItem {
 const DEFAULT_GENERAL: GeneralSettings = {
   appearance: "system",
   fontSize: 16,
-  editorFont: "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+  editorFont: "system",
+  codeFont: "system",
+  codeFontSize: 14,
   autoSave: true,
   autoHideTopbar: true,
   autoHideTopbarOnCollapse: true,
@@ -230,25 +238,29 @@ function GeneralSettingsContent({
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
             <span className="canvas-settings-row-title">{t("settings.appearance.editorFont")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.editorFontDesc")}</span>
           </div>
-          <select
-            className="settings-select"
-            value={settings.editorFont}
-            onChange={(e) => onChange({ ...settings, editorFont: e.target.value })}
-          >
-            <option value="system-ui, -apple-system, sans-serif">{t("settings.appearance.systemDefault")}</option>
-            <option value="'LXGW WenKai', system-ui, sans-serif">霞鹜文楷</option>
-            <option value="'LXGW XinXiHei', system-ui, sans-serif">霞鹜新晰黑</option>
-            <option value="'Inter', system-ui, sans-serif">Inter</option>
-            <option value="'Noto Sans SC', system-ui, sans-serif">Noto Sans SC</option>
-            <option value="ui-sans-serif, 'Segoe UI', system-ui, sans-serif">Segoe UI</option>
-            <option value="'Roboto', system-ui, sans-serif">Roboto</option>
-            <option value="'Source Sans 3', system-ui, sans-serif">Source Sans</option>
-          </select>
+          <FontPicker
+            mode="editor"
+            value={normalizeEditorFontValue(settings.editorFont)}
+            onChange={(editorFont) => onChange({ ...settings, editorFont })}
+          />
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.codeFont")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.codeFontDesc")}</span>
+          </div>
+          <FontPicker
+            mode="code"
+            value={normalizeCodeFontValue(settings.codeFont)}
+            onChange={(codeFont) => onChange({ ...settings, codeFont })}
+          />
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
             <span className="canvas-settings-row-title">{t("settings.appearance.fontSize")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.fontSizeDesc")}</span>
           </div>
           <div className="canvas-settings-row-control">
             <input
@@ -260,6 +272,23 @@ function GeneralSettingsContent({
               onChange={(e) => onChange({ ...settings, fontSize: Number(e.target.value) })}
             />
             <span className="canvas-settings-unit">{settings.fontSize}px</span>
+          </div>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.codeFontSize")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.codeFontSizeDesc")}</span>
+          </div>
+          <div className="canvas-settings-row-control">
+            <input
+              type="range"
+              className="canvas-settings-slider"
+              min="10"
+              max="24"
+              value={settings.codeFontSize}
+              onChange={(e) => onChange({ ...settings, codeFontSize: Number(e.target.value) })}
+            />
+            <span className="canvas-settings-unit">{settings.codeFontSize}px</span>
           </div>
         </div>
         <div className="canvas-settings-row">
@@ -2279,7 +2308,18 @@ export default function Settings() {
   const [generalSettings, setGeneralSettings] = useState<GeneralSettings>(() => {
     try {
       const saved = localStorage.getItem(GENERAL_SETTINGS_KEY);
-      return saved ? { ...DEFAULT_GENERAL, ...JSON.parse(saved) } : DEFAULT_GENERAL;
+      if (!saved) return DEFAULT_GENERAL;
+      const parsed = JSON.parse(saved);
+      return {
+        ...DEFAULT_GENERAL,
+        ...parsed,
+        editorFont: normalizeEditorFontValue(parsed.editorFont),
+        codeFont: normalizeCodeFontValue(parsed.codeFont),
+        codeFontSize:
+          typeof parsed.codeFontSize === "number"
+            ? Math.min(24, Math.max(10, Math.round(parsed.codeFontSize)))
+            : DEFAULT_GENERAL.codeFontSize,
+      };
     } catch {
       return DEFAULT_GENERAL;
     }

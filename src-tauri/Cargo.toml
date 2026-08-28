@@ -31,6 +31,7 @@ portable-pty = "0.8"
 axum = "0.7"
 tokio = { version = "1", features = ["full"] }
 url = "2"
+fontdb = "0.23"
 
 [profile.release]
 lto = true

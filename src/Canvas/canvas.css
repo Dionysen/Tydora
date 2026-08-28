@@ -872,7 +872,7 @@
   padding: 12px 16px;
   overflow-x: auto;
   background: transparent;
-  font-family: var(--editor-font, "JetBrains Mono", "Fira Code", "Consolas", monospace);
+  font-family: var(--font-mono, "JetBrains Mono", "Fira Code", "Consolas", monospace);
   font-size: inherit;
   line-height: 1.6;
   border: none;

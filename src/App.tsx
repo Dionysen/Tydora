@@ -27,6 +27,7 @@ import { XhsPreviewPanel } from "./export/xiaohongshu";
 import { emit, listen } from "@tauri-apps/api/event";
 import { loadImageSettings, type ImageSettings } from "./services";
 import { loadEditorSettings, type EditorSettings, EDITOR_SETTINGS_KEY, SHORTCUTS_KEY, GRAPH_SETTINGS_KEY, DEFAULT_GRAPH } from "./Settings";
+import { applyFontSettings } from "./utils/systemFonts";
 import { checkForUpdate, downloadAndInstall, relaunchApp, exitApp, isPortableVersion, type UpdateInfo } from "./services";
 import { LinkIndexService } from "./wikilink";
 import { WikiLinkAutocomplete } from "./wikilink";
@@ -452,24 +453,12 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         const raw = localStorage.getItem("zmd-general-settings");
         if (raw) {
           const settings = JSON.parse(raw);
-          if (settings.editorFont) {
-            document.documentElement.style.setProperty("--editor-font", settings.editorFont);
-            // 按需加载 LXGW 系列字体
-            if (settings.editorFont.includes("LXGW WenKai") && !document.getElementById("lxgw-wenkai-font")) {
-              const link = document.createElement("link");
-              link.id = "lxgw-wenkai-font";
-              link.rel = "stylesheet";
-              link.href = "https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/style.css";
-              document.head.appendChild(link);
-            }
-            if (settings.editorFont.includes("LXGW XinXiHei") && !document.getElementById("lxgw-xinxihei-font")) {
-              const link = document.createElement("link");
-              link.id = "lxgw-xinxihei-font";
-              link.rel = "stylesheet";
-              link.href = "https://cdn.jsdelivr.net/npm/lxgw-xinxihei-webfont@1.7.0/style.css";
-              document.head.appendChild(link);
-            }
-          }
+          applyFontSettings({
+            editorFont: settings.editorFont ?? "system",
+            codeFont: settings.codeFont ?? "system",
+            codeFontSize:
+              typeof settings.codeFontSize === "number" ? settings.codeFontSize : 14,
+          });
           if (settings.fontSize) {
             document.documentElement.style.setProperty("--editor-font-size", settings.fontSize + "px");
           }
@@ -574,11 +563,16 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         const raw = localStorage.getItem("zmd-general-settings");
         const settings = raw ? JSON.parse(raw) : {};
         const current = typeof settings.fontSize === "number" ? settings.fontSize : 16;
+        const currentMono =
+          typeof settings.codeFontSize === "number" ? settings.codeFontSize : 14;
         const next = Math.min(24, Math.max(10, Math.round(current) + dir));
-        if (next !== current) {
+        const nextMono = Math.min(24, Math.max(10, Math.round(currentMono) + dir));
+        if (next !== current || nextMono !== currentMono) {
           settings.fontSize = next;
+          settings.codeFontSize = nextMono;
           localStorage.setItem("zmd-general-settings", JSON.stringify(settings));
           document.documentElement.style.setProperty("--editor-font-size", next + "px");
+          document.documentElement.style.setProperty("--font-mono-size", nextMono + "px");
           showFontSizeToast(next);
           changed = true;
         }

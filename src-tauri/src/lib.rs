@@ -35,6 +35,7 @@ use commands::file_commands::list_dir_with_meta;
 use commands::terminal_commands::{
     spawn_terminal, write_terminal, resize_terminal, kill_terminal, TerminalManager,
 };
+use commands::font_commands::list_system_fonts;
 
 struct PreviewServer(Mutex<Option<std::process::Child>>);
 
@@ -1824,7 +1825,8 @@ pub fn run() {
             spawn_terminal,
             write_terminal,
             resize_terminal,
-            kill_terminal
+            kill_terminal,
+            list_system_fonts
         ])
         .setup(|app| {
             emit_boot_timing(app, "setup_begin");

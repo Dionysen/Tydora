@@ -48,6 +48,7 @@ const PRESERVED_NON_COLOR = [
   "--font-ui",
   "--editor-font",
   "--editor-font-size",
+  "--font-mono-size",
 ] as const;
 
 const LIGHT_DEFAULTS: Record<string, string> = {
@@ -255,6 +256,7 @@ const DEFAULT_FONTS: ThemeVariable[] = [
     type: "font",
   },
   { name: "--editor-font-size", value: "16px", type: "size" },
+  { name: "--font-mono-size", value: "14px", type: "size" },
 ];
 
 export function getBuiltinColorMap(builtinId: string): Record<string, string> | null {
