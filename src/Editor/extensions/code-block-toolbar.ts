@@ -1,7 +1,8 @@
 import { Extension } from "@tiptap/core";
+import type { EditorView } from "@tiptap/pm/view";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
-import { NodeView } from "@tiptap/pm/view";
-import hljs from "highlight.js/lib/common";
+import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
+import type { NodeView } from "@tiptap/pm/view";
 
 const LANGUAGES = [
   { value: "", label: "Plain Text" },
@@ -37,317 +38,264 @@ const LANGUAGES = [
   { value: "plaintext", label: "Plain Text" },
 ];
 
-// ── 全局：当前活跃的 ProseMirror view 引用 ──
-let pmView: any = null;
-
-// ── 下拉菜单 portal ──
-let dropdownState: {
-  container: HTMLDivElement;
-  input: HTMLInputElement;
-  list: HTMLDivElement;
-  wrapper: HTMLElement;
-  docHandler: (e: MouseEvent) => void;
-} | null = null;
-
-function closeDropdown() {
-  if (!dropdownState) return;
-  dropdownState.wrapper?.classList.remove("toolbar-active");
-  dropdownState.container.style.display = "none";
-  document.removeEventListener("mousedown", dropdownState.docHandler, true);
-  if (dropdownState.container.parentNode === document.body) {
-    document.body.removeChild(dropdownState.container);
-  }
-  dropdownState = null;
+function langLabel(lang: string | null | undefined): string {
+  return LANGUAGES.find((l) => l.value === (lang || ""))?.label || "Plain Text";
 }
 
-function openDropdown(
-  anchorRect: DOMRect,
-  currentLang: string,
-  wrapper: HTMLElement
-) {
-  closeDropdown();
-
-  wrapper.classList.add("toolbar-active");
-
-  const container = document.createElement("div");
-  container.className = "code-block-lang-dropdown-portal";
-
-  const input = document.createElement("input");
-  input.type = "text";
-  input.className = "code-block-lang-search";
-  input.placeholder = "搜索语言...";
-
-  const list = document.createElement("div");
-  list.className = "code-block-lang-list";
-
-  container.appendChild(input);
-  container.appendChild(list);
-
-  // 渲染语言列表
-  LANGUAGES.forEach((lang) => {
-    const item = document.createElement("div");
-    item.className = "code-block-lang-item";
-    if (lang.value === currentLang) item.classList.add("active");
-    item.textContent = lang.label;
-    item.dataset.label = lang.label;
-
-    item.addEventListener("mousedown", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      applyLanguage(wrapper, lang.value);
-      closeDropdown();
-    });
-
-    list.appendChild(item);
-  });
-
-  // 搜索过滤
-  input.addEventListener("input", () => {
-    const filter = input.value.toLowerCase();
-    list.querySelectorAll<HTMLElement>(".code-block-lang-item").forEach((item) => {
-      item.style.display = (item.dataset.label || "").toLowerCase().includes(filter) ? "" : "none";
-    });
-  });
-  input.addEventListener("mousedown", (e) => e.stopPropagation());
-  list.addEventListener("mousedown", (e) => e.stopPropagation());
-
-  document.body.appendChild(container);
-
-  // 定位
-  container.style.display = "flex";
-  container.style.position = "fixed";
-  container.style.top = `${anchorRect.bottom + 4}px`;
-  container.style.left = `${anchorRect.left}px`;
-  container.style.zIndex = "10000";
-
-  requestAnimationFrame(() => {
-    const r = container.getBoundingClientRect();
-    if (r.bottom > window.innerHeight) {
-      container.style.top = `${anchorRect.top - r.height - 4}px`;
-    }
-    if (r.right > window.innerWidth) {
-      container.style.left = `${window.innerWidth - r.width - 8}px`;
-    }
-  });
-
-  input.value = "";
-  setTimeout(() => input.focus(), 0);
-
-  const docHandler = (e: MouseEvent) => {
-    if (!container.contains(e.target as Node)) closeDropdown();
-  };
-  document.addEventListener("mousedown", docHandler, true);
-
-  dropdownState = { container, input, list, wrapper, docHandler };
-}
-
-// ── 通过 ProseMirror 事务执行操作 ──
-
-function findNodePos(wrapper: HTMLElement): number | null {
-  // 优先使用 NodeView 存储的 getPos（最可靠）
-  const storedGetPos = (wrapper as any)._getPos;
-  if (typeof storedGetPos === "function") {
-    try {
-      const pos = storedGetPos();
-      if (pos !== undefined) return pos;
-    } catch { /* node 已被删除 */ }
-  }
-  // 回退：通过坐标查找
-  if (!pmView) return null;
-  const btn = wrapper.querySelector(".code-block-lang-button");
-  if (!btn) return null;
-  const rect = btn.getBoundingClientRect();
-  const coords = pmView.posAtCoords({ left: rect.left + 1, top: rect.top + 1 });
-  if (!coords) return null;
-  const node = pmView.state.doc.nodeAt(coords.pos);
-  if (node && node.type.name === "codeBlock") return coords.pos;
-  return null;
-}
-
-function applyLanguage(wrapper: HTMLElement, lang: string) {
-  const pos = findNodePos(wrapper);
-  if (pos === null || !pmView) return;
-
-  const nodeAtPos = pmView.state.doc.nodeAt(pos);
-  if (!nodeAtPos) return;
-
-  // Mermaid：将 codeBlock 节点替换为 Mermaid 节点
-  if (lang === "mermaid") {
-    const content = nodeAtPos.textContent;
-    const nodeSize = nodeAtPos.nodeSize;
-    const mermaidContent = content ? [pmView.state.schema.text(content)] : [];
-    const mermaidNode = pmView.state.schema.nodes.mermaid?.create(
-      null,
-      mermaidContent,
-    );
-    if (mermaidNode) {
-      pmView.dispatch(
-        pmView.state.tr.replaceWith(pos, pos + nodeSize, mermaidNode),
-      );
-      return;
-    }
-  }
-
-  // 先更新 DOM（立即反馈，不等 ProseMirror 重渲染）
-  const label = LANGUAGES.find((l) => l.value === lang)?.label || "Plain Text";
-  const langBtn = wrapper.querySelector(".code-block-lang-button");
-  if (langBtn) langBtn.textContent = label;
-  wrapper.setAttribute("data-language", lang);
-
-  // dispatch 事务更新文档模型（ProseMirror 会调用 update() 再次同步）
-  pmView.dispatch(
-    pmView.state.tr.setNodeMarkup(pos, undefined, { language: lang })
-  );
-
-  // 重新高亮代码
-  const nodeDOM = pmView.nodeDOM(pos) as HTMLElement | null;
-  if (nodeDOM) {
-    const codeEl = nodeDOM.querySelector("pre.code-block-content code");
-    if (codeEl && nodeAtPos.textContent) {
-      if (lang && hljs.getLanguage(lang)) {
-        try {
-          codeEl.innerHTML = hljs.highlight(nodeAtPos.textContent, { language: lang }).value;
-        } catch {
-          codeEl.textContent = nodeAtPos.textContent;
-        }
-      } else {
-        codeEl.textContent = nodeAtPos.textContent;
-      }
-    }
-  }
-}
-
-// ── 全局捕获阶段事件拦截 ──
-
-let globalHandlerInstalled = false;
-
-function installGlobalHandler() {
-  if (globalHandlerInstalled) return;
-  globalHandlerInstalled = true;
-
-  document.addEventListener(
-    "mousedown",
-    (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-
-      // 语言选择按钮
-      const langBtn = target.closest(".code-block-lang-button") as HTMLElement | null;
-      if (langBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const wrapper = langBtn.closest(".code-block-toolbar-wrapper") as HTMLElement | null;
-        if (!wrapper) return;
-        if (dropdownState && dropdownState.container.style.display !== "none") {
-          closeDropdown();
-        } else {
-          openDropdown(langBtn.getBoundingClientRect(), wrapper.getAttribute("data-language") || "", wrapper);
-        }
-      }
-    },
-    true
-  );
-
-  // 阻止 ProseMirror 在 click 阶段处理工具栏
-  document.addEventListener("click", (e) => {
-    if ((e.target as HTMLElement).closest(".code-block-toolbar")) {
-      e.stopPropagation();
-    }
-  }, true);
-}
-
-// ── ProseMirror 插件 ──
-
-const pluginKey = new PluginKey("codeBlockToolbar.v2");
-
+/**
+ * 代码块语言选择工具栏。
+ *
+ * 事件全部绑在 NodeView 实例上（不用 document 全局 capture），
+ * 避免与「点击外部关闭」在同一 mousedown 里互相打架。
+ * 高亮交给 CodeBlockLowlight 的 decorations，不在这里改 contentDOM。
+ */
 export const CodeBlockToolbar = Extension.create({
   name: "codeBlockToolbar",
 
   addProseMirrorPlugins() {
-    installGlobalHandler();
-
-    const plugin = new Plugin({
-      key: pluginKey,
-      view: (_view) => {
-        pmView = _view;
-        return {
-          destroy() {
-            if (pmView === _view) pmView = null;
+    return [
+      new Plugin({
+        key: new PluginKey("codeBlockToolbar"),
+        props: {
+          nodeViews: {
+            codeBlock: (node, view, getPos) =>
+              new CodeBlockToolbarView(node, view, getPos as () => number | undefined),
           },
-        };
-      },
-      props: {
-        nodeViews: {
-          codeBlock: (node, _view, getPos) => new CodeBlockToolbarView(node, getPos as () => number),
         },
-      },
-    });
-
-    return [plugin];
+      }),
+    ];
   },
 });
-
-// ── NodeView：纯渲染 ──
 
 class CodeBlockToolbarView implements NodeView {
   dom: HTMLElement;
   contentDOM: HTMLElement;
-  private node: any;
+
+  private node: ProseMirrorNode;
+  private view: EditorView;
+  private getPos: () => number | undefined;
+
   private wrapper: HTMLElement;
   private toolbar: HTMLElement;
+  private langButton: HTMLButtonElement;
 
-  constructor(node: any, getPos: () => number) {
+  private portal: HTMLDivElement | null = null;
+  private onDocPointerDown: ((e: PointerEvent) => void) | null = null;
+  private openTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor(
+    node: ProseMirrorNode,
+    view: EditorView,
+    getPos: () => number | undefined,
+  ) {
     this.node = node;
+    this.view = view;
+    this.getPos = getPos;
 
     this.wrapper = document.createElement("div");
     this.wrapper.className = "code-block-toolbar-wrapper";
-    this.wrapper.setAttribute("data-language", node.attrs.language || "");
-    // 存储 getPos 供全局处理器使用
-    (this.wrapper as any)._getPos = getPos;
+    this.wrapper.dataset.language = node.attrs.language || "";
 
     this.toolbar = document.createElement("div");
     this.toolbar.className = "code-block-toolbar";
+    this.toolbar.contentEditable = "false";
 
-    // 语言选择器按钮
     const langSelector = document.createElement("div");
     langSelector.className = "code-block-lang-selector";
-    const langButton = document.createElement("button");
-    langButton.className = "code-block-lang-button";
-    langButton.textContent =
-      LANGUAGES.find((l) => l.value === node.attrs.language)?.label || "Plain Text";
-    langSelector.appendChild(langButton);
+
+    this.langButton = document.createElement("button");
+    this.langButton.type = "button";
+    this.langButton.className = "code-block-lang-button";
+    this.langButton.textContent = langLabel(node.attrs.language);
+    // 用 pointerdown：比 click 更早，且在 ProseMirror 处理选区之前拦住
+    this.langButton.addEventListener("pointerdown", this.onLangButtonPointerDown);
+    langSelector.appendChild(this.langButton);
     this.toolbar.appendChild(langSelector);
 
-    // 代码内容区
-    this.contentDOM = document.createElement("pre");
-    this.contentDOM.className = "code-block-content";
-    const codeElement = document.createElement("code");
-    this.contentDOM.appendChild(codeElement);
+    // TipTap CodeBlock 约定：pre > code，contentDOM 必须是 code
+    const pre = document.createElement("pre");
+    pre.className = "code-block-content";
+    const code = document.createElement("code");
+    pre.appendChild(code);
+    this.contentDOM = code;
 
     this.wrapper.appendChild(this.toolbar);
-    this.wrapper.appendChild(this.contentDOM);
+    this.wrapper.appendChild(pre);
     this.dom = this.wrapper;
   }
 
-  update(node: any) {
+  private onLangButtonPointerDown = (e: PointerEvent) => {
+    // 只响应主按键
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (this.portal) {
+      this.closeDropdown();
+      return;
+    }
+    this.openDropdown();
+  };
+
+  private openDropdown() {
+    this.closeDropdown();
+
+    const currentLang = this.node.attrs.language || "";
+    const anchor = this.langButton.getBoundingClientRect();
+
+    const portal = document.createElement("div");
+    portal.className = "code-block-lang-dropdown-portal";
+    portal.style.display = "flex";
+    portal.style.position = "fixed";
+    portal.style.top = `${anchor.bottom + 4}px`;
+    portal.style.left = `${anchor.left}px`;
+    portal.style.zIndex = "10000";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "code-block-lang-search";
+    input.placeholder = "搜索语言...";
+    // 阻止输入框抢走编辑器焦点时触发的外部关闭误判
+    input.addEventListener("pointerdown", (e) => e.stopPropagation());
+
+    const list = document.createElement("div");
+    list.className = "code-block-lang-list";
+
+    const renderList = (filter: string) => {
+      list.replaceChildren();
+      const q = filter.trim().toLowerCase();
+      for (const lang of LANGUAGES) {
+        if (q && !lang.label.toLowerCase().includes(q) && !lang.value.toLowerCase().includes(q)) {
+          continue;
+        }
+        const item = document.createElement("div");
+        item.className = "code-block-lang-item";
+        if (lang.value === currentLang) item.classList.add("active");
+        item.textContent = lang.label;
+        item.addEventListener("pointerdown", (e) => {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          e.stopPropagation();
+          this.applyLanguage(lang.value);
+          this.closeDropdown();
+        });
+        list.appendChild(item);
+      }
+    };
+
+    renderList("");
+    input.addEventListener("input", () => renderList(input.value));
+
+    portal.appendChild(input);
+    portal.appendChild(list);
+    document.body.appendChild(portal);
+    this.portal = portal;
+    this.wrapper.classList.add("toolbar-active");
+
+    // 视口边界修正
+    requestAnimationFrame(() => {
+      if (!this.portal) return;
+      const r = this.portal.getBoundingClientRect();
+      if (r.bottom > window.innerHeight) {
+        this.portal.style.top = `${anchor.top - r.height - 4}px`;
+      }
+      if (r.right > window.innerWidth) {
+        this.portal.style.left = `${Math.max(8, window.innerWidth - r.width - 8)}px`;
+      }
+    });
+
+    setTimeout(() => input.focus(), 0);
+
+    // 延后注册外部关闭：避免打开当下的 pointerdown 立刻关掉菜单
+    this.openTimer = setTimeout(() => {
+      this.openTimer = null;
+      this.onDocPointerDown = (e: PointerEvent) => {
+        const t = e.target as Node | null;
+        if (!t) return;
+        if (this.portal?.contains(t)) return;
+        if (this.langButton.contains(t)) return;
+        this.closeDropdown();
+      };
+      document.addEventListener("pointerdown", this.onDocPointerDown, true);
+    }, 0);
+  }
+
+  private closeDropdown() {
+    if (this.openTimer !== null) {
+      clearTimeout(this.openTimer);
+      this.openTimer = null;
+    }
+    if (this.onDocPointerDown) {
+      document.removeEventListener("pointerdown", this.onDocPointerDown, true);
+      this.onDocPointerDown = null;
+    }
+    if (this.portal) {
+      this.portal.remove();
+      this.portal = null;
+    }
+    this.wrapper.classList.remove("toolbar-active");
+  }
+
+  private applyLanguage(lang: string) {
+    const pos = this.getPos();
+    if (pos === undefined) return;
+
+    const nodeAtPos = this.view.state.doc.nodeAt(pos);
+    if (!nodeAtPos || nodeAtPos.type.name !== "codeBlock") return;
+
+    // Mermaid：整块替换为 mermaid 节点
+    if (lang === "mermaid") {
+      const mermaidType = this.view.state.schema.nodes.mermaid;
+      if (mermaidType) {
+        const content = nodeAtPos.textContent
+          ? [this.view.state.schema.text(nodeAtPos.textContent)]
+          : [];
+        const mermaidNode = mermaidType.create(null, content);
+        this.view.dispatch(
+          this.view.state.tr.replaceWith(pos, pos + nodeAtPos.nodeSize, mermaidNode),
+        );
+        return;
+      }
+    }
+
+    // 只改 attrs；语法高亮由 lowlight decorations 根据 language 重算
+    this.view.dispatch(
+      this.view.state.tr.setNodeMarkup(pos, undefined, {
+        ...nodeAtPos.attrs,
+        language: lang || null,
+      }),
+    );
+  }
+
+  update(node: ProseMirrorNode) {
     if (node.type !== this.node.type) return false;
     this.node = node;
-    this.wrapper.setAttribute("data-language", node.attrs.language || "");
-    const langBtn = this.toolbar.querySelector(".code-block-lang-button");
-    if (langBtn) {
-      langBtn.textContent =
-        LANGUAGES.find((l) => l.value === node.attrs.language)?.label || "Plain Text";
-    }
+    this.wrapper.dataset.language = node.attrs.language || "";
+    this.langButton.textContent = langLabel(node.attrs.language);
     return true;
   }
 
   stopEvent(event: Event) {
-    if ((event.target as HTMLElement).closest(".code-block-toolbar")) {
-      return true;
-    }
+    const target = event.target as HTMLElement | null;
+    if (!target) return false;
+    // 工具栏内事件全部交给我们处理，不让 ProseMirror 改选区/抢焦点
+    if (this.toolbar.contains(target)) return true;
+    if (this.portal?.contains(target)) return true;
+    return false;
+  }
+
+  ignoreMutation(mutation: MutationRecord | { type: string; target: Node }) {
+    // 工具栏 / portal 的 DOM 变动与文档内容无关
+    const target = mutation.target as Node;
+    if (this.toolbar.contains(target) || target === this.toolbar) return true;
+    if (this.portal?.contains(target)) return true;
+    // dataset / class 写在 wrapper 上
+    if (target === this.wrapper && mutation.type === "attributes") return true;
     return false;
   }
 
   destroy() {
-    closeDropdown();
+    this.closeDropdown();
+    this.langButton.removeEventListener("pointerdown", this.onLangButtonPointerDown);
   }
 }

@@ -1271,12 +1271,12 @@
   overflow: visible;
 }
 
-/* 右上角浮动控件：无顶栏，仅按钮本身可交互，不挡住下方代码 */
+/* 右上角浮动控件：尺寸贴合按钮，不挡住下方代码编辑 */
 .code-block-toolbar {
   position: absolute;
   top: 4px;
   right: 6px;
-  z-index: 2;
+  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -1284,10 +1284,6 @@
   padding: 0;
   background: transparent;
   border: none;
-  pointer-events: none;
-}
-
-.code-block-toolbar > * {
   pointer-events: auto;
 }
 
@@ -1300,6 +1296,7 @@
 /* 语言选择器 */
 .code-block-lang-selector {
   position: relative;
+  pointer-events: auto;
 }
 
 .code-block-lang-button {
@@ -1315,6 +1312,7 @@
   font-family: var(--editor-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
   color: var(--text-secondary, #999);
   cursor: pointer;
+  pointer-events: auto;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
   opacity: 0.75;
 }
@@ -1344,8 +1342,9 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 10000;
   overflow: hidden;
-  display: none;
+  display: flex;
   flex-direction: column;
+  pointer-events: auto;
 }
 
 .code-block-lang-search {
