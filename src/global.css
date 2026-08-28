@@ -47,10 +47,12 @@ html.platform-macos .sidebar-topbar {
   padding-left: var(--mac-traffic-lights-width);
 }
 
-/* 侧栏折叠时，红绿灯落在编辑器顶栏左侧 */
-html.platform-macos .editor-container.sidebar-collapsed .editor-topbar {
+/* 侧栏折叠时：编辑器顶栏从窗口左缘起排，给红绿灯留位，展开按钮挨在右侧 */
+html.platform-macos .editor-container.sidebar-is-closed .editor-topbar {
   padding-left: calc(8px + var(--mac-traffic-lights-width));
 }
+
+/* 侧栏展开时红绿灯落在侧栏顶栏，无需再给编辑器顶栏让位 */
 
 html.platform-macos .settings-nav-topbar {
   padding-left: var(--mac-traffic-lights-width);

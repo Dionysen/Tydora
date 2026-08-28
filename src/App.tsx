@@ -2950,7 +2950,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         />
 
         {/* 编辑区域 */}
-        <main className={`editor-container${(autoHideTopbar || (!sidebarOpen && autoHideTopbarOnCollapse)) ? ' sidebar-collapsed' : ''}`}>
+        <main className={`editor-container${!sidebarOpen ? " sidebar-is-closed" : ""}${(autoHideTopbar || (!sidebarOpen && autoHideTopbarOnCollapse)) ? " sidebar-collapsed" : ""}`}>
           <div className="editor-topbar-trigger" />
           {/* 顶部透明栏 */}
           <div className="editor-topbar" data-tauri-drag-region="deep">
