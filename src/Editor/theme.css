@@ -2072,7 +2072,7 @@
 }
 
 .tiptap-editor span.tiptap-mathematics-render.ProseMirror-selectednode {
-  outline: 2px solid var(--accent-color, #4a9eff);
+  outline: 2px solid var(--accent, #4a9eff);
   outline-offset: 1px;
 }
 
@@ -2100,7 +2100,7 @@
 }
 
 .tiptap-editor div.tiptap-mathematics-render.ProseMirror-selectednode {
-  border-color: var(--accent-color, #4a9eff);
+  border-color: var(--accent, #4a9eff);
 }
 
 .tiptap-editor div.tiptap-mathematics-render .block-math-inner {

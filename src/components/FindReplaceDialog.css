@@ -8,7 +8,7 @@
   flex-direction: column;
   gap: 6px;
   background: var(--bg-primary, #fff);
-  border: 1px solid var(--border-color, #e1e1e1);
+  border: 1px solid var(--border, #e1e1e1);
   border-radius: 8px;
   padding: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
@@ -57,14 +57,14 @@
   align-items: center;
   flex: 1;
   background: var(--bg-secondary, #f5f5f5);
-  border: 1px solid var(--border-color, #e1e1e1);
+  border: 1px solid var(--border, #e1e1e1);
   border-radius: 6px;
   padding: 0 8px;
   min-width: 0;
 }
 
 .find-replace-input-group:focus-within {
-  border-color: var(--accent-color, #4a90d9);
+  border-color: var(--accent, #4a90d9);
   box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.15);
 }
 
@@ -128,7 +128,7 @@
 
 .find-replace-action-btn {
   padding: 5px 12px;
-  border: 1px solid var(--border-color, #e1e1e1);
+  border: 1px solid var(--border, #e1e1e1);
   border-radius: 4px;
   background: var(--bg-secondary, #f5f5f5);
   color: var(--text-primary, #333);
@@ -149,29 +149,29 @@
 }
 
 .find-replace-all-btn {
-  background: var(--accent-color, #4a90d9);
+  background: var(--accent, #4a90d9);
   color: #fff;
-  border-color: var(--accent-color, #4a90d9);
+  border-color: var(--accent, #4a90d9);
 }
 
 .find-replace-all-btn:hover:not(:disabled) {
-  background: var(--accent-color-hover, #3a7bc8);
+  background: var(--accent-hover, #3a7bc8);
 }
 
 /* 暗色主题适配 */
 [data-theme="dark"] .find-replace-dialog {
   background: var(--bg-primary, #1e1e1e);
-  border-color: var(--border-color, #333);
+  border-color: var(--border, #333);
 }
 
 [data-theme="dark"] .find-replace-input-group {
   background: var(--bg-secondary, #2a2a2a);
-  border-color: var(--border-color, #444);
+  border-color: var(--border, #444);
 }
 
 [data-theme="dark"] .find-replace-action-btn {
   background: var(--bg-secondary, #2a2a2a);
-  border-color: var(--border-color, #444);
+  border-color: var(--border, #444);
   color: var(--text-primary, #ddd);
 }
 
@@ -180,6 +180,6 @@
 }
 
 [data-theme="dark"] .find-replace-all-btn {
-  background: var(--accent-color, #4a90d9);
+  background: var(--accent, #4a90d9);
   color: #fff;
 }

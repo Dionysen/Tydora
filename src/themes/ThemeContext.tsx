@@ -8,8 +8,9 @@ import {
   importTheme as importThemeManager,
   deleteTheme as deleteThemeManager,
   getCustomThemeCss,
-  saveThemeCss,
   buildThemeCss,
+  createThemeFromVariables as createThemeFromVariablesFs,
+  persistThemeVariables,
   loadCodeThemeManifest,
   importCodeThemeFile,
   deleteCodeThemeFile,
@@ -18,6 +19,7 @@ import {
   type ThemeVariable,
 } from "./CustomThemeManager";
 import { type CustomCodeTheme } from "./codeThemes";
+import { getBuiltinThemeVariables, getTemplateVariables } from "./themeTokens";
 
 export type ThemeName = string;
 
@@ -28,6 +30,9 @@ interface ThemeContextValue {
   importTheme: (filePath: string, name: string) => Promise<ThemeManifest>;
   deleteTheme: (id: string) => Promise<void>;
   updateThemeVariables: (id: string, variables: ThemeVariable[]) => Promise<void>;
+  previewThemeVariables: (id: string, variables: ThemeVariable[]) => void;
+  createThemeFromBuiltin: (builtinId: string, name: string) => Promise<ThemeManifest>;
+  createThemeFromTemplate: (kind: "light" | "dark", name: string) => Promise<ThemeManifest>;
   refreshCustomThemes: () => Promise<void>;
   codeTheme: string;
   setCodeTheme: (id: string) => void;
@@ -43,6 +48,9 @@ const ThemeContext = createContext<ThemeContextValue>({
   importTheme: async () => ({ id: "", name: "", fileName: "", importedAt: "" }),
   deleteTheme: async () => {},
   updateThemeVariables: async () => {},
+  previewThemeVariables: () => {},
+  createThemeFromBuiltin: async () => ({ id: "", name: "", fileName: "", importedAt: "" }),
+  createThemeFromTemplate: async () => ({ id: "", name: "", fileName: "", importedAt: "" }),
   refreshCustomThemes: async () => {},
   codeTheme: "github-light",
   setCodeTheme: () => {},
@@ -50,7 +58,6 @@ const ThemeContext = createContext<ThemeContextValue>({
   importCodeTheme: async () => ({ id: "", name: "", fileName: "", importedAt: "", isDark: false }),
   deleteCodeTheme: async () => {},
 });
-
 const STORAGE_KEY = "zmd-theme";
 const EVENT_NAME = "theme-changed";
 
@@ -302,15 +309,58 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [theme, setTheme]);
 
-  const updateThemeVariables = useCallback(async (id: string, variables: ThemeVariable[]) => {
-    const css = buildThemeCss(id, variables);
-    await saveThemeCss(id, css);
-    // Update the style element
-    const style = styleElementsRef.current.get(id);
-    if (style) {
-      style.textContent = css;
+  const injectOrUpdateStyle = useCallback((id: string, css: string, enable: boolean) => {
+    let style = styleElementsRef.current.get(id);
+    if (!style) {
+      style = document.createElement("style");
+      style.id = `custom-theme-${id}`;
+      document.head.appendChild(style);
+      styleElementsRef.current.set(id, style);
+    }
+    style.textContent = css;
+    if (enable) {
+      styleElementsRef.current.forEach((s, key) => {
+        s.disabled = key !== id;
+      });
+      style.disabled = false;
     }
   }, []);
+
+  const previewThemeVariables = useCallback((id: string, variables: ThemeVariable[]) => {
+    const css = buildThemeCss(id, variables);
+    injectOrUpdateStyle(id, css, true);
+  }, [injectOrUpdateStyle]);
+
+  const updateThemeVariables = useCallback(async (id: string, variables: ThemeVariable[]) => {
+    const manifest = await persistThemeVariables(id, variables);
+    const css = buildThemeCss(id, variables);
+    injectOrUpdateStyle(id, css, theme === `custom-${id}`);
+    if (manifest) {
+      setCustomThemes((prev) => prev.map((m) => (m.id === id ? manifest : m)));
+    }
+  }, [injectOrUpdateStyle, theme]);
+
+  const registerNewTheme = useCallback(async (manifest: ThemeManifest) => {
+    const css = await getCustomThemeCss(manifest.id);
+    injectOrUpdateStyle(manifest.id, css, false);
+    setCustomThemes((prev) => [...prev, manifest]);
+    return manifest;
+  }, [injectOrUpdateStyle]);
+
+  const createThemeFromBuiltin = useCallback(async (builtinId: string, name: string) => {
+    const vars = getBuiltinThemeVariables(builtinId);
+    if (!vars) throw new Error(`Unknown builtin theme: ${builtinId}`);
+    const manifest = await createThemeFromVariablesFs(name, vars);
+    await registerNewTheme(manifest);
+    return manifest;
+  }, [registerNewTheme]);
+
+  const createThemeFromTemplate = useCallback(async (kind: "light" | "dark", name: string) => {
+    const vars = getTemplateVariables(kind);
+    const manifest = await createThemeFromVariablesFs(name, vars);
+    await registerNewTheme(manifest);
+    return manifest;
+  }, [registerNewTheme]);
 
   bootStamp("theme_provider_render_children");
   bootEnd("theme_provider_init");
@@ -323,6 +373,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         importTheme,
         deleteTheme,
         updateThemeVariables,
+        previewThemeVariables,
+        createThemeFromBuiltin,
+        createThemeFromTemplate,
         refreshCustomThemes,
         codeTheme,
         setCodeTheme,

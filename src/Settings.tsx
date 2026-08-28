@@ -13,8 +13,17 @@ import { PublishSettings } from "./publish";
 import { loadCanvasSettings, saveCanvasSettings, type CanvasSettings } from "./Canvas/canvas-settings";
 import { TerminalSettingsContent } from "./Terminal/TerminalSettingsContent";
 import { loadTerminalSettings, type TerminalSettings } from "./Terminal/terminal-settings";
-import { parseCssVariables, extractPreviewColors, type ThemeVariable, type ThemeManifest } from "./themes/CustomThemeManager";
-import { getCustomThemeCss } from "./themes/CustomThemeManager";
+import { parseCssVariables, getCustomThemeCss, type ThemeVariable, type ThemeManifest } from "./themes/CustomThemeManager";
+import {
+  mergeWithSchema,
+  groupEditableColors,
+  getTokenMeta,
+  getBuiltinColorMap,
+  THEME_COLOR_GROUPS,
+  type ThemeColorGroup,
+} from "./themes/themeTokens";
+import { ThemeColorField } from "./themes/ThemeColorField";
+import { syncAccentRgb } from "./themes/colorUtils";
 import { CODE_THEMES, type CustomCodeTheme } from "./themes";
 import appIcon from "./assets/icon.png";
 import { useLanguage } from "./i18n/LanguageContext";
@@ -638,19 +647,38 @@ function ThemeSettingsContent({
   setTheme: (t: ThemeName) => void;
 }) {
   const { t } = useTranslation();
-  const { customThemes, importTheme, deleteTheme, updateThemeVariables, codeTheme, setCodeTheme, customCodeThemes, importCodeTheme, deleteCodeTheme } = useTheme();
+  const {
+    customThemes,
+    importTheme,
+    deleteTheme,
+    updateThemeVariables,
+    previewThemeVariables,
+    createThemeFromBuiltin,
+    createThemeFromTemplate,
+    codeTheme,
+    setCodeTheme,
+    customCodeThemes,
+    importCodeTheme,
+    deleteCodeTheme,
+  } = useTheme();
   const [importing, setImporting] = useState(false);
   const [editingTheme, setEditingTheme] = useState<ThemeManifest | null>(null);
   const [editVariables, setEditVariables] = useState<ThemeVariable[]>([]);
-  const [editPreview, setEditPreview] = useState<{ bg: string; accent: string }>({ bg: "#ffffff", accent: "#4eb289" });
+  const [editPreview, setEditPreview] = useState<{ bg: string; accent: string; text: string; strong: string }>({
+    bg: "#ffffff",
+    accent: "#4eb289",
+    text: "#1e293b",
+    strong: "#bd387d",
+  });
   const [deleteConfirm, setDeleteConfirm] = useState<ThemeManifest | null>(null);
   const [nameDialog, setNameDialog] = useState<{ open: boolean; filePath: string; defaultName: string }>({ open: false, filePath: "", defaultName: "" });
   const [themeName, setThemeName] = useState("");
+  const [forking, setForking] = useState(false);
+  const previewTimerRef = useRef<number | null>(null);
 
   const [codeThemeName, setCodeThemeName] = useState("");
   const [codeThemeDialog, setCodeThemeDialog] = useState<{ open: boolean; filePath: string }>({ open: false, filePath: "" });
 
-  // 代码主题预览用的示例高亮：hljs 按需加载，避免拖慢设置窗口打开
   const [codeSampleHtml, setCodeSampleHtml] = useState("");
   useEffect(() => {
     let cancelled = false;
@@ -667,6 +695,12 @@ function ThemeSettingsContent({
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (previewTimerRef.current) window.clearTimeout(previewTimerRef.current);
+    };
+  }, []);
+
   const builtinThemes: { value: ThemeName; label: string; colors: string[] }[] = [
     { value: "white", label: t("settings.theme.white"), colors: ["#ffffff", "#2563eb", "#1e293b", "#d1d9e6"] },
     { value: "mint", label: "Mint", colors: ["#ffffff", "#4eb289", "#1e293b", "#a5cfc0"] },
@@ -679,6 +713,22 @@ function ThemeSettingsContent({
     { value: "ocean", label: "Ocean", colors: ["#f0f9ff", "#0891b2", "#0c4a6e", "#a5f3fc"] },
   ];
 
+  const updateEditPreview = useCallback((vars: ThemeVariable[]) => {
+    setEditPreview({
+      bg: vars.find((v) => v.name === "--bg-primary")?.value || "#ffffff",
+      accent: vars.find((v) => v.name === "--accent")?.value || "#4eb289",
+      text: vars.find((v) => v.name === "--text-primary")?.value || "#1e293b",
+      strong: vars.find((v) => v.name === "--text-strong")?.value || "#bd387d",
+    });
+  }, []);
+
+  const schedulePreview = useCallback((id: string, vars: ThemeVariable[]) => {
+    if (previewTimerRef.current) window.clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = window.setTimeout(() => {
+      previewThemeVariables(id, vars);
+    }, 120);
+  }, [previewThemeVariables]);
+
   const handleImport = useCallback(async () => {
     try {
       const selected = await open({
@@ -688,7 +738,6 @@ function ThemeSettingsContent({
       });
       if (!selected || typeof selected !== "string") return;
 
-      // Extract filename without extension as default name
       const fileName = selected.split(/[/\\]/).pop() || t("settings.theme.customThemeDefaultName");
       const defaultName = fileName.replace(/\.css$/i, "");
 
@@ -697,7 +746,7 @@ function ThemeSettingsContent({
     } catch (err) {
       console.error(t("settings.theme.importThemeFailed"), err);
     }
-  }, []);
+  }, [t]);
 
   const handleConfirmImport = useCallback(async () => {
     if (!nameDialog.filePath) return;
@@ -712,7 +761,7 @@ function ThemeSettingsContent({
     } finally {
       setImporting(false);
     }
-  }, [nameDialog, themeName, importTheme]);
+  }, [nameDialog, themeName, importTheme, t]);
 
   const handleDelete = useCallback(async (manifest: ThemeManifest) => {
     setDeleteConfirm(manifest);
@@ -724,43 +773,86 @@ function ThemeSettingsContent({
     setDeleteConfirm(null);
   }, [deleteConfirm, deleteTheme]);
 
+  const openEditor = useCallback((manifest: ThemeManifest, variables: ThemeVariable[]) => {
+    const merged = syncAccentRgb(
+      mergeWithSchema(variables, getBuiltinColorMap("mint") ?? undefined),
+    ) as ThemeVariable[];
+    setEditVariables(merged);
+    updateEditPreview(merged);
+    setEditingTheme(manifest);
+    setTheme(`custom-${manifest.id}`);
+    previewThemeVariables(manifest.id, merged);
+  }, [previewThemeVariables, setTheme, updateEditPreview]);
+
   const handleStartEdit = useCallback(async (manifest: ThemeManifest) => {
     try {
       const css = await getCustomThemeCss(manifest.id);
-      const variables = parseCssVariables(css);
-      const colors = extractPreviewColors(css);
-      setEditVariables(variables);
-      setEditPreview(colors);
-      setEditingTheme(manifest);
+      openEditor(manifest, parseCssVariables(css));
     } catch (err) {
       console.error(t("settings.theme.loadThemeFailed"), err);
     }
-  }, []);
+  }, [openEditor, t]);
 
-  const handleVariableChange = useCallback((index: number, newValue: string) => {
+  const handleForkBuiltin = useCallback(async (builtinId: string, label: string) => {
+    try {
+      setForking(true);
+      const name = t("settings.theme.forkedName", { name: label });
+      const manifest = await createThemeFromBuiltin(builtinId, name);
+      await handleStartEdit(manifest);
+    } catch (err) {
+      console.error(t("settings.theme.forkFailed"), err);
+    } finally {
+      setForking(false);
+    }
+  }, [createThemeFromBuiltin, handleStartEdit, t]);
+
+  const handleCreateBlank = useCallback(async (kind: "light" | "dark") => {
+    try {
+      setForking(true);
+      const name = kind === "dark"
+        ? t("settings.theme.newDarkTheme")
+        : t("settings.theme.newLightTheme");
+      const manifest = await createThemeFromTemplate(kind, name);
+      await handleStartEdit(manifest);
+    } catch (err) {
+      console.error(t("settings.theme.forkFailed"), err);
+    } finally {
+      setForking(false);
+    }
+  }, [createThemeFromTemplate, handleStartEdit, t]);
+
+  const handleVariableChange = useCallback((name: string, newValue: string) => {
     setEditVariables((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], value: newValue };
-      // Update preview colors
-      const bgVar = next.find((v) => v.name === "--bg-primary");
-      const accentVar = next.find((v) => v.name === "--accent");
-      setEditPreview({
-        bg: bgVar?.value || "#ffffff",
-        accent: accentVar?.value || "#4eb289",
-      });
+      let next = prev.map((v) => (v.name === name ? { ...v, value: newValue } : v));
+      if (name === "--accent") {
+        next = syncAccentRgb(next) as ThemeVariable[];
+      }
+      updateEditPreview(next);
+      if (editingTheme) {
+        schedulePreview(editingTheme.id, next);
+      }
       return next;
     });
-  }, []);
+  }, [editingTheme, schedulePreview, updateEditPreview]);
 
   const handleSaveEdit = useCallback(async () => {
     if (!editingTheme) return;
-    await updateThemeVariables(editingTheme.id, editVariables);
+    const synced = syncAccentRgb(editVariables) as ThemeVariable[];
+    await updateThemeVariables(editingTheme.id, synced);
     setEditingTheme(null);
   }, [editingTheme, editVariables, updateThemeVariables]);
 
-  const handleCancelEdit = useCallback(() => {
+  const handleCancelEdit = useCallback(async () => {
+    if (editingTheme) {
+      try {
+        const css = await getCustomThemeCss(editingTheme.id);
+        previewThemeVariables(editingTheme.id, parseCssVariables(css));
+      } catch {
+        /* ignore */
+      }
+    }
     setEditingTheme(null);
-  }, []);
+  }, [editingTheme, previewThemeVariables]);
 
   const handleImportCodeTheme = useCallback(async () => {
     const { open: openDialog } = await import("@tauri-apps/plugin-dialog");
@@ -774,7 +866,7 @@ function ThemeSettingsContent({
     const defaultName = fileName.replace(/\.css$/i, "");
     setCodeThemeName(defaultName);
     setCodeThemeDialog({ open: true, filePath: selected });
-  }, []);
+  }, [t]);
 
   const handleConfirmImportCodeTheme = useCallback(async () => {
     if (!codeThemeDialog.filePath) return;
@@ -785,75 +877,78 @@ function ThemeSettingsContent({
     } catch (err) {
       console.error(t("settings.theme.importCodeThemeFailed"), err);
     }
-  }, [codeThemeDialog, codeThemeName, importCodeTheme]);
+  }, [codeThemeDialog, codeThemeName, importCodeTheme, t]);
 
   const handleDeleteCodeTheme = useCallback(async (m: CustomCodeTheme) => {
     if (confirm(t("settings.theme.deleteCodeThemeConfirm", { name: m.name }))) {
       await deleteCodeTheme(m.id);
     }
-  }, [deleteCodeTheme]);
+  }, [deleteCodeTheme, t]);
 
-  // Editor view
-  if (editingTheme) {
+  const grouped = editingTheme ? groupEditableColors(editVariables) : null;
+  const groupTitleKey: Record<ThemeColorGroup, string> = {
+    background: "settings.theme.groupBackground",
+    text: "settings.theme.groupText",
+    accent: "settings.theme.groupAccent",
+    border: "settings.theme.groupBorder",
+  };
+
+  if (editingTheme && grouped) {
     return (
       <div className="settings-section">
         <div className="theme-editor-header">
           <button className="theme-editor-back" onClick={handleCancelEdit}>
             {t("settings.theme.back")}
           </button>
-          <h3 className="settings-section-title" style={{ marginTop: 0 }}>{t("settings.theme.editTheme", { name: editingTheme.name })}</h3>
+          <h3 className="settings-section-title" style={{ marginTop: 0 }}>
+            {t("settings.theme.editTheme", { name: editingTheme.name })}
+          </h3>
           <div className="theme-editor-actions">
             <button className="settings-button" onClick={handleSaveEdit}>{t("settings.theme.save")}</button>
             <button className="settings-button theme-editor-cancel" onClick={handleCancelEdit}>{t("settings.theme.cancel")}</button>
           </div>
         </div>
-        <div className="theme-editor-preview" style={{ background: editPreview.bg, borderColor: editPreview.accent }}>
-          <div className="theme-editor-preview-text" style={{ color: editPreview.bg === "#ffffff" || editPreview.bg.startsWith("oklch(1") ? "#1e293b" : "#ffffff" }}>
-            {t("settings.theme.previewText")}
+
+        <div
+          className="theme-editor-preview theme-editor-preview-rich"
+          style={{ background: editPreview.bg, borderColor: editPreview.accent }}
+        >
+          <div className="theme-editor-preview-sidebar" style={{ background: editVariables.find((v) => v.name === "--bg-secondary")?.value }}>
+            <div className="theme-editor-preview-line" style={{ background: editPreview.accent, width: "70%" }} />
+            <div className="theme-editor-preview-line" style={{ background: editPreview.text, opacity: 0.35, width: "55%" }} />
           </div>
-          <div className="theme-editor-preview-accent" style={{ background: editPreview.accent }}>{t("settings.theme.accent")}</div>
+          <div className="theme-editor-preview-editor">
+            <div className="theme-editor-preview-text" style={{ color: editPreview.text }}>
+              {t("settings.theme.previewText")}
+            </div>
+            <div className="theme-editor-preview-text" style={{ color: editPreview.strong, fontWeight: 700 }}>
+              {t("settings.theme.previewStrong")}
+            </div>
+            <div className="theme-editor-preview-accent" style={{ background: editPreview.accent }}>
+              {t("settings.theme.accent")}
+            </div>
+          </div>
         </div>
+
         <div className="theme-editor-variables">
-          {editVariables.map((v, i) => (
-            <div key={v.name} className="theme-editor-row">
-              <label className="theme-editor-label">{v.name}</label>
-              <div className="theme-editor-control">
-                {v.type === "color" ? (
-                  <div className="theme-editor-color-group">
-                    <input
-                      type="color"
-                      className="theme-editor-color-picker"
-                      value={normalizeColorToHex(v.value)}
-                      onChange={(e) => handleVariableChange(i, e.target.value)}
-                    />
-                    <input
-                      type="text"
-                      className="theme-editor-input"
-                      value={v.value}
-                      onChange={(e) => handleVariableChange(i, e.target.value)}
-                    />
-                  </div>
-                ) : v.type === "size" ? (
-                  <div className="theme-editor-size-group">
-                    <input
-                      type="range"
-                      className="settings-range"
-                      min="10"
-                      max="24"
-                      value={parseInt(v.value) || 15}
-                      onChange={(e) => handleVariableChange(i, `${e.target.value}px`)}
-                    />
-                    <span className="settings-range-value">{v.value}</span>
-                  </div>
-                ) : (
-                  <input
-                    type="text"
-                    className="theme-editor-input"
+          {THEME_COLOR_GROUPS.map((group) => (
+            <div key={group} className="theme-editor-group">
+              <h4 className="theme-editor-group-title">{t(groupTitleKey[group])}</h4>
+              {grouped[group].map((v) => {
+                const meta = getTokenMeta(v.name);
+                const label = meta
+                  ? t(`settings.theme.token.${meta.labelKey}`)
+                  : v.name;
+                return (
+                  <ThemeColorField
+                    key={v.name}
+                    label={label}
+                    varName={v.name}
                     value={v.value}
-                    onChange={(e) => handleVariableChange(i, e.target.value)}
+                    onChange={(val) => handleVariableChange(v.name, val)}
                   />
-                )}
-              </div>
+                );
+              })}
             </div>
           ))}
         </div>
@@ -864,44 +959,63 @@ function ThemeSettingsContent({
   return (
     <div className="settings-section">
       <h3 className="settings-section-title">{t("settings.theme.builtinThemes")}</h3>
+      <p className="settings-hint" style={{ marginTop: -8, marginBottom: 12 }}>
+        {t("settings.theme.forkHint")}
+      </p>
       <div className="settings-theme-grid">
-        {builtinThemes.map((t) => (
+        {builtinThemes.map((item) => (
           <div
-            key={t.value}
-            className={`settings-theme-card${theme === t.value ? " active" : ""}`}
-            onClick={() => setTheme(t.value)}
+            key={item.value}
+            className={`settings-theme-card${theme === item.value ? " active" : ""}`}
+            onClick={() => setTheme(item.value)}
           >
-            <div className="settings-theme-preview" data-theme={t.value}>
+            <div className="settings-theme-preview" data-theme={item.value}>
               <div className="theme-preview-mock">
-                <div className="mock-titlebar" style={{ background: t.colors[0] }}>
+                <div className="mock-titlebar" style={{ background: item.colors[0] }}>
                   <div className="mock-dots">
-                    <span style={{ background: t.colors[1] }} />
-                    <span style={{ background: t.colors[3] }} />
-                    <span style={{ background: t.colors[3] }} />
+                    <span style={{ background: item.colors[1] }} />
+                    <span style={{ background: item.colors[3] }} />
+                    <span style={{ background: item.colors[3] }} />
                   </div>
                 </div>
                 <div className="mock-body">
-                  <div className="mock-sidebar" style={{ background: t.colors[3] }}>
-                    <div className="mock-line" style={{ background: t.colors[1], width: '60%' }} />
-                    <div className="mock-line" style={{ background: t.colors[2], opacity: 0.3, width: '80%' }} />
-                    <div className="mock-line" style={{ background: t.colors[2], opacity: 0.3, width: '45%' }} />
+                  <div className="mock-sidebar" style={{ background: item.colors[3] }}>
+                    <div className="mock-line" style={{ background: item.colors[1], width: "60%" }} />
+                    <div className="mock-line" style={{ background: item.colors[2], opacity: 0.3, width: "80%" }} />
+                    <div className="mock-line" style={{ background: item.colors[2], opacity: 0.3, width: "45%" }} />
                   </div>
-                  <div className="mock-editor" style={{ background: t.colors[0] }}>
-                    <div className="mock-line" style={{ background: t.colors[2], opacity: 0.2, width: '70%' }} />
-                    <div className="mock-line" style={{ background: t.colors[2], opacity: 0.15, width: '55%' }} />
-                    <div className="mock-accent-line" style={{ background: t.colors[1], width: '40%' }} />
+                  <div className="mock-editor" style={{ background: item.colors[0] }}>
+                    <div className="mock-line" style={{ background: item.colors[2], opacity: 0.2, width: "70%" }} />
+                    <div className="mock-line" style={{ background: item.colors[2], opacity: 0.15, width: "55%" }} />
+                    <div className="mock-accent-line" style={{ background: item.colors[1], width: "40%" }} />
                   </div>
                 </div>
               </div>
-              {theme === t.value && (
+              {theme === item.value && (
                 <div className="settings-theme-check">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
                 </div>
               )}
+              <div className="custom-theme-actions">
+                <button
+                  className="custom-theme-edit-btn"
+                  title={t("settings.theme.forkAndEdit")}
+                  disabled={forking}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleForkBuiltin(item.value, item.label);
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            <span className="settings-theme-name">{t.label}</span>
+            <span className="settings-theme-name">{item.label}</span>
           </div>
         ))}
       </div>
@@ -960,6 +1074,18 @@ function ThemeSettingsContent({
         })}
         <div
           className="settings-theme-card settings-theme-import-card"
+          onClick={() => handleCreateBlank("light")}
+        >
+          <div className="settings-theme-preview settings-theme-import-preview">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </div>
+          <span className="settings-theme-name">{forking ? t("settings.theme.importing") : t("settings.theme.newTheme")}</span>
+        </div>
+        <div
+          className="settings-theme-card settings-theme-import-card"
           onClick={handleImport}
         >
           <div className="settings-theme-preview settings-theme-import-preview">
@@ -989,13 +1115,13 @@ function ThemeSettingsContent({
         >
           <option value="auto">{t("settings.theme.followAppTheme")}</option>
           <optgroup label={t("settings.theme.lightTheme")}>
-            {CODE_THEMES.filter((t) => !t.isDark).map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+            {CODE_THEMES.filter((ct) => !ct.isDark).map((ct) => (
+              <option key={ct.id} value={ct.id}>{ct.name}</option>
             ))}
           </optgroup>
           <optgroup label={t("settings.theme.darkTheme")}>
-            {CODE_THEMES.filter((t) => t.isDark).map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+            {CODE_THEMES.filter((ct) => ct.isDark).map((ct) => (
+              <option key={ct.id} value={ct.id}>{ct.name}</option>
             ))}
           </optgroup>
         </select>
@@ -1033,7 +1159,6 @@ function ThemeSettingsContent({
         </div>
       </div>
 
-      {/* Name dialog */}
       {nameDialog.open && (
         <div className="theme-name-dialog-overlay" onClick={() => setNameDialog({ open: false, filePath: "", defaultName: "" })}>
           <div className="theme-name-dialog" onClick={(e) => e.stopPropagation()}>
@@ -1066,7 +1191,6 @@ function ThemeSettingsContent({
         </div>
       )}
 
-      {/* Delete confirmation */}
       {deleteConfirm && (
         <div className="theme-name-dialog-overlay" onClick={() => setDeleteConfirm(null)}>
           <div className="theme-name-dialog" onClick={(e) => e.stopPropagation()}>
@@ -1082,7 +1206,6 @@ function ThemeSettingsContent({
         </div>
       )}
 
-      {/* Code theme name dialog */}
       {codeThemeDialog.open && (
         <div className="theme-name-dialog-overlay" onClick={() => setCodeThemeDialog({ open: false, filePath: "" })}>
           <div className="theme-name-dialog" onClick={(e) => e.stopPropagation()}>
@@ -1105,18 +1228,6 @@ function ThemeSettingsContent({
       )}
     </div>
   );
-}
-
-function normalizeColorToHex(value: string): string {
-  if (/^#[0-9a-fA-F]{3,8}$/.test(value)) {
-    // Ensure 6-digit hex for color input
-    let hex = value.slice(1);
-    if (hex.length === 3) hex = hex.split("").map((c) => c + c).join("");
-    if (hex.length === 8) hex = hex.slice(0, 6); // Remove alpha
-    return `#${hex}`;
-  }
-  // For non-hex values, return white as fallback for color picker
-  return "#ffffff";
 }
 
 function ShortcutsSettingsContent() {

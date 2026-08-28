@@ -227,6 +227,61 @@ export async function saveThemeCss(id: string, css: string): Promise<void> {
   await writeTextFile(joinPath(dir, `${id}.css`), css);
 }
 
+/** Create a custom theme from a full variable list (fork / template). */
+export async function createThemeFromVariables(
+  displayName: string,
+  variables: ThemeVariable[],
+): Promise<ThemeManifest> {
+  const dir = await ensureThemesDir();
+  const id = generateThemeId();
+  const css = buildThemeCss(id, variables);
+  const fileName = `${id}.css`;
+  await writeTextFile(joinPath(dir, fileName), css);
+
+  const { bg, accent } = extractPreviewColors(css);
+  const manifests = await loadManifest();
+  const manifest: ThemeManifest = {
+    id,
+    name: displayName,
+    fileName,
+    importedAt: new Date().toISOString(),
+    previewBg: bg,
+    previewAccent: accent,
+  };
+  manifests.push(manifest);
+  await saveManifest(manifests);
+  return manifest;
+}
+
+export async function renameTheme(id: string, name: string): Promise<ThemeManifest | null> {
+  const manifests = await loadManifest();
+  const idx = manifests.findIndex((m) => m.id === id);
+  if (idx < 0) return null;
+  manifests[idx] = { ...manifests[idx], name: name.trim() || manifests[idx].name };
+  await saveManifest(manifests);
+  return manifests[idx];
+}
+
+/** Persist variables and refresh manifest preview colors. */
+export async function persistThemeVariables(
+  id: string,
+  variables: ThemeVariable[],
+): Promise<ThemeManifest | null> {
+  const css = buildThemeCss(id, variables);
+  await saveThemeCss(id, css);
+  const { bg, accent } = extractPreviewColors(css);
+  const manifests = await loadManifest();
+  const idx = manifests.findIndex((m) => m.id === id);
+  if (idx < 0) return null;
+  manifests[idx] = {
+    ...manifests[idx],
+    previewBg: bg,
+    previewAccent: accent,
+  };
+  await saveManifest(manifests);
+  return manifests[idx];
+}
+
 // ── Preview Color Extraction ─────────────────────────────────────────
 
 export function extractPreviewColors(css: string): { bg: string; accent: string } {

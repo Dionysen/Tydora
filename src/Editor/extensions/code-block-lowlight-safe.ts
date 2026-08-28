@@ -302,6 +302,7 @@ export const CodeBlockLowlightSafe = CodeBlock.extend<CodeBlockLowlightSafeOptio
       languageClassPrefix: "language-",
       exitOnTripleEnter: true,
       exitOnArrowDown: true,
+      exitOnArrowUp: true,
       defaultLanguage: null,
       enableTabIndentation: false,
       tabSize: 4,
