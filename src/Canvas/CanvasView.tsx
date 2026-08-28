@@ -682,6 +682,19 @@ export default function CanvasView({ onNodeClick }: CanvasViewProps) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Ctrl/Cmd + 滚轮留给编辑器调字号，阻止 React Flow 缩放/平移视口
+  useEffect(() => {
+    const el = reactFlowWrapper.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    };
+    el.addEventListener('wheel', onWheel, { capture: true, passive: false });
+    return () => el.removeEventListener('wheel', onWheel, { capture: true });
+  }, []);
+
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CanvasToolbar />

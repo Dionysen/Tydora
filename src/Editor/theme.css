@@ -4,6 +4,7 @@
   height: 100%;
   overflow-y: auto;
   overscroll-behavior-y: contain;
+  overflow-anchor: none;
 }
 
 /* 编辑器滚动条尺寸（显隐由全局 data-scrolling 控制） */

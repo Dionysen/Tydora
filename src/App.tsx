@@ -515,34 +515,94 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   // Ctrl + 滚轮：在编辑区调整字号（范围与设置面板一致 10-24px，持久化到 zmd-general-settings）
   useEffect(() => {
-    const container = document.querySelector<HTMLElement>(".editor-container");
-    if (!container) return;
-    // React 的 onWheel 是被动监听、无法 preventDefault，这里用原生非被动监听器
-    // 避免触发 Chromium 默认的 Ctrl+滚轮页面缩放
+    // 收集事件目标到 .editor-container 之间所有可滚动祖先的当前位置
+    const collectScrollLocks = (target: HTMLElement | null) => {
+      const locks: { el: HTMLElement; top: number; left: number; height: number }[] = [];
+      let el: HTMLElement | null = target;
+      while (el) {
+        if (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1) {
+          locks.push({
+            el,
+            top: el.scrollTop,
+            left: el.scrollLeft,
+            height: el.scrollHeight,
+          });
+        }
+        if (el.classList.contains("editor-container")) break;
+        el = el.parentElement;
+      }
+      return locks;
+    };
+
+    const restoreScrollLocks = (
+      locks: { el: HTMLElement; top: number; left: number; height: number }[],
+      proportional: boolean,
+    ) => {
+      for (const lock of locks) {
+        if (proportional && lock.height > 0) {
+          const ratio = lock.top / lock.height;
+          lock.el.scrollTop = ratio * lock.el.scrollHeight;
+        } else {
+          lock.el.scrollTop = lock.top;
+        }
+        lock.el.scrollLeft = lock.left;
+      }
+    };
+
+    // 挂在 document 捕获阶段，确保先于 React Flow / 编辑器滚动处理；
+    // 字号变更后还会按比例恢复 scrollTop，避免重排造成“还在滚动”的观感。
     const onWheel = (e: WheelEvent) => {
       if (!e.ctrlKey && !e.metaKey) return;
       if (e.altKey || e.shiftKey) return;
-      // 滚轮落在终端面板内时，交给终端自己的缩放处理，避免“聚焦终端却连编辑器一起缩放”。
       const targetEl = e.target as HTMLElement | null;
-      if (targetEl && targetEl.closest(".terminal-pane")) return;
+      if (!targetEl) return;
+      const editorRoot = targetEl.closest(".editor-container");
+      if (!editorRoot) return;
+      if (targetEl.closest(".terminal-pane")) return;
+
       e.preventDefault();
+      e.stopImmediatePropagation();
+
+      const locks = collectScrollLocks(targetEl);
+      // 冻结 React Flow 视口（画布缩放用 transform，不是 scrollTop）
+      const rfViewport = editorRoot.querySelector(".react-flow__viewport") as HTMLElement | null;
+      const rfTransform = rfViewport?.style.transform ?? null;
+
       const dir = e.deltaY < 0 ? 1 : -1; // 向上滚动放大，向下滚动缩小
+      let changed = false;
       try {
-        // 从 localStorage 读取当前字号并更新（generalSettings 状态在设置窗口 Settings.tsx 中管理）
         const raw = localStorage.getItem("zmd-general-settings");
         const settings = raw ? JSON.parse(raw) : {};
         const current = typeof settings.fontSize === "number" ? settings.fontSize : 16;
         const next = Math.min(24, Math.max(10, Math.round(current) + dir));
-        if (next === current) return;
-        settings.fontSize = next;
-        localStorage.setItem("zmd-general-settings", JSON.stringify(settings));
-        document.documentElement.style.setProperty("--editor-font-size", next + "px");
-        // 右上角显示当前字号，停止滚动 1.5s 后自动消失
-        showFontSizeToast(next);
+        if (next !== current) {
+          settings.fontSize = next;
+          localStorage.setItem("zmd-general-settings", JSON.stringify(settings));
+          document.documentElement.style.setProperty("--editor-font-size", next + "px");
+          showFontSizeToast(next);
+          changed = true;
+        }
       } catch {}
+
+      // 先立刻锁回原位置，阻止本轮滚轮改动 scrollTop / 画布 transform
+      restoreScrollLocks(locks, false);
+      if (rfViewport && rfTransform != null) {
+        rfViewport.style.transform = rfTransform;
+      }
+
+      // 字号变更引发重排后，按文档比例恢复，避免内容“跳着滚”
+      if (changed) {
+        requestAnimationFrame(() => {
+          restoreScrollLocks(locks, true);
+          if (rfViewport && rfTransform != null) {
+            rfViewport.style.transform = rfTransform;
+          }
+        });
+      }
     };
-    container.addEventListener("wheel", onWheel, { passive: false });
-    return () => container.removeEventListener("wheel", onWheel);
+
+    document.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    return () => document.removeEventListener("wheel", onWheel, { capture: true });
   }, []);
 
   // 卸载时清理字号提示的自动消失定时器
