@@ -88,4 +88,5 @@ Thumbs.db
 .env
 .edgeone/*
 .tef_dist/*
-  
+
+package-lock.json
