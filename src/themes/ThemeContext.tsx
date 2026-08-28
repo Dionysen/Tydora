@@ -60,6 +60,10 @@ const ThemeContext = createContext<ThemeContextValue>({
 });
 const STORAGE_KEY = "zmd-theme";
 const EVENT_NAME = "theme-changed";
+/** 跨窗口同步自定义主题 CSS（设置窗预览/保存时主窗口也要更新） */
+const THEME_CSS_EVENT = "theme-css-updated";
+
+type ThemeCssPayload = { id: string; css: string; enable: boolean };
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   bootStart("theme_provider_init");
@@ -75,6 +79,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const [customThemes, setCustomThemes] = useState<ThemeManifest[]>([]);
   const styleElementsRef = useRef<Map<string, HTMLStyleElement>>(new Map());
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
 
   const CODE_THEME_KEY = "zmd-code-theme";
 
@@ -228,21 +234,59 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     window.dispatchEvent(new CustomEvent("code-theme-changed"));
   }, [codeTheme, theme, customCodeThemes]);
 
+  const injectOrUpdateStyle = useCallback((id: string, css: string, enable: boolean) => {
+    let style = styleElementsRef.current.get(id);
+    if (!style) {
+      style = document.createElement("style");
+      style.id = `custom-theme-${id}`;
+      document.head.appendChild(style);
+      styleElementsRef.current.set(id, style);
+    }
+    style.textContent = css;
+    if (enable) {
+      styleElementsRef.current.forEach((s, key) => {
+        s.disabled = key !== id;
+      });
+      style.disabled = false;
+    }
+  }, []);
+
   // ── Listen for theme changes from other windows ──
   useEffect(() => {
-    let unlisten: (() => void) | undefined;
+    let unlistenTheme: (() => void) | undefined;
+    let unlistenCss: (() => void) | undefined;
 
-    listen<ThemeName>(EVENT_NAME, (event) => {
+    listen<ThemeName>(EVENT_NAME, async (event) => {
       const newTheme = event.payload;
+      // 其它窗口切到新自定义主题时，本窗口可能还没有对应 <style>（例如刚 fork）
+      if (newTheme.startsWith("custom-")) {
+        const id = newTheme.replace("custom-", "");
+        if (!styleElementsRef.current.has(id)) {
+          try {
+            const css = await getCustomThemeCss(id);
+            injectOrUpdateStyle(id, css, true);
+          } catch {
+            /* 文件尚未就绪时由后续 theme-css-updated 补上 */
+          }
+        }
+      }
       setThemeState(newTheme);
     }).then((fn) => {
-      unlisten = fn;
+      unlistenTheme = fn;
+    });
+
+    listen<ThemeCssPayload>(THEME_CSS_EVENT, (event) => {
+      const { id, css, enable } = event.payload;
+      injectOrUpdateStyle(id, css, enable);
+    }).then((fn) => {
+      unlistenCss = fn;
     });
 
     return () => {
-      unlisten?.();
+      unlistenTheme?.();
+      unlistenCss?.();
     };
-  }, []);
+  }, [injectOrUpdateStyle]);
 
   // ── Theme actions ──
   const setTheme = useCallback((t: ThemeName) => {
@@ -282,16 +326,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const manifest = await importThemeManager(filePath, name);
     // Inject the new style element
     const css = await getCustomThemeCss(manifest.id);
-    const style = document.createElement("style");
-    style.id = `custom-theme-${manifest.id}`;
-    style.textContent = css;
-    style.disabled = true;
-    document.head.appendChild(style);
-    styleElementsRef.current.set(manifest.id, style);
+    injectOrUpdateStyle(manifest.id, css, false);
+    emit(THEME_CSS_EVENT, { id: manifest.id, css, enable: false } satisfies ThemeCssPayload).catch(() => {});
     // Update state
     setCustomThemes((prev) => [...prev, manifest]);
     return manifest;
-  }, []);
+  }, [injectOrUpdateStyle]);
 
   const deleteTheme = useCallback(async (id: string) => {
     await deleteThemeManager(id);
@@ -309,40 +349,27 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [theme, setTheme]);
 
-  const injectOrUpdateStyle = useCallback((id: string, css: string, enable: boolean) => {
-    let style = styleElementsRef.current.get(id);
-    if (!style) {
-      style = document.createElement("style");
-      style.id = `custom-theme-${id}`;
-      document.head.appendChild(style);
-      styleElementsRef.current.set(id, style);
-    }
-    style.textContent = css;
-    if (enable) {
-      styleElementsRef.current.forEach((s, key) => {
-        s.disabled = key !== id;
-      });
-      style.disabled = false;
-    }
-  }, []);
-
   const previewThemeVariables = useCallback((id: string, variables: ThemeVariable[]) => {
     const css = buildThemeCss(id, variables);
     injectOrUpdateStyle(id, css, true);
+    emit(THEME_CSS_EVENT, { id, css, enable: true } satisfies ThemeCssPayload).catch(() => {});
   }, [injectOrUpdateStyle]);
 
   const updateThemeVariables = useCallback(async (id: string, variables: ThemeVariable[]) => {
     const manifest = await persistThemeVariables(id, variables);
     const css = buildThemeCss(id, variables);
-    injectOrUpdateStyle(id, css, theme === `custom-${id}`);
+    const enable = themeRef.current === `custom-${id}`;
+    injectOrUpdateStyle(id, css, enable);
+    emit(THEME_CSS_EVENT, { id, css, enable } satisfies ThemeCssPayload).catch(() => {});
     if (manifest) {
       setCustomThemes((prev) => prev.map((m) => (m.id === id ? manifest : m)));
     }
-  }, [injectOrUpdateStyle, theme]);
+  }, [injectOrUpdateStyle]);
 
   const registerNewTheme = useCallback(async (manifest: ThemeManifest) => {
     const css = await getCustomThemeCss(manifest.id);
     injectOrUpdateStyle(manifest.id, css, false);
+    emit(THEME_CSS_EVENT, { id: manifest.id, css, enable: false } satisfies ThemeCssPayload).catch(() => {});
     setCustomThemes((prev) => [...prev, manifest]);
     return manifest;
   }, [injectOrUpdateStyle]);
