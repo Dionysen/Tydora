@@ -10,6 +10,7 @@
     "beforeBuildCommand": "npm run sync-version && npm run build"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "Tydora - Markdown Editor",
@@ -18,9 +19,17 @@
         "resizable": true,
         "fullscreen": false,
         "center": true,
-        "decorations": false,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": 14,
+          "y": 11
+        },
+        "transparent": true,
+        "shadow": true,
         "visible": false,
-        "backgroundColor": "#FFFFFFFF"
+        "backgroundColor": "#00000000"
       }
     ],
     "security": {

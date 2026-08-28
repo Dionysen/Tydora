@@ -89,7 +89,8 @@ pub unsafe fn inset_traffic_lights(window: &NSWindow, x: f64, y: f64) {
   let title_bar_container_view = close.superview().unwrap().superview().unwrap();
 
   let close_rect = NSView::frame(&close);
-  let title_bar_frame_height = close_rect.size.height + y;
+  // `y` is top inset; keep matching bottom inset so buttons stay circular (not clipped).
+  let title_bar_frame_height = close_rect.size.height + y * 2.0;
   let mut title_bar_rect = NSView::frame(&title_bar_container_view);
   title_bar_rect.size.height = title_bar_frame_height;
   title_bar_rect.origin.y = window.frame().size.height - title_bar_frame_height;
@@ -105,6 +106,8 @@ pub unsafe fn inset_traffic_lights(window: &NSWindow, x: f64, y: f64) {
   for (i, button) in window_buttons.into_iter().enumerate() {
     let mut rect = NSView::frame(&button);
     rect.origin.x = x + (i as f64 * space_between);
+    // Non-flipped coords: vertically center so lights aren't clipped/squashed.
+    rect.origin.y = (title_bar_frame_height - rect.size.height) / 2.0;
     button.setFrameOrigin(rect.origin);
   }
 }

@@ -2477,8 +2477,8 @@ export default function Settings() {
       <div className="settings-body">
         {/* 左侧菜单 */}
         <nav className="settings-nav">
-          {/* 顶部透明拖拽区域 */}
-          <div className="settings-nav-topbar" data-tauri-drag-region />
+          {/* 顶部透明拖拽区域：deep 使整条顶栏（含子节点）可拖 */}
+          <div className="settings-nav-topbar" data-tauri-drag-region="deep" />
           <div className="settings-nav-content">
             {/* 搜索框 */}
             <div className="settings-nav-search">
@@ -2540,13 +2540,14 @@ export default function Settings() {
         {/* 右侧内容 */}
         <div className="settings-main-wrapper">
           {/* 内容区域顶部栏 */}
-          <div className="settings-main-topbar" data-tauri-drag-region>
-            <div className="settings-titlebar-controls">
-<button
-  className="settings-titlebar-btn settings-titlebar-close"
-  onClick={handleClose}
-  title={t("settings.close")}
->
+          <div className="settings-main-topbar" data-tauri-drag-region="deep">
+            <div className="settings-main-topbar-drag" data-tauri-drag-region="deep" />
+            <div className="settings-titlebar-controls" data-tauri-drag-region="false">
+              <button
+                className="settings-titlebar-btn settings-titlebar-close"
+                onClick={handleClose}
+                title={t("settings.close")}
+              >
                 <svg width="14" height="14" viewBox="0 0 10 10">
                   <line x1="1.5" y1="1.5" x2="8.5" y2="8.5" stroke="currentColor" strokeWidth="1.4" />
                   <line x1="8.5" y1="1.5" x2="1.5" y2="8.5" stroke="currentColor" strokeWidth="1.4" />

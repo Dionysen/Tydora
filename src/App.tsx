@@ -2953,8 +2953,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         <main className={`editor-container${(autoHideTopbar || (!sidebarOpen && autoHideTopbarOnCollapse)) ? ' sidebar-collapsed' : ''}`}>
           <div className="editor-topbar-trigger" />
           {/* 顶部透明栏 */}
-          <div className="editor-topbar">
-            <div className="editor-topbar-left">
+          <div className="editor-topbar" data-tauri-drag-region="deep">
+            <div className="editor-topbar-left" data-tauri-drag-region="false">
               <button className="sidebar-toggle-btn" onClick={handleSidebarToggle} title={sidebarOpen ? t("app.toolbar.collapseSidebar") : t("app.toolbar.expandSidebar")}>
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                   {sidebarOpen ? (
@@ -2998,7 +2998,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
               {displayedTitle}
               <span className={`traffic-light traffic-light--${displayedFileName ? displayedSaveStatus : "idle"}`} />
             </span>
-            <div className="window-controls">
+            <div className="window-controls" data-tauri-drag-region="false">
               {pinnedItems.mindmap && (
                 <button className="window-control-btn" title={t("app.toolbar.mindmap")} onClick={() => {
                   localStorage.setItem("zmd-mindmap-mode", "document");
@@ -3073,7 +3073,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                   </svg>
                 </button>
               )}
-              <div className="editor-topbar-more-wrapper" ref={moreMenuRef}>
+              <div className="editor-topbar-more-wrapper" ref={moreMenuRef} data-tauri-drag-region="false">
                 <button className="window-control-btn" title={t("app.toolbar.more")} onClick={() => setMoreMenuOpen((v) => !v)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <circle cx="5" cy="12" r="2" />
@@ -3358,18 +3358,18 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                   </div>
                 )}
               </div>
-              <div className="window-controls-divider" />
-              <button className="window-control-btn" onClick={handleMinimize} title={t("app.toolbar.minimize")}>
+              <div className="window-controls-divider window-controls-native" />
+              <button className="window-control-btn window-controls-native" onClick={handleMinimize} title={t("app.toolbar.minimize")}>
                 <svg width="10" height="10" viewBox="0 0 10 10">
                   <line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" strokeWidth="1.2" />
                 </svg>
               </button>
-              <button className="window-control-btn" onClick={handleToggleMaximize} title={t("app.toolbar.maximize")}>
+              <button className="window-control-btn window-controls-native" onClick={handleToggleMaximize} title={t("app.toolbar.maximize")}>
                 <svg width="10" height="10" viewBox="0 0 10 10">
                   <rect x="1" y="1" width="8" height="8" rx="0.5" fill="none" stroke="currentColor" strokeWidth="1.2" />
                 </svg>
               </button>
-              <button className="window-control-btn window-control-close" onClick={handleClose} title={t("app.toolbar.close")}>
+              <button className="window-control-btn window-control-close window-controls-native" onClick={handleClose} title={t("app.toolbar.close")}>
                 <svg width="10" height="10" viewBox="0 0 10 10">
                   <line x1="1.5" y1="1.5" x2="8.5" y2="8.5" stroke="currentColor" strokeWidth="1.2" />
                   <line x1="8.5" y1="1.5" x2="1.5" y2="8.5" stroke="currentColor" strokeWidth="1.2" />

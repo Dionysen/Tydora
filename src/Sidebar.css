@@ -22,7 +22,7 @@
 
 /* ── 顶部透明栏 ── */
 .sidebar-topbar {
-  height: 13px;
+  height: 36px;
   flex-shrink: 0;
   background: transparent;
   -webkit-app-region: drag;

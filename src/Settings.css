@@ -3,21 +3,22 @@
 .settings-window {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   background: var(--bg-primary);
   color: var(--text-primary);
+  overflow: hidden;
 }
 
 /* ── Titlebar Controls (窗口控制按钮) ────────────────────────────── */
 
 .settings-titlebar-controls {
-  position: absolute;
-  top: 0;
-  right: 0;
   display: flex;
   gap: 0;
   -webkit-app-region: no-drag;
   z-index: 10;
+  flex-shrink: 0;
+  height: 100%;
+  align-items: stretch;
 }
 
 .settings-titlebar-btn {
@@ -91,6 +92,15 @@
   background: transparent;
   -webkit-app-region: drag;
   position: relative;
+  display: flex;
+  align-items: stretch;
+  user-select: none;
+}
+
+.settings-main-topbar-drag {
+  flex: 1;
+  height: 100%;
+  -webkit-app-region: drag;
 }
 
 /* ── Navigation (类似主窗口侧栏) ────────────────────────────────── */
@@ -113,6 +123,7 @@
   background: transparent;
   -webkit-app-region: drag;
   position: relative;
+  user-select: none;
 }
 
 .settings-nav-content {

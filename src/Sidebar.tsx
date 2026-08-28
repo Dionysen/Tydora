@@ -2642,7 +2642,7 @@ export default function Sidebar({
       className={`sidebar${collapsed ? " collapsed" : ""}${isResizing ? " resizing" : ""}`}
       style={{ width: collapsed ? 0 : width }}
     >
-      <div className="sidebar-topbar" />
+      <div className="sidebar-topbar" data-tauri-drag-region="deep" />
 
       <div className="sidebar-header">
         <div className="sidebar-tabs-wrapper">
