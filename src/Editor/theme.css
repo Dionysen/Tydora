@@ -1270,14 +1270,30 @@
   overflow: visible;
 }
 
+/* 右上角浮动控件：无顶栏，仅按钮本身可交互，不挡住下方代码 */
 .code-block-toolbar {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  z-index: 2;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px 12px;
-  background: var(--bg-secondary, #f0f0f0);
-  border-bottom: 1px solid var(--border, #e0e0e0);
-  border-radius: 7px 7px 0 0;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  pointer-events: none;
+}
+
+.code-block-toolbar > * {
+  pointer-events: auto;
+}
+
+/* 兼容 HMR 残留的旧删除/复制按钮 */
+.code-block-actions,
+.code-block-action-btn {
+  display: none !important;
 }
 
 /* 语言选择器 */
@@ -1289,20 +1305,31 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
-  background: var(--bg-primary, #fff);
-  border: 1px solid var(--border, #d0d0d0);
-  border-radius: 6px;
+  padding: 2px 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
   font-size: 12px;
+  line-height: 1.2;
   font-family: var(--editor-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
-  color: var(--text-primary, #333);
+  color: var(--text-secondary, #999);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  opacity: 0.75;
+}
+
+.code-block-toolbar-wrapper:hover .code-block-lang-button,
+.code-block-toolbar-wrapper.toolbar-active .code-block-lang-button {
+  background: var(--bg-primary, #fff);
+  border-color: var(--border, #d0d0d0);
+  color: var(--text-primary, #333);
+  opacity: 1;
 }
 
 .code-block-lang-button:hover {
   background: var(--bg-hover, #e8e8e8);
   border-color: var(--text-secondary, #999);
+  opacity: 1;
 }
 
 /* 下拉菜单 portal：挂载到 document.body，不受任何 overflow 父级裁剪 */
@@ -1357,43 +1384,6 @@
   font-weight: 500;
 }
 
-/* 操作按钮 */
-.code-block-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.code-block-action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--text-secondary, #666);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.code-block-action-btn:hover {
-  background: var(--bg-hover, #e0e0e0);
-  color: var(--text-primary, #333);
-}
-
-.code-block-action-btn.delete:hover {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.code-block-action-btn.copy:hover {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
 /* 代码块主体：flex 布局，行号 + 代码内容 */
 .code-block-body {
   display: flex;
@@ -1417,7 +1407,7 @@
   overflow: hidden;
 }
 
-/* 代码内容 */
+/* 代码内容（顶栏默认叠加，内容区使用完整圆角） */
 .code-block-content {
   margin: 0;
   padding: 16px;
@@ -1425,7 +1415,7 @@
   font-family: var(--editor-font, "Fira Code", "Consolas", monospace);
   font-size: var(--editor-font-size, 14px);
   line-height: 1.5;
-  border-radius: 0 0 7px 7px;
+  border-radius: 7px;
   background: transparent;
   border: none;
   white-space: pre-wrap;

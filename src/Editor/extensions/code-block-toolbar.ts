@@ -45,11 +45,13 @@ let dropdownState: {
   container: HTMLDivElement;
   input: HTMLInputElement;
   list: HTMLDivElement;
+  wrapper: HTMLElement;
   docHandler: (e: MouseEvent) => void;
 } | null = null;
 
 function closeDropdown() {
   if (!dropdownState) return;
+  dropdownState.wrapper?.classList.remove("toolbar-active");
   dropdownState.container.style.display = "none";
   document.removeEventListener("mousedown", dropdownState.docHandler, true);
   if (dropdownState.container.parentNode === document.body) {
@@ -64,6 +66,8 @@ function openDropdown(
   wrapper: HTMLElement
 ) {
   closeDropdown();
+
+  wrapper.classList.add("toolbar-active");
 
   const container = document.createElement("div");
   container.className = "code-block-lang-dropdown-portal";
@@ -134,7 +138,7 @@ function openDropdown(
   };
   document.addEventListener("mousedown", docHandler, true);
 
-  dropdownState = { container, input, list, docHandler };
+  dropdownState = { container, input, list, wrapper, docHandler };
 }
 
 // ── 通过 ProseMirror 事务执行操作 ──
@@ -213,33 +217,6 @@ function applyLanguage(wrapper: HTMLElement, lang: string) {
   }
 }
 
-function deleteCodeBlock(wrapper: HTMLElement) {
-  const pos = findNodePos(wrapper);
-  if (pos === null || !pmView) return;
-  const nodeAtPos = pmView.state.doc.nodeAt(pos);
-  if (nodeAtPos) {
-    pmView.dispatch(pmView.state.tr.delete(pos, pos + nodeAtPos.nodeSize));
-  }
-}
-
-function copyCodeBlock(wrapper: HTMLElement) {
-  if (!pmView) return;
-  const pos = findNodePos(wrapper);
-  if (pos === null) return;
-  const nodeAtPos = pmView.state.doc.nodeAt(pos);
-  if (!nodeAtPos) return;
-
-  navigator.clipboard.writeText(nodeAtPos.textContent).then(() => {
-    const copyBtn = wrapper.querySelector(".code-block-action-btn.copy");
-    if (copyBtn) {
-      copyBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>`;
-      setTimeout(() => {
-        copyBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>`;
-      }, 2000);
-    }
-  });
-}
-
 // ── 全局捕获阶段事件拦截 ──
 
 let globalHandlerInstalled = false;
@@ -265,27 +242,6 @@ function installGlobalHandler() {
         } else {
           openDropdown(langBtn.getBoundingClientRect(), wrapper.getAttribute("data-language") || "", wrapper);
         }
-        return;
-      }
-
-      // 删除
-      const deleteBtn = target.closest(".code-block-action-btn.delete") as HTMLElement | null;
-      if (deleteBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const wrapper = deleteBtn.closest(".code-block-toolbar-wrapper") as HTMLElement | null;
-        if (wrapper) deleteCodeBlock(wrapper);
-        return;
-      }
-
-      // 复制
-      const copyBtn = target.closest(".code-block-action-btn.copy") as HTMLElement | null;
-      if (copyBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const wrapper = copyBtn.closest(".code-block-toolbar-wrapper") as HTMLElement | null;
-        if (wrapper) copyCodeBlock(wrapper);
-        return;
       }
     },
     true
@@ -301,7 +257,7 @@ function installGlobalHandler() {
 
 // ── ProseMirror 插件 ──
 
-const pluginKey = new PluginKey("codeBlockToolbar");
+const pluginKey = new PluginKey("codeBlockToolbar.v2");
 
 export const CodeBlockToolbar = Extension.create({
   name: "codeBlockToolbar",
@@ -361,9 +317,6 @@ class CodeBlockToolbarView implements NodeView {
     langSelector.appendChild(langButton);
     this.toolbar.appendChild(langSelector);
 
-    // 操作按钮
-    this.toolbar.appendChild(this.createActions());
-
     // 代码内容区
     this.contentDOM = document.createElement("pre");
     this.contentDOM.className = "code-block-content";
@@ -373,25 +326,6 @@ class CodeBlockToolbarView implements NodeView {
     this.wrapper.appendChild(this.toolbar);
     this.wrapper.appendChild(this.contentDOM);
     this.dom = this.wrapper;
-  }
-
-  private createActions(): HTMLElement {
-    const actions = document.createElement("div");
-    actions.className = "code-block-actions";
-
-    const deleteButton = document.createElement("button");
-    deleteButton.className = "code-block-action-btn delete";
-    deleteButton.title = "删除";
-    deleteButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>`;
-
-    const copyButton = document.createElement("button");
-    copyButton.className = "code-block-action-btn copy";
-    copyButton.title = "复制";
-    copyButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>`;
-
-    actions.appendChild(deleteButton);
-    actions.appendChild(copyButton);
-    return actions;
   }
 
   update(node: any) {
