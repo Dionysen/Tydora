@@ -12,6 +12,7 @@ import { checkForUpdate, downloadAndInstall, relaunchApp, exitApp, isStoreVersio
 import { PublishSettings } from "./publish";
 import { loadCanvasSettings, saveCanvasSettings, type CanvasSettings } from "./Canvas/canvas-settings";
 import { TerminalSettingsContent } from "./Terminal/TerminalSettingsContent";
+import { VimSettingsPanel } from "./vim/settings/VimSettingsPanel";
 import { loadTerminalSettings, type TerminalSettings } from "./Terminal/terminal-settings";
 import { parseCssVariables, extractPreviewColors, type ThemeVariable, type ThemeManifest } from "./themes/CustomThemeManager";
 import { getCustomThemeCss } from "./themes/CustomThemeManager";
@@ -25,7 +26,7 @@ import "./Settings.css";
 
 // ── Types ────────────────────────────────────────────────────────────
 
-type SettingsTab = "general" | "theme" | "shortcuts" | "mindmap" | "graph" | "image" | "canvas" | "terminal" | "publish" | "about";
+type SettingsTab = "general" | "theme" | "shortcuts" | "mindmap" | "graph" | "image" | "canvas" | "terminal" | "publish" | "vim" | "about";
 
 interface NavItem {
   id: SettingsTab;
@@ -2079,7 +2080,7 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
     try {
       const saved = localStorage.getItem("zmd-settings-initial-tab") as SettingsTab | null;
-      if (saved && ["general", "theme", "shortcuts", "mindmap", "graph", "image", "canvas", "publish", "about"].includes(saved)) {
+      if (saved && ["general", "theme", "shortcuts", "mindmap", "graph", "image", "canvas", "publish", "vim", "about"].includes(saved)) {
         localStorage.removeItem("zmd-settings-initial-tab");
         return saved;
       }
@@ -2330,6 +2331,12 @@ export default function Settings() {
             <path d="M22 2l-7 20-4-9-9-4 20-7z" />
           </svg>
         ), searchTerms: ["发布", "publish", "导出", "部署", "网站"] },
+        { id: "vim", label: t("settings.tabs.vim", "Vim 模式"), icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="6" width="20" height="12" rx="2" />
+            <path d="M6 10l2 4 2-4M14 10l2 4 2-4" />
+          </svg>
+        ), searchTerms: ["Vim", "LazyVim", "键盘", "Leader", "快捷键", "vim"] },
       ]
     },
     {
@@ -2469,6 +2476,7 @@ export default function Settings() {
           {activeTab === "publish" && (
             <PublishSettings />
           )}
+          {activeTab === "vim" && <VimSettingsPanel />}
           {activeTab === "about" && <AboutSettingsContent />}
         </main>
         </div>

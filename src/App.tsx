@@ -16,6 +16,9 @@ const TerminalView = lazy(() => import("./Terminal/TerminalView").then(m => ({ d
 import { killTerminal, unregisterTerminal } from "./Terminal/terminalApi";
 import { startTerminalSettingsSync } from "./Terminal/terminal-settings";
 import Sidebar, { VaultInfo } from "./Sidebar";
+import { FileTreeVim, useWindowNavigation } from "./vim";
+// 用 Vim HOC 包裹 Sidebar：enabled=false 时透传，零影响
+const VimSidebar = FileTreeVim(Sidebar);
 import { FilePreview } from "./components";
 import { QuickOpen } from "./components";
 import { CommandPalette } from "./components";
@@ -996,6 +999,57 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   useEffect(() => { notifyResize(); }, [sidebarOpen]);
   useEffect(() => { notifyResize(); }, [sidebarWidth]);
 
+  // 激活窗格变化后自动聚焦该窗格的编辑器（统一处理分屏/关闭/导航/点击等所有场景）。
+  // —— 实现思路：不用 React 的 handle，直接模拟 Tab 键的原生焦点遍历：
+  //    在 data-pane-id 指向的容器里找 contenteditable / textarea 等可聚焦 DOM 元素，
+  //    调用原生 .focus()。这样即使 handle 因组件卸载重挂临时丢失、或聚焦回调没触发，
+  //    只要 Tab 能聚焦的 DOM 一出现，就能立刻把焦点落上去。
+  // —— 用 requestAnimationFrame 逐帧重试：关闭分屏后布局会压缩重绘，
+  //    编辑器组件可能短暂卸载再重挂载，最多重试 30 帧（≈500ms）兜底。
+  useEffect(() => {
+    const paneId = activePaneId;
+    if (!paneId) return;
+
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    // 按优先级查找可聚焦 DOM：和 Tab 遍历命中的元素一致
+    // 1. TipTap: ProseMirror contenteditable
+    // 2. CodeMirror: .cm-content / textarea
+    // 3. xterm 终端: .xterm textarea
+    // 4. 兜底: 任意 contenteditable=true / textarea / input
+    const focusableSelectors = [
+      '[data-pane-id="' + paneId + '"] .ProseMirror[contenteditable="true"]',
+      '[data-pane-id="' + paneId + '"] .cm-content',
+      '[data-pane-id="' + paneId + '"] .cm-editor',
+      '[data-pane-id="' + paneId + '"] .xterm textarea',
+      '[data-pane-id="' + paneId + '"] .terminal-container textarea',
+      '[data-pane-id="' + paneId + '"] [contenteditable="true"]',
+      '[data-pane-id="' + paneId + '"] textarea',
+      '[data-pane-id="' + paneId + '"] input',
+    ];
+
+    const tryFocus = () => {
+      if (cancelled) return;
+      for (const sel of focusableSelectors) {
+        const el = document.querySelector<HTMLElement>(sel);
+        if (el && el.isConnected) {
+          // 先让浏览器跑默认 scroll，focus 后同步 editorHandleRef（不影响 DOM 聚焦）
+          el.focus({ preventScroll: false });
+          // 同步 React 侧的 editorHandleRef（不强制，handle 在不在都不影响 DOM 聚焦）
+          const h = paneHandlesRef.current[paneId];
+          if (h) editorHandleRef.current = h;
+          return;
+        }
+      }
+      attempts++;
+      if (attempts < maxAttempts) requestAnimationFrame(tryFocus);
+    };
+    requestAnimationFrame(tryFocus);
+    return () => { cancelled = true; };
+  }, [activePaneId]);
+
   // ── 窗口位置/大小记忆 ──
   const saveWindowStateRef = useRef<() => Promise<void>>(async () => {});
   useEffect(() => {
@@ -1477,11 +1531,16 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         if (editorPane) {
           targetPaneId = editorPane.id;
           targetBufferId = editorPane.bufferId;
+          setActivePaneId(editorPane.id);
         } else {
           const newEditorPane: Pane = { id: pid(), kind: "editor", bufferId: buffersRef.current[0]?.id, mode: editorSettings.defaultMode };
           targetBufferId = newEditorPane.bufferId;
           spawnPaneBeside(activePaneObj.id, newEditorPane, "lr");
           targetPaneId = newEditorPane.id;
+          setActivePaneId(newEditorPane.id);
+          setTimeout(() => {
+            paneHandlesRef.current[newEditorPane.id]?.focus();
+          }, 60);
         }
       }
       // 检查目标编辑器窗格的 buffer 是否被多个窗格共享（分屏同步状态）
@@ -1764,6 +1823,12 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       const nextTree = replaceNodeByPath(splitLayoutRef.current, found.path, replacement);
       setSplitLayout(nextTree);
     }
+    // 分屏后默认聚焦到新分屏的窗格
+    setActivePaneId(newPane.id);
+    // 延迟聚焦新窗格的编辑器，等待挂载
+    setTimeout(() => {
+      paneHandlesRef.current[newPane.id]?.focus();
+    }, 60);
   }, [defaultCwd, makeTerminalPane, spawnPaneBeside]);
 
   // 终端快捷键（Ctrl+`）：toggle —— 无终端则新建；已有终端且当前不在终端则聚焦最近终端；已在终端则无操作。
@@ -1939,6 +2004,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     if (activePaneIdRef.current === paneId && adjacentPaneId) {
       setActivePaneId(adjacentPaneId);
       editorHandleRef.current = paneHandlesRef.current[adjacentPaneId] ?? null;
+      // 延迟聚焦相邻窗格的编辑器/终端，等待布局重新挂载
+      setTimeout(() => {
+        paneHandlesRef.current[adjacentPaneId]?.focus();
+      }, 60);
     }
     // 清理孤儿缓冲：基于同步的 panesRef + remainingPaneIds 先计算仍被引用的 bufferId，
     // 再用函数式 setBuffers 基于最新 panes 二次确认，避免因 setState 时序错删。
@@ -2419,6 +2488,97 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [handleSplit, handleToggleTerminal, fileName, isCurrentFileMarkdown, isActiveTerminal]);
+
+  // ── Vim 窗格导航 ──────────────────────────────────────────────────
+  // 焦点切换：在扁平 pane 列表中按方向移动
+  const focusPane = useCallback((dir: "left" | "down" | "up" | "right") => {
+    const ids = collectPaneIds(splitLayoutRef.current);
+    const idx = ids.indexOf(activePaneIdRef.current);
+    if (idx < 0 || ids.length <= 1) return;
+    // left/up → 前一个，right/down → 后一个
+    const delta = dir === "left" || dir === "up" ? -1 : 1;
+    const next = (idx + delta + ids.length) % ids.length;
+    setActivePaneId(ids[next]);
+    editorHandleRef.current = paneHandlesRef.current[ids[next]] ?? null;
+  }, []);
+
+  // 移动当前窗格到父组的边缘
+  const movePaneToEdge = useCallback((dir: "left" | "down" | "up" | "right") => {
+    const activeId = activePaneIdRef.current;
+    const found = findPaneInTree(splitLayoutRef.current, activeId);
+    if (!found || found.path.length === 0) return; // 根叶子，无法移动
+
+    const lastStep = found.path[found.path.length - 1];
+    const parent = lastStep.group;
+    const childIdx = lastStep.childIndex;
+
+    // left/up → 移到首，right/down → 移到末
+    const targetIdx = dir === "left" || dir === "up" ? 0 : parent.children.length - 1;
+    if (childIdx === targetIdx) return; // 已在目标位置
+
+    // 不可变地重排 children
+    const newChildren = [...parent.children];
+    const [moved] = newChildren.splice(childIdx, 1);
+    newChildren.splice(targetIdx, 0, moved);
+
+    // 用 path 到父组的路径替换父组（path.slice(0,-1) 为空时 replaceNodeByPath 直接返回 replacement）
+    const newRoot = replaceNodeByPath(
+      splitLayoutRef.current,
+      found.path.slice(0, -1),
+      { ...parent, children: newChildren }
+    );
+    setSplitLayout(newRoot);
+  }, []);
+
+  // Vim Leader 菜单的 app.* 动作分发：监听全局 vim-app-action 事件
+  // 用 ref 持有最新 handler，避免每次依赖变化重新注册监听
+  const vimAppHandlersRef = useRef<Record<string, () => void>>({});
+  vimAppHandlersRef.current = {
+    "save": handleSave,
+    "toggle-sidebar": handleSidebarToggle,
+    "toggle-mode": cycleMode,
+    "command-palette": () => setCommandPaletteOpen(true),
+    "quick-open": () => { if (activeVaultIndex >= 0) setQuickOpenOpen(true); },
+    "find": () => {
+      // 触发编辑器内查找（模拟 Ctrl+F）
+      const editor = document.querySelector(".codemirror-editor") as HTMLElement | null
+        || document.querySelector(".tiptap-editor .ProseMirror") as HTMLElement | null;
+      editor?.focus();
+      requestAnimationFrame(() => {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "f", ctrlKey: true, bubbles: true }));
+      });
+    },
+    "global-search": () => {
+      // 打开侧栏并切换到搜索 tab
+      if (!sidebarOpen) handleSidebarToggle();
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new CustomEvent("vim-sidebar-tab", { detail: { tab: "search" } }));
+      });
+    },
+    "split-horizontal": () => { if (fileName && isCurrentFileMarkdown) handleSplit("lr"); else if (isActiveTerminal) handleSplit("lr"); },
+    "split-vertical": () => { if (fileName && isCurrentFileMarkdown) handleSplit("tb"); else if (isActiveTerminal) handleSplit("tb"); },
+    "close-pane": () => closePane(activePaneIdRef.current),
+    "focus-left": () => focusPane("left"),
+    "focus-down": () => focusPane("down"),
+    "focus-up": () => focusPane("up"),
+    "focus-right": () => focusPane("right"),
+    "move-pane-left": () => movePaneToEdge("left"),
+    "move-pane-down": () => movePaneToEdge("down"),
+    "move-pane-up": () => movePaneToEdge("up"),
+    "move-pane-right": () => movePaneToEdge("right"),
+  };
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { action } = (e as CustomEvent).detail;
+      vimAppHandlersRef.current[action]?.();
+    };
+    window.addEventListener("vim-app-action", handler);
+    return () => window.removeEventListener("vim-app-action", handler);
+  }, []);
+
+  // Vim 窗口导航：Ctrl+w h/j/k/l 切换焦点
+  useWindowNavigation();
 
   // 监听 wikilink 点击
   useEffect(() => {
@@ -2928,7 +3088,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       {/* 主内容区：左侧栏 + 编辑区域 */}
       <div className="main-container">
         {/* 左侧栏 */}
-        <Sidebar
+        <VimSidebar
           vaults={vaults}
           activeVaultIndex={activeVaultIndex}
           currentFilePath={fileName}
@@ -3453,7 +3613,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                     return (
                       <div
                         key={`leaf-${keySeed}-${node.paneId}`}
-                        className="editor-split-pane"
+                        className={`editor-split-pane${pane.id === activePaneId ? " is-active" : ""}`}
+                        data-pane-id={pane.id}
                         style={{ flex: `${node.flex ?? 1} 1 0` }}
                         onFocus={() => {
                           setActivePaneId(pane.id);

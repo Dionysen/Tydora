@@ -8,6 +8,7 @@ bootStamp("js_main_entry");
 
 import { ThemeProvider } from "./themes";
 import { LanguageProvider } from "./i18n/LanguageContext";
+import { VimProvider } from "./vim";
 import "./i18n"; // init i18next before first render
 bootStamp("i18n_imported_init_done");
 
@@ -94,7 +95,11 @@ function Root() {
     bootEnd("main_window_lazy_chunks_resolve");
     return <CanvasWindow />;
   }
-  return <App initialFilePath={initialFilePath} initialVaultPath={initialVaultPath} />;
+  return (
+    <VimProvider>
+      <App initialFilePath={initialFilePath} initialVaultPath={initialVaultPath} />
+    </VimProvider>
+  );
 }
 
 bootStart("react_commit_root");

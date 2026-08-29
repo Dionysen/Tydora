@@ -48,6 +48,7 @@ import { loadShortcuts, matchShortcut } from "./shortcuts";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import CodeMirrorEditor, { type CodeMirrorEditorHandle } from "./CodeMirrorEditor";
+import { useVim, useLeader, LeaderMenu } from "../vim";
 import { buildPositionMap, mdOffsetToPmPos, pmPosToMdOffset } from "./markdown-position-map";
 import { ContextMenu } from "./ContextMenu";
 import { LinkDialog } from "./LinkDialog";
@@ -1436,6 +1437,43 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
 
     // 快捷键已移至 handleDOMEvents.keydown 中处理
 
+    // Vim Leader 菜单（TipTap 模式：; 触发，editor.* 走 executeCommand，app.* 走全局事件）
+    const { enabled: vimEnabled, tiptapLeaderKey, menuTimeout: vimMenuTimeout } = useVim();
+    const vimEditorRef = useRef<Editor | null>(editor);
+    vimEditorRef.current = editor;
+
+    // leader.json 的 editor.* ID 与 TipTap executeCommand 名称的映射差异
+    const tipTapActionMap: Record<string, string> = {
+      "code-block": "code",
+      "unordered-list": "list",
+      "check-list": "check",
+    };
+
+    const dispatchTipTapAction = useCallback((action: string) => {
+      if (action.startsWith("editor.")) {
+        const ed = vimEditorRef.current;
+        if (!ed) return false;
+        const actionId = action.slice("editor.".length);
+        executeCommand(tipTapActionMap[actionId] ?? actionId, ed);
+        return true;
+      }
+      if (action.startsWith("app.")) {
+        window.dispatchEvent(new CustomEvent("vim-app-action", {
+          detail: { action: action.slice("app.".length) }
+        }));
+        return true;
+      }
+      return false;
+    }, []);
+
+    const tipTapLeader = useLeader({
+      enabled: vimEnabled,
+      triggerKey: tiptapLeaderKey,
+      timeout: vimMenuTimeout,
+      active: true, // TipTap 恒为 insert 态，始终可触发
+      dispatchAction: dispatchTipTapAction,
+    });
+
     // 暴露 API
     useImperativeHandle(ref, () => ({
       getValue: () => {
@@ -1792,6 +1830,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
             onCancel={handleMathDialogCancel}
           />
         )}
+        <LeaderMenu open={tipTapLeader.open} items={tipTapLeader.items} path={tipTapLeader.path} />
       </div>
     );
   }
