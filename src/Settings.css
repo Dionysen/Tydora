@@ -106,14 +106,30 @@
 /* ── Navigation (类似主窗口侧栏) ────────────────────────────────── */
 
 .settings-nav {
+  position: relative;
   width: 260px;
-  min-width: 260px;
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border);
   overflow: hidden;
   flex-shrink: 0;
+}
+
+.settings-nav.resizing {
+  user-select: none;
+}
+
+.settings-nav-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+  background: transparent;
+  -webkit-app-region: no-drag;
 }
 
 /* ── 顶部透明拖拽区域 ── */

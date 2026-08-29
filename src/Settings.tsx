@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, type MouseEvent as ReactMouseEvent } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { PhysicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import { availableMonitors } from "@tauri-apps/api/window";
@@ -2312,6 +2312,10 @@ function AboutSettingsContent() {
 // ── Main Settings Component ─────────────────────────────────────────
 
 const SETTINGS_WINDOW_STATE_KEY = "zmd-settings-window-state";
+const SETTINGS_NAV_WIDTH_KEY = "zmd-settings-nav-width";
+const SETTINGS_NAV_WIDTH_DEFAULT = 260;
+const SETTINGS_NAV_WIDTH_MIN = 180;
+const SETTINGS_NAV_WIDTH_MAX = 420;
 
 export default function Settings() {
   const { t } = useTranslation();
@@ -2326,6 +2330,48 @@ export default function Settings() {
     return "general";
   });
   const { theme, setTheme } = useTheme();
+
+  const [navWidth, setNavWidth] = useState(() => {
+    try {
+      const saved = Number(localStorage.getItem(SETTINGS_NAV_WIDTH_KEY));
+      if (Number.isFinite(saved)) {
+        return Math.max(SETTINGS_NAV_WIDTH_MIN, Math.min(SETTINGS_NAV_WIDTH_MAX, saved));
+      }
+    } catch {}
+    return SETTINGS_NAV_WIDTH_DEFAULT;
+  });
+  const [isNavResizing, setIsNavResizing] = useState(false);
+  const navResizeStartRef = useRef({ x: 0, width: SETTINGS_NAV_WIDTH_DEFAULT });
+
+  useEffect(() => {
+    localStorage.setItem(SETTINGS_NAV_WIDTH_KEY, String(navWidth));
+  }, [navWidth]);
+
+  const handleNavResizeMouseDown = useCallback((e: ReactMouseEvent) => {
+    e.preventDefault();
+    navResizeStartRef.current = { x: e.clientX, width: navWidth };
+    setIsNavResizing(true);
+  }, [navWidth]);
+
+  useEffect(() => {
+    if (!isNavResizing) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - navResizeStartRef.current.x;
+      const next = navResizeStartRef.current.width + delta;
+      setNavWidth(Math.max(SETTINGS_NAV_WIDTH_MIN, Math.min(SETTINGS_NAV_WIDTH_MAX, next)));
+    };
+    const handleMouseUp = () => setIsNavResizing(false);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isNavResizing]);
 
   // 统计：设置窗口打开（所有入口最终都会挂载此窗口，窗口已打开时只聚焦不重复上报）
   useEffect(() => {
@@ -2619,7 +2665,10 @@ export default function Settings() {
       {/* 主内容 */}
       <div className="settings-body">
         {/* 左侧菜单 */}
-        <nav className="settings-nav">
+        <nav
+          className={`settings-nav${isNavResizing ? " resizing" : ""}`}
+          style={{ width: navWidth }}
+        >
           {/* 顶部透明拖拽区域：deep 使整条顶栏（含子节点）可拖 */}
           <div className="settings-nav-topbar" data-tauri-drag-region="deep" />
           <div className="settings-nav-content">
@@ -2678,6 +2727,10 @@ export default function Settings() {
               </div>
             )}
           </div>
+          <div
+            className="settings-nav-resize-handle"
+            onMouseDown={handleNavResizeMouseDown}
+          />
         </nav>
 
         {/* 右侧内容 */}
