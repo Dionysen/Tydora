@@ -18,6 +18,7 @@
 
 .sidebar.resizing {
   user-select: none;
+  -webkit-user-select: none;
 }
 
 /* ── 顶部透明栏 ── */
@@ -57,6 +58,7 @@
     background 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 .sidebar-toggle-btn:hover {
@@ -76,10 +78,15 @@
   overflow-x: hidden;
   overscroll-behavior-y: contain;
   padding: 0 0 50px 6px;
+  /* WKWebView 必须同时写 -webkit-，否则拖拽文件时仍会选中文件名 */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .sidebar-tree.dragging {
   user-select: none;
+  -webkit-user-select: none;
+  cursor: grabbing;
 }
 
 .sidebar-tree.hidden {
@@ -117,6 +124,7 @@
   white-space: nowrap;
   position: relative;
   user-select: none;
+  -webkit-user-select: none;
   border-radius: 8px;
   margin: 1px 4px 1px 0;
 }
@@ -201,6 +209,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* ── Tree children ── */
@@ -614,6 +624,9 @@
   padding: 1px 4px;
   outline: none;
   font-family: inherit;
+  /* 重命名时仍允许选中输入框文字 */
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* ── Tabs ── */
@@ -686,6 +699,7 @@
     box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 .sidebar-tab svg {
@@ -749,6 +763,7 @@
   white-space: nowrap;
   position: relative;
   user-select: none;
+  -webkit-user-select: none;
   border-radius: 8px;
   margin: 1px 4px 1px 0;
 }

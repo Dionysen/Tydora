@@ -27,6 +27,7 @@
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   user-select: none;
+  -webkit-user-select: none;
   -webkit-app-region: drag;
   flex-shrink: 0;
 }
@@ -131,6 +132,7 @@
     background 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 .window-control-btn svg {
@@ -288,6 +290,7 @@
   font-size: 11px;
   color: var(--text-secondary);
   user-select: none;
+  -webkit-user-select: none;
   line-height: 1;
   background: var(--bg-primary, rgba(255, 255, 255, 0.9));
   padding: 0 4px;
@@ -382,6 +385,7 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
   pointer-events: none;
   user-select: none;
+  -webkit-user-select: none;
   animation: font-size-indicator-in 0.15s ease;
 }
 
@@ -1018,6 +1022,7 @@
   color: var(--text-secondary);
   display: inline-block;
   user-select: none;
+  -webkit-user-select: none;
   font-weight: normal;
 }
 
@@ -1369,6 +1374,7 @@
 /* 拖拽分割线时禁止选中文本 */
 .editor-split.resizing {
   user-select: none;
+  -webkit-user-select: none;
   cursor: col-resize;
 }
 
@@ -1612,6 +1618,7 @@
   color: var(--text-secondary);
   font-weight: 600;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 .quick-open-footer {
@@ -1723,6 +1730,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 .command-palette-item {

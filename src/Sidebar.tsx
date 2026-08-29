@@ -1739,6 +1739,8 @@ function FileTree({
         dragNodeRef.current = dragStartRef.current.path;
         isDragDirectoryRef.current = dragStartRef.current.isDirectory;
         setIsDragging(true);
+        // 清掉拖拽阈值内已产生的文本选区（WKWebView 上 user-select 偶发失效）
+        window.getSelection()?.removeAllRanges();
       }
 
       // Find which tree-node the mouse is over
@@ -2119,7 +2121,20 @@ function FileTree({
           )}
         </button>
       </div>
-      <div ref={treeRef} className={`sidebar-tree${hidden ? " hidden" : ""}${isDragging ? " dragging" : ""}${dragOverPath === rootPath ? " drag-over" : ""}`} onContextMenu={handleBlankContextMenu} onScroll={handleScroll} onClick={(e) => { if (e.target === e.currentTarget) handleClearSelection(); }} data-path={rootPath} data-is-dir="1">
+      <div
+        ref={treeRef}
+        className={`sidebar-tree${hidden ? " hidden" : ""}${isDragging ? " dragging" : ""}${dragOverPath === rootPath ? " drag-over" : ""}`}
+        onContextMenu={handleBlankContextMenu}
+        onScroll={handleScroll}
+        onClick={(e) => { if (e.target === e.currentTarget) handleClearSelection(); }}
+        onSelectStart={(e) => {
+          // 禁止文件树文本选中（重命名输入框除外）；WKWebView 对 CSS user-select 不完全可靠
+          if ((e.target as HTMLElement).closest(".tree-name-input")) return;
+          e.preventDefault();
+        }}
+        data-path={rootPath}
+        data-is-dir="1"
+      >
       {rootNodes.length > 0 &&
         rootNodes.map((node) => (
           <TreeNodeComp

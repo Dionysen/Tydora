@@ -40,6 +40,7 @@
   padding: 4px 8px;
   cursor: pointer;
   user-select: none;
+  -webkit-user-select: none;
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
@@ -112,6 +113,8 @@
   margin: 1px 4px;
   transition: background 0.1s;
   position: relative;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .bookmark-item::before {
