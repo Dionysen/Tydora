@@ -29,6 +29,11 @@ import { useLanguage } from "./i18n/LanguageContext";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "./i18n";
 import { FontPicker } from "./components/FontPicker";
 import { normalizeCodeFontValue, normalizeEditorFontValue } from "./utils/systemFonts";
+import {
+  applyMenuDensity,
+  normalizeMenuDensity,
+  type MenuDensity,
+} from "./utils/menuDensity";
 import shortcutsConfig from "./config/shortcuts.json";
 import { isAnalyticsEnabled, setAnalyticsEnabled, track, trackPageview, ANALYTICS_EVENTS } from "./analytics";
 import "./Settings.css";
@@ -108,6 +113,8 @@ interface GeneralSettings {
   expandOutlineOnOpen: boolean;
   /** 代码块工具栏样式 */
   codeBlockToolbarStyle: CodeBlockToolbarStyle;
+  /** 菜单项高度密度 */
+  menuDensity: MenuDensity;
 }
 
 interface ShortcutItem {
@@ -134,6 +141,7 @@ const DEFAULT_GENERAL: GeneralSettings = {
   irLineNumbers: true,
   expandOutlineOnOpen: true,
   codeBlockToolbarStyle: "minimal",
+  menuDensity: "compact",
 };
 
 interface MindmapSettings {
@@ -362,6 +370,26 @@ function GeneralSettingsContent({
           >
             <option value="minimal">{t("settings.appearance.codeBlockToolbarMinimal")}</option>
             <option value="classic">{t("settings.appearance.codeBlockToolbarClassic")}</option>
+          </select>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.menuDensity")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.menuDensityDesc")}</span>
+          </div>
+          <select
+            className="settings-select"
+            value={settings.menuDensity}
+            onChange={(e) =>
+              onChange({
+                ...settings,
+                menuDensity: e.target.value as MenuDensity,
+              })
+            }
+          >
+            <option value="compact">{t("settings.appearance.menuDensityCompact")}</option>
+            <option value="normal">{t("settings.appearance.menuDensityNormal")}</option>
+            <option value="comfortable">{t("settings.appearance.menuDensityComfortable")}</option>
           </select>
         </div>
       </div>
@@ -2392,15 +2420,17 @@ export default function Settings() {
             : DEFAULT_GENERAL.codeFontSize,
         codeBlockToolbarStyle:
           parsed.codeBlockToolbarStyle === "classic" ? "classic" : "minimal",
+        menuDensity: normalizeMenuDensity(parsed.menuDensity),
       };
     } catch {
       return DEFAULT_GENERAL;
     }
   });
 
-  // 保存通用设置到 localStorage
+  // 保存通用设置到 localStorage，并立即应用菜单密度（设置窗口内即时生效）
   useEffect(() => {
     localStorage.setItem(GENERAL_SETTINGS_KEY, JSON.stringify(generalSettings));
+    applyMenuDensity(generalSettings.menuDensity);
   }, [generalSettings]);
 
   // 思维导图设置状态

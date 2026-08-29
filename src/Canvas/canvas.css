@@ -96,13 +96,30 @@
 }
 
 @keyframes traffic-light-blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+
+  0%,
+  50% {
+    opacity: 1;
+  }
+
+  51%,
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes traffic-light-flash {
-  0%, 62.5% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0.8); }
+
+  0%,
+  62.5% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
 }
 
 .canvas-window-content {
@@ -248,12 +265,15 @@
 .react-flow__handle-top {
   transform: translate(-50%, -50%);
 }
+
 .react-flow__handle-bottom {
   transform: translate(-50%, 50%);
 }
+
 .react-flow__handle-left {
   transform: translate(-50%, -50%);
 }
+
 .react-flow__handle-right {
   transform: translate(50%, -50%);
 }
@@ -333,6 +353,7 @@
   opacity: 0;
   transition: opacity 0.15s ease;
 }
+
 .canvas-resize-line.left:hover::after {
   opacity: 1;
 }
@@ -349,6 +370,7 @@
   opacity: 0;
   transition: opacity 0.15s ease;
 }
+
 .canvas-resize-line.right:hover::after {
   opacity: 1;
 }
@@ -365,6 +387,7 @@
   opacity: 0;
   transition: opacity 0.15s ease;
 }
+
 .canvas-resize-line.top:hover::after {
   opacity: 1;
 }
@@ -381,6 +404,7 @@
   opacity: 0;
   transition: opacity 0.15s ease;
 }
+
 .canvas-resize-line.bottom:hover::after {
   opacity: 1;
 }
@@ -493,7 +517,7 @@
   pointer-events: none;
 }
 
-.canvas-text-editor > :first-child {
+.canvas-text-editor> :first-child {
   margin-top: 0;
 }
 
@@ -507,12 +531,12 @@
   margin: 0.25em 0;
 }
 
-.canvas-text-editor li > p {
+.canvas-text-editor li>p {
   margin: 0;
 }
 
 /* 行内代码 - 与 IR 模式一致 */
-.canvas-text-editor :not(pre) > code {
+.canvas-text-editor :not(pre)>code {
   background: var(--bg-code-inline, rgba(0, 0, 0, 0.06));
   padding: var(--padding-code-inline-y, 0.2em) var(--padding-code-inline-x, 0.4em);
   border: 1px solid var(--border, #e0e0e0);
@@ -744,7 +768,7 @@
   margin: 0.5em 0;
 }
 
-.canvas-note-editor > :first-child {
+.canvas-note-editor> :first-child {
   margin-top: 0;
 }
 
@@ -758,12 +782,12 @@
   margin: 0.25em 0;
 }
 
-.canvas-note-editor li > p {
+.canvas-note-editor li>p {
   margin: 0;
 }
 
 /* 行内代码 - 与 IR 模式一致 */
-.canvas-note-editor :not(pre) > code {
+.canvas-note-editor :not(pre)>code {
   background: var(--bg-code-inline, rgba(0, 0, 0, 0.06));
   padding: var(--padding-code-inline-y, 0.2em) var(--padding-code-inline-x, 0.4em);
   border: 1px solid var(--border, #e0e0e0);
@@ -1271,12 +1295,29 @@
 }
 
 /* Node color presets */
-.canvas-color-red { background: #ef4444; }
-.canvas-color-orange { background: #f97316; }
-.canvas-color-yellow { background: #eab308; }
-.canvas-color-green { background: #22c55e; }
-.canvas-color-cyan { background: #06b6d4; }
-.canvas-color-purple { background: #a855f7; }
+.canvas-color-red {
+  background: #ef4444;
+}
+
+.canvas-color-orange {
+  background: #f97316;
+}
+
+.canvas-color-yellow {
+  background: #eab308;
+}
+
+.canvas-color-green {
+  background: #22c55e;
+}
+
+.canvas-color-cyan {
+  background: #06b6d4;
+}
+
+.canvas-color-purple {
+  background: #a855f7;
+}
 
 /* Canvas Toolbar - Obsidian style floating */
 .canvas-toolbar {
@@ -1427,11 +1468,12 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 8px 12px;
+  padding: var(--menu-item-padding-y) var(--menu-item-padding-x);
   border: none;
   background: transparent;
   color: var(--text-primary);
   font-size: 13px;
+  line-height: var(--menu-item-line-height);
   cursor: pointer;
   border-radius: 4px;
   transition: background 0.1s;
@@ -1450,7 +1492,7 @@
 .canvas-context-menu-divider {
   height: 1px;
   background: var(--border);
-  margin: 4px 0;
+  margin: var(--menu-divider-margin-y) 0;
 }
 
 /* Link Input Popover */
@@ -1860,8 +1902,13 @@
 }
 
 @keyframes confirm-dialog-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .confirm-dialog {
@@ -1876,8 +1923,15 @@
 }
 
 @keyframes confirm-dialog-scale-in {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .confirm-dialog-icon {

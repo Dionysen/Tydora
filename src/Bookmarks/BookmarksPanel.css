@@ -319,8 +319,9 @@
 }
 
 .bookmark-dialog-dropdown-item {
-  padding: 6px 10px;
+  padding: var(--menu-item-padding-y) var(--menu-item-padding-x);
   font-size: 13px;
+  line-height: var(--menu-item-line-height);
   cursor: pointer;
   display: flex;
   align-items: center;

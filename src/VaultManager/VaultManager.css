@@ -199,17 +199,18 @@
   background: var(--bg-surface, #313244);
   border: 1px solid var(--border, #45475a);
   border-radius: 10px;
-  padding: 6px;
+  padding: 4px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
 
 .vault-manager-menu-item {
   display: flex;
   align-items: center;
-  padding: 10px 14px;
+  padding: var(--menu-item-padding-y) var(--menu-item-padding-x);
   font-size: 13px;
+  line-height: var(--menu-item-line-height);
   color: var(--text-secondary, #a6adc8);
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
   user-select: none;
@@ -232,7 +233,7 @@
 .vault-manager-menu-divider {
   height: 1px;
   background: var(--border, #45475a);
-  margin: 6px 8px;
+  margin: var(--menu-divider-margin-y) 8px;
 }
 
 /* Rename input */

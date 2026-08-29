@@ -28,6 +28,7 @@ import { emit, listen } from "@tauri-apps/api/event";
 import { loadImageSettings, type ImageSettings } from "./services";
 import { loadEditorSettings, type EditorSettings, EDITOR_SETTINGS_KEY, SHORTCUTS_KEY, GRAPH_SETTINGS_KEY, DEFAULT_GRAPH } from "./Settings";
 import { applyFontSettings } from "./utils/systemFonts";
+import { applyMenuDensity, normalizeMenuDensity } from "./utils/menuDensity";
 import { checkForUpdate, downloadAndInstall, relaunchApp, exitApp, isPortableVersion, type UpdateInfo } from "./services";
 import { LinkIndexService } from "./wikilink";
 import { WikiLinkAutocomplete } from "./wikilink";
@@ -484,6 +485,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         }
         document.documentElement.dataset.codeBlockToolbar =
           settings.codeBlockToolbarStyle === "classic" ? "classic" : "minimal";
+        applyMenuDensity(normalizeMenuDensity(settings.menuDensity));
       } catch {}
     };
     applySettings();
