@@ -2,7 +2,16 @@ import type { ThemeVariable } from "./CustomThemeManager";
 import type { BuiltinThemeName } from "./ThemeManager";
 import { BUILTIN_THEMES } from "./ThemeManager";
 
-export type ThemeColorGroup = "background" | "text" | "accent" | "border" | "scrollbar";
+export type ThemeColorGroup =
+  | "background"
+  | "text"
+  | "accent"
+  | "border"
+  | "scrollbar"
+  | "metadata"
+  | "blockquote"
+  | "table"
+  | "tag";
 
 export interface ThemeColorToken {
   name: string;
@@ -45,14 +54,31 @@ export const THEME_COLOR_SCHEMA: ThemeColorToken[] = [
   { name: "--scrollbar-thumb", group: "scrollbar", labelKey: "scrollbarThumb" },
   { name: "--scrollbar-thumb-hover", group: "scrollbar", labelKey: "scrollbarThumbHover" },
   { name: "--scrollbar-track", group: "scrollbar", labelKey: "scrollbarTrack" },
+  { name: "--metadata-bg", group: "metadata", labelKey: "metadataBg" },
+  { name: "--metadata-border", group: "metadata", labelKey: "metadataBorder" },
+  { name: "--blockquote-border", group: "blockquote", labelKey: "blockquoteBorder" },
+  { name: "--blockquote-bg", group: "blockquote", labelKey: "blockquoteBg" },
+  { name: "--blockquote-text", group: "blockquote", labelKey: "blockquoteText" },
+  { name: "--table-header-bg", group: "table", labelKey: "tableHeaderBg" },
+  { name: "--table-cell-bg", group: "table", labelKey: "tableCellBg" },
+  { name: "--tag-bg", group: "tag", labelKey: "tagBg" },
+  { name: "--tag-text", group: "tag", labelKey: "tagText" },
 ];
 
-/** Radius / scrollbar size tokens shown in the theme editor. */
+/** Radius / padding / width tokens shown in the theme editor. */
 export const THEME_SIZE_SCHEMA: ThemeSizeToken[] = [
   { name: "--radius-code-block", labelKey: "radiusCodeBlock", min: 0, max: 24 },
   { name: "--radius-code-inline", labelKey: "radiusCodeInline", min: 0, max: 16 },
   { name: "--padding-code-inline-y", labelKey: "paddingCodeInlineY", min: 0, max: 16 },
   { name: "--padding-code-inline-x", labelKey: "paddingCodeInlineX", min: 0, max: 24 },
+  { name: "--radius-metadata", labelKey: "radiusMetadata", min: 0, max: 24 },
+  { name: "--blockquote-border-width", labelKey: "blockquoteBorderWidth", min: 0, max: 16 },
+  { name: "--padding-blockquote-y", labelKey: "paddingBlockquoteY", min: 0, max: 32 },
+  { name: "--padding-blockquote-x", labelKey: "paddingBlockquoteX", min: 0, max: 48 },
+  { name: "--radius-table", labelKey: "radiusTable", min: 0, max: 24 },
+  { name: "--radius-tag", labelKey: "radiusTag", min: 0, max: 24 },
+  { name: "--padding-tag-y", labelKey: "paddingTagY", min: 0, max: 16 },
+  { name: "--padding-tag-x", labelKey: "paddingTagX", min: 0, max: 24 },
   { name: "--radius-scrollbar", labelKey: "radiusScrollbar", min: 0, max: 16 },
   { name: "--scrollbar-size", labelKey: "scrollbarSize", min: 4, max: 20 },
 ];
@@ -63,6 +89,10 @@ export const THEME_COLOR_GROUPS: ThemeColorGroup[] = [
   "accent",
   "border",
   "scrollbar",
+  "metadata",
+  "blockquote",
+  "table",
+  "tag",
 ];
 
 /** Non-color vars preserved when forking / rebuilding CSS. */
@@ -76,6 +106,14 @@ const PRESERVED_NON_COLOR = [
   "--radius-code-inline",
   "--padding-code-inline-y",
   "--padding-code-inline-x",
+  "--radius-metadata",
+  "--blockquote-border-width",
+  "--padding-blockquote-y",
+  "--padding-blockquote-x",
+  "--radius-table",
+  "--radius-tag",
+  "--padding-tag-y",
+  "--padding-tag-x",
   "--radius-scrollbar",
   "--scrollbar-size",
 ] as const;
@@ -102,6 +140,15 @@ const LIGHT_DEFAULTS: Record<string, string> = {
   "--scrollbar-thumb": "#a5cfc0",
   "--scrollbar-thumb-hover": "#6B6B6B",
   "--scrollbar-track": "transparent",
+  "--metadata-bg": "#d9ede5",
+  "--metadata-border": "#a5cfc0",
+  "--blockquote-border": "#a5cfc0",
+  "--blockquote-bg": "transparent",
+  "--blockquote-text": "#6B6B6B",
+  "--table-header-bg": "#d9ede5",
+  "--table-cell-bg": "transparent",
+  "--tag-bg": "rgba(78, 178, 137, 0.15)",
+  "--tag-text": "#4eb289",
 };
 
 const DARK_DEFAULTS: Record<string, string> = {
@@ -126,6 +173,15 @@ const DARK_DEFAULTS: Record<string, string> = {
   "--scrollbar-thumb": "#39393a",
   "--scrollbar-thumb-hover": "#818286",
   "--scrollbar-track": "transparent",
+  "--metadata-bg": "#232325",
+  "--metadata-border": "#39393a",
+  "--blockquote-border": "#39393a",
+  "--blockquote-bg": "transparent",
+  "--blockquote-text": "#818286",
+  "--table-header-bg": "#232325",
+  "--table-cell-bg": "transparent",
+  "--tag-bg": "rgba(78, 178, 137, 0.18)",
+  "--tag-text": "#4eb289",
 };
 
 /** Full color maps for each built-in theme (for fork). Keep in sync with themes.css. */
@@ -299,6 +355,14 @@ const DEFAULT_SIZES: ThemeVariable[] = [
   { name: "--radius-code-inline", value: "4px", type: "size" },
   { name: "--padding-code-inline-y", value: "3px", type: "size" },
   { name: "--padding-code-inline-x", value: "6px", type: "size" },
+  { name: "--radius-metadata", value: "8px", type: "size" },
+  { name: "--blockquote-border-width", value: "3px", type: "size" },
+  { name: "--padding-blockquote-y", value: "4px", type: "size" },
+  { name: "--padding-blockquote-x", value: "16px", type: "size" },
+  { name: "--radius-table", value: "0px", type: "size" },
+  { name: "--radius-tag", value: "10px", type: "size" },
+  { name: "--padding-tag-y", value: "1px", type: "size" },
+  { name: "--padding-tag-x", value: "8px", type: "size" },
   { name: "--radius-scrollbar", value: "4px", type: "size" },
   { name: "--scrollbar-size", value: "8px", type: "size" },
 ];
@@ -314,6 +378,21 @@ function resolveColorTokenValue(
     return colors["--text-secondary"];
   }
   if (token.name === "--scrollbar-track") return colors[token.name] ?? "transparent";
+  if (token.name === "--metadata-bg" && colors["--bg-secondary"]) return colors["--bg-secondary"];
+  if (token.name === "--metadata-border" && colors["--border"]) return colors["--border"];
+  if (token.name === "--blockquote-border" && colors["--border"]) return colors["--border"];
+  if (token.name === "--blockquote-bg") return colors[token.name] ?? "transparent";
+  if (token.name === "--blockquote-text" && colors["--text-secondary"]) {
+    return colors["--text-secondary"];
+  }
+  if (token.name === "--table-header-bg" && colors["--bg-secondary"]) {
+    return colors["--bg-secondary"];
+  }
+  if (token.name === "--table-cell-bg") return colors[token.name] ?? "transparent";
+  if (token.name === "--tag-text" && colors["--accent"]) return colors["--accent"];
+  if (token.name === "--tag-bg" && colors["--accent-rgb"]) {
+    return `rgba(${colors["--accent-rgb"]}, 0.15)`;
+  }
   return defaults[token.name] ?? LIGHT_DEFAULTS[token.name] ?? "#ffffff";
 }
 
@@ -432,6 +511,10 @@ export function groupEditableColors(
     accent: [],
     border: [],
     scrollbar: [],
+    metadata: [],
+    blockquote: [],
+    table: [],
+    tag: [],
   };
   for (const token of THEME_COLOR_SCHEMA) {
     if (token.hidden) continue;

@@ -542,10 +542,11 @@
 
 /* 引用 - 与 IR 模式一致 */
 .canvas-text-editor blockquote {
-  border-left: 3px solid var(--border);
-  padding-left: 1em;
+  border-left: var(--blockquote-border-width, 3px) solid var(--blockquote-border, var(--border));
+  background: var(--blockquote-bg, transparent);
+  padding: var(--padding-blockquote-y, 4px) var(--padding-blockquote-x, 16px);
   margin: 1em 0;
-  color: var(--text-secondary);
+  color: var(--blockquote-text, var(--text-secondary));
 }
 
 /* 加粗 - 与 IR 模式一致 */
@@ -792,10 +793,11 @@
 
 /* 引用 - 与 IR 模式一致 */
 .canvas-note-editor blockquote {
-  border-left: 3px solid var(--border);
-  padding-left: 1em;
+  border-left: var(--blockquote-border-width, 3px) solid var(--blockquote-border, var(--border));
+  background: var(--blockquote-bg, transparent);
+  padding: var(--padding-blockquote-y, 4px) var(--padding-blockquote-x, 16px);
   margin: 1em 0;
-  color: var(--text-secondary);
+  color: var(--blockquote-text, var(--text-secondary));
 }
 
 /* 加粗 - 与 IR 模式一致 */
@@ -860,9 +862,9 @@
 
 /* Frontmatter 块 */
 .canvas-note-editor [data-type="frontmatter"] {
-  background: var(--bg-secondary, #f5f5f5);
-  border: 1px solid var(--border, #e0e0e0);
-  border-radius: 8px;
+  background: var(--metadata-bg, var(--bg-secondary, #f5f5f5));
+  border: 1px solid var(--metadata-border, var(--border, #e0e0e0));
+  border-radius: var(--radius-metadata, 8px);
   margin: 0 0 1em 0;
   font-size: 0.85em;
   position: relative;

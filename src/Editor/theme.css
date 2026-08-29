@@ -385,10 +385,11 @@
 
 /* 引用 */
 .tiptap-editor blockquote {
-  border-left: 3px solid var(--border, #d9ede5);
-  padding-left: 1em;
+  border-left: var(--blockquote-border-width, 3px) solid var(--blockquote-border, var(--border, #d9ede5));
+  background: var(--blockquote-bg, transparent);
+  color: var(--blockquote-text, var(--text-secondary, #666));
+  padding: var(--padding-blockquote-y, 4px) var(--padding-blockquote-x, 16px);
   margin: 1em 0;
-  color: var(--text-secondary, #666);
 }
 
 /* ── Callouts (提示框 / Alerts) ── */
@@ -660,10 +661,11 @@
 }
 
 .tiptap-export-content blockquote {
-  border-left: 3px solid var(--border, #d9ede5);
-  padding-left: 1em;
+  border-left: var(--blockquote-border-width, 3px) solid var(--blockquote-border, var(--border, #d9ede5));
+  background: var(--blockquote-bg, transparent);
+  color: var(--blockquote-text, var(--text-secondary, #666));
+  padding: var(--padding-blockquote-y, 4px) var(--padding-blockquote-x, 16px);
   margin: 1em 0;
-  color: var(--text-secondary, #666);
 }
 
 /* 行内代码 */
@@ -734,18 +736,31 @@
 
 /* 表格 */
 .tiptap-export-content table {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   width: 100%;
   margin: 1em 0;
+  border-radius: var(--radius-table, 0);
+  overflow: hidden;
 }
 .tiptap-export-content th,
 .tiptap-export-content td {
-  border: 1px solid var(--border, #d9ede5);
+  border-right: 1px solid var(--border, #d9ede5);
+  border-bottom: 1px solid var(--border, #d9ede5);
   padding: 0.5em 0.75em;
   text-align: left;
+  background: var(--table-cell-bg, transparent);
+}
+.tiptap-export-content tr:first-child > th,
+.tiptap-export-content tr:first-child > td {
+  border-top: 1px solid var(--border, #d9ede5);
+}
+.tiptap-export-content th:first-child,
+.tiptap-export-content td:first-child {
+  border-left: 1px solid var(--border, #d9ede5);
 }
 .tiptap-export-content th {
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--table-header-bg, var(--bg-secondary, #f5f5f5));
   font-weight: 600;
 }
 
@@ -882,19 +897,34 @@
 
 /* 表格 */
 .tiptap-editor table {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   width: 100%;
   margin: 1em 0;
+  border-radius: var(--radius-table, 0);
+  overflow: hidden;
 }
 
 .tiptap-editor th, .tiptap-editor td {
-  border: 1px solid var(--border, #d9ede5);
+  border-right: 1px solid var(--border, #d9ede5);
+  border-bottom: 1px solid var(--border, #d9ede5);
   padding: 0.5em 0.75em;
   text-align: left;
+  background: var(--table-cell-bg, transparent);
+}
+
+.tiptap-editor tr:first-child > th,
+.tiptap-editor tr:first-child > td {
+  border-top: 1px solid var(--border, #d9ede5);
+}
+
+.tiptap-editor th:first-child,
+.tiptap-editor td:first-child {
+  border-left: 1px solid var(--border, #d9ede5);
 }
 
 .tiptap-editor th {
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--table-header-bg, var(--bg-secondary, #f5f5f5));
   font-weight: 600;
 }
 
@@ -1126,9 +1156,9 @@
 
 /* Frontmatter 块 */
 .tiptap-editor [data-type="frontmatter"] {
-  background: var(--bg-secondary, #f5f5f5);
-  border: 1px solid var(--border, #e0e0e0);
-  border-radius: 8px;
+  background: var(--metadata-bg, var(--bg-secondary, #f5f5f5));
+  border: 1px solid var(--metadata-border, var(--border, #e0e0e0));
+  border-radius: var(--radius-metadata, 8px);
   margin: 0 0 1em 0;
   font-size: 0.85em;
   position: relative;
@@ -1142,7 +1172,7 @@
   color: var(--text-secondary, #999);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid var(--border, #e0e0e0);
+  border-bottom: 1px solid var(--metadata-border, var(--border, #e0e0e0));
   user-select: none;
   font-family: var(--editor-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
 }

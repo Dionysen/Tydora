@@ -975,6 +975,10 @@ function ThemeSettingsContent({
     accent: "settings.theme.groupAccent",
     border: "settings.theme.groupBorder",
     scrollbar: "settings.theme.groupScrollbar",
+    metadata: "settings.theme.groupMetadata",
+    blockquote: "settings.theme.groupBlockquote",
+    table: "settings.theme.groupTable",
+    tag: "settings.theme.groupTag",
   };
 
   if (editingTheme && grouped) {
