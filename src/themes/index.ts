@@ -5,3 +5,4 @@ export { getCodeThemeVariables, getDefaultCodeTheme, CODE_THEMES } from "./codeT
 export type { CustomCodeTheme } from "./codeThemes";
 export { THEME_COLOR_SCHEMA, mergeWithSchema } from "./themeTokens";
 export { ThemeColorField } from "./ThemeColorField";
+export { ThemeSizeField } from "./ThemeSizeField";

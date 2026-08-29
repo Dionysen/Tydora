@@ -270,6 +270,9 @@
       "groupText": "Text",
       "groupAccent": "Accent & status",
       "groupBorder": "Border",
+      "groupScrollbar": "Scrollbar",
+      "groupRadius": "Radius & size",
+      "previewInlineCode": "code",
       "token": {
         "bgPrimary": "Primary background",
         "bgSecondary": "Sidebar / secondary",
@@ -288,7 +291,16 @@
         "accentHover": "Accent hover",
         "accentRgb": "Accent RGB",
         "danger": "Danger / delete",
-        "border": "Border"
+        "border": "Border",
+        "scrollbarThumb": "Scrollbar thumb",
+        "scrollbarThumbHover": "Scrollbar thumb hover",
+        "scrollbarTrack": "Scrollbar track",
+        "radiusCodeBlock": "Code block radius",
+        "radiusCodeInline": "Inline code radius",
+        "paddingCodeInlineY": "Inline code padding (vertical)",
+        "paddingCodeInlineX": "Inline code padding (horizontal)",
+        "radiusScrollbar": "Scrollbar radius",
+        "scrollbarSize": "Scrollbar width"
       }
     },
     "image": {

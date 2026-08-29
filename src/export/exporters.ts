@@ -255,8 +255,9 @@ html, body { margin: 0; height: 100%; overflow-y: auto; }
 
 .export-page :not(pre) > code {
   background: rgba(0, 0, 0, 0.06);
-  padding: 0.2em 0.4em;
-  border-radius: 4px;
+  padding: var(--padding-code-inline-y, 0.2em) var(--padding-code-inline-x, 0.4em);
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: var(--radius-code-inline, 4px);
   font-family: "Fira Code", "Consolas", monospace;
   font-size: 0.9em;
   color: #e83e8c;

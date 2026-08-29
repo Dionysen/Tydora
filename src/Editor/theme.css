@@ -7,14 +7,81 @@
   overflow-anchor: none;
 }
 
-/* 编辑器滚动条尺寸（显隐由全局 data-scrolling 控制） */
+/* 编辑器滚动条：必须在同一元素上写全套伪元素，
+   否则 WebKit 不会套用全局 ::-webkit-scrollbar-thumb 规则 */
 .tiptap-editor::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: var(--scrollbar-size, 8px);
+  height: var(--scrollbar-size, 8px);
 }
 
 .tiptap-editor::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--scrollbar-track, transparent);
+}
+
+.tiptap-editor::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--scrollbar-thumb, var(--border)) 1%, transparent);
+  border-radius: var(--radius-scrollbar, 4px);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  transition: background-color 0.15s ease;
+}
+
+.tiptap-editor[data-scrolling]::-webkit-scrollbar-thumb,
+.tiptap-editor:hover::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb, var(--border));
+  transition: background-color 0s;
+}
+
+.tiptap-editor::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover, var(--text-secondary));
+}
+
+.tiptap-editor {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.tiptap-editor:hover,
+.tiptap-editor[data-scrolling] {
+  scrollbar-color: var(--scrollbar-thumb, var(--border)) var(--scrollbar-track, transparent);
+}
+
+/* 源码模式 CodeMirror 滚动条（同样需写全套） */
+.cm-editor .cm-scroller::-webkit-scrollbar {
+  width: var(--scrollbar-size, 8px);
+  height: var(--scrollbar-size, 8px);
+}
+
+.cm-editor .cm-scroller::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, transparent);
+}
+
+.cm-editor .cm-scroller::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--scrollbar-thumb, var(--border)) 1%, transparent);
+  border-radius: var(--radius-scrollbar, 4px);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  transition: background-color 0.15s ease;
+}
+
+.cm-editor .cm-scroller[data-scrolling]::-webkit-scrollbar-thumb,
+.cm-editor .cm-scroller:hover::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb, var(--border));
+  transition: background-color 0s;
+}
+
+.cm-editor .cm-scroller::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover, var(--text-secondary));
+}
+
+.cm-editor .cm-scroller {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.cm-editor .cm-scroller:hover,
+.cm-editor .cm-scroller[data-scrolling] {
+  scrollbar-color: var(--scrollbar-thumb, var(--border)) var(--scrollbar-track, transparent);
 }
 
 /* Source Editor with highlight.js */
@@ -308,8 +375,9 @@
 /* 行内代码 */
 .tiptap-editor :not(pre) > code {
   background: var(--bg-code-inline, rgba(0, 0, 0, 0.06));
-  padding: 0.2em 0.4em;
-  border-radius: 4px;
+  padding: var(--padding-code-inline-y, 0.2em) var(--padding-code-inline-x, 0.4em);
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: var(--radius-code-inline, 4px);
   font-family: var(--font-mono, "Fira Code", "Consolas", monospace);
   font-size: var(--font-mono-size, 14px);
   color: var(--text-code, #e83e8c);
@@ -601,8 +669,9 @@
 /* 行内代码 */
 .tiptap-export-content :not(pre) > code {
   background: var(--bg-code-inline, rgba(0, 0, 0, 0.06));
-  padding: 0.2em 0.4em;
-  border-radius: 4px;
+  padding: var(--padding-code-inline-y, 0.2em) var(--padding-code-inline-x, 0.4em);
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: var(--radius-code-inline, 4px);
   font-family: var(--font-mono, "Fira Code", "Consolas", monospace);
   font-size: var(--font-mono-size, 14px);
   color: var(--text-code, #e83e8c);
@@ -1265,7 +1334,7 @@
 .code-block-toolbar-wrapper {
   position: relative;
   margin: 1em 0;
-  border-radius: 8px;
+  border-radius: var(--radius-code-block, 8px);
   background: var(--bg-code, #f6f8fa);
   border: 1px solid var(--border, #e0e0e0);
   overflow: visible;
@@ -1338,7 +1407,7 @@ html[data-code-block-toolbar="classic"] .code-block-toolbar {
   padding: 6px 12px;
   background: var(--bg-secondary, #f0f0f0);
   border-bottom: 1px solid var(--border, #e0e0e0);
-  border-radius: 7px 7px 0 0;
+  border-radius: var(--radius-code-block, 8px) var(--radius-code-block, 8px) 0 0;
 }
 
 html[data-code-block-toolbar="classic"] .code-block-actions {
@@ -1398,7 +1467,7 @@ html[data-code-block-toolbar="classic"] .code-block-action-btn.copy:hover {
 }
 
 html[data-code-block-toolbar="classic"] .code-block-content {
-  border-radius: 0 0 7px 7px;
+  border-radius: 0 0 var(--radius-code-block, 8px) var(--radius-code-block, 8px);
 }
 
 /* 下拉菜单 portal：挂载到 document.body，不受任何 overflow 父级裁剪 */
@@ -1485,7 +1554,7 @@ html[data-code-block-toolbar="classic"] .code-block-content {
   font-family: var(--font-mono, "Fira Code", "Consolas", monospace);
   font-size: var(--font-mono-size, 14px);
   line-height: 1.5;
-  border-radius: 7px;
+  border-radius: var(--radius-code-block, 8px);
   background: transparent;
   border: none;
   white-space: pre-wrap;

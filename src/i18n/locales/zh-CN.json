@@ -270,6 +270,9 @@
       "groupText": "文字",
       "groupAccent": "强调与状态",
       "groupBorder": "边框",
+      "groupScrollbar": "滚动条",
+      "groupRadius": "圆角与尺寸",
+      "previewInlineCode": "code",
       "token": {
         "bgPrimary": "主背景",
         "bgSecondary": "侧栏 / 次级背景",
@@ -288,7 +291,16 @@
         "accentHover": "主题色悬停",
         "accentRgb": "主题色 RGB",
         "danger": "危险 / 删除",
-        "border": "边框"
+        "border": "边框",
+        "scrollbarThumb": "滚动条滑块",
+        "scrollbarThumbHover": "滚动条滑块悬停",
+        "scrollbarTrack": "滚动条轨道",
+        "radiusCodeBlock": "代码块圆角",
+        "radiusCodeInline": "行内代码圆角",
+        "paddingCodeInlineY": "行内代码上下内边距",
+        "paddingCodeInlineX": "行内代码左右内边距",
+        "radiusScrollbar": "滚动条圆角",
+        "scrollbarSize": "滚动条宽度"
       }
     },
     "image": {

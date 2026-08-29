@@ -295,29 +295,34 @@
   border-radius: 3px;
 }
 
-/* ========== 滚动条（自动隐藏：滚动时显示，停止 400ms 后淡出） ========== */
+/* ========== 滚动条（滚动或悬停容器时显示，停止后淡出） ========== */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: var(--scrollbar-size, 8px);
+  height: var(--scrollbar-size, 8px);
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--scrollbar-track, transparent);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 4px;
+  /* 极低透明度保证滚动条槽可命中；真正显色由 :hover / [data-scrolling] 控制 */
+  background-color: color-mix(in srgb, var(--scrollbar-thumb, var(--border)) 1%, transparent);
+  border-radius: var(--radius-scrollbar, 4px);
+  background-clip: padding-box;
+  border: 2px solid transparent;
   transition: background-color 0.15s ease;
 }
 
-[data-scrolling]::-webkit-scrollbar-thumb {
-  background: var(--border);
+/* 滚动中，或鼠标悬停在可滚动容器上时显示滑块 */
+[data-scrolling]::-webkit-scrollbar-thumb,
+*:hover::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb, var(--border));
   transition: background-color 0s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  background-color: var(--scrollbar-thumb-hover, var(--text-secondary));
 }
 
 /* Firefox */
@@ -326,8 +331,9 @@
   scrollbar-color: transparent transparent;
 }
 
+*:hover,
 [data-scrolling] {
-  scrollbar-color: var(--border) transparent;
+  scrollbar-color: var(--scrollbar-thumb, var(--border)) var(--scrollbar-track, transparent);
 }
 
 /* ========== 工具栏分隔线 ========== */
@@ -824,10 +830,11 @@
 .cm-live-inline-code {
   font-family: var(--font-mono);
   font-size: 0.9em;
-  background: var(--bg-surface);
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: var(--accent);
+  background: var(--bg-code-inline, var(--bg-surface));
+  padding: var(--padding-code-inline-y, 2px) var(--padding-code-inline-x, 6px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-code-inline, 4px);
+  color: var(--text-code, var(--accent));
 }
 
 /* ── 链接 ── */

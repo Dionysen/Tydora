@@ -25,6 +25,7 @@ const MANIFEST_FILE = "manifest.json";
 // Variables that should be detected as color pickers
 const COLOR_PATTERNS = [
   /^--bg-/, /^--text-/, /^--accent/, /^--border$/, /^--danger$/,
+  /^--scrollbar-/,
   /^--ring$/, /^--card/, /^--popover/, /^--primary/, /^--secondary/,
   /^--muted/, /^--destructive$/, /^--input$/, /^--sidebar/,
   /^--breathe/, /^--highlight/,
@@ -34,7 +35,13 @@ const COLOR_PATTERNS = [
 const FONT_PATTERNS = [/^--font-/, /^--editor-font$/];
 
 // Variables that are sizes
-const SIZE_PATTERNS = [/^--editor-font-size$/, /^--font-mono-size$/, /^--radius$/];
+const SIZE_PATTERNS = [
+  /^--editor-font-size$/,
+  /^--font-mono-size$/,
+  /^--radius/,
+  /^--padding-/,
+  /^--scrollbar-size$/,
+];
 
 // ── Path Helpers ─────────────────────────────────────────────────────
 

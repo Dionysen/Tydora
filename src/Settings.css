@@ -286,10 +286,29 @@
   background: var(--bg-primary);
 }
 
+/* 主题编辑器：头部固定，仅变量列表滚动（避免 sticky 抖动） */
+.settings-main:has(.theme-editor) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: 12px;
+  padding-bottom: 0;
+  min-height: 0;
+}
+
 .settings-section {
   width: 100%;
   max-width: 600px;
   margin: 0 auto 24px;
+}
+
+.settings-section.theme-editor {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 0;
+  max-width: 600px;
 }
 
 .about-header {
@@ -746,11 +765,20 @@
 
 /* ── Theme Editor ──────────────────────────────────────────────── */
 
+.theme-editor-sticky {
+  flex-shrink: 0;
+  z-index: 20;
+  background: var(--bg-primary);
+  padding-bottom: 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
 .theme-editor-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   gap: 12px;
 }
 
@@ -838,10 +866,24 @@
   margin-top: 2px;
 }
 
+.theme-editor-preview-inline-code {
+  display: inline;
+  margin-left: 4px;
+  font-family: var(--font-mono, "Cascadia Code", "Fira Code", monospace);
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid;
+  vertical-align: baseline;
+}
+
 .theme-editor-variables {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 24px;
 }
 
 .theme-editor-group {
@@ -970,10 +1012,18 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
+  justify-content: flex-end;
 }
 
 .theme-editor-size-group .settings-range {
   width: 120px;
+  flex-shrink: 0;
+}
+
+.theme-editor-size-input {
+  max-width: 72px;
+  text-align: center;
 }
 
 /* ── Shortcuts ─────────────────────────────────────────────────────── */
@@ -1341,20 +1391,20 @@
 /* ── Scrollbar ─────────────────────────────────────────────────────── */
 
 .settings-window ::-webkit-scrollbar {
-  width: 8px;
+  width: var(--scrollbar-size, 8px);
 }
 
 .settings-window ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--scrollbar-track, transparent);
 }
 
 .settings-window ::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--text-secondary) 30%, transparent);
-  border-radius: 4px;
+  background: var(--scrollbar-thumb, color-mix(in srgb, var(--text-secondary) 30%, transparent));
+  border-radius: var(--radius-scrollbar, 4px);
 }
 
 .settings-window ::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--text-secondary) 50%, transparent);
+  background: var(--scrollbar-thumb-hover, color-mix(in srgb, var(--text-secondary) 50%, transparent));
 }
 
 /* ── Path Input ──────────────────────────────────────────────────── */

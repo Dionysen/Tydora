@@ -2,7 +2,7 @@ import type { ThemeVariable } from "./CustomThemeManager";
 import type { BuiltinThemeName } from "./ThemeManager";
 import { BUILTIN_THEMES } from "./ThemeManager";
 
-export type ThemeColorGroup = "background" | "text" | "accent" | "border";
+export type ThemeColorGroup = "background" | "text" | "accent" | "border" | "scrollbar";
 
 export interface ThemeColorToken {
   name: string;
@@ -11,6 +11,15 @@ export interface ThemeColorToken {
   labelKey: string;
   /** Hidden from color editor UI (auto-derived) */
   hidden?: boolean;
+}
+
+export interface ThemeSizeToken {
+  name: string;
+  /** i18n key under settings.theme.token.* */
+  labelKey: string;
+  min: number;
+  max: number;
+  step?: number;
 }
 
 /** Canonical editable color tokens for the theme editor. */
@@ -33,6 +42,19 @@ export const THEME_COLOR_SCHEMA: ThemeColorToken[] = [
   { name: "--accent-rgb", group: "accent", labelKey: "accentRgb", hidden: true },
   { name: "--danger", group: "accent", labelKey: "danger" },
   { name: "--border", group: "border", labelKey: "border" },
+  { name: "--scrollbar-thumb", group: "scrollbar", labelKey: "scrollbarThumb" },
+  { name: "--scrollbar-thumb-hover", group: "scrollbar", labelKey: "scrollbarThumbHover" },
+  { name: "--scrollbar-track", group: "scrollbar", labelKey: "scrollbarTrack" },
+];
+
+/** Radius / scrollbar size tokens shown in the theme editor. */
+export const THEME_SIZE_SCHEMA: ThemeSizeToken[] = [
+  { name: "--radius-code-block", labelKey: "radiusCodeBlock", min: 0, max: 24 },
+  { name: "--radius-code-inline", labelKey: "radiusCodeInline", min: 0, max: 16 },
+  { name: "--padding-code-inline-y", labelKey: "paddingCodeInlineY", min: 0, max: 16 },
+  { name: "--padding-code-inline-x", labelKey: "paddingCodeInlineX", min: 0, max: 24 },
+  { name: "--radius-scrollbar", labelKey: "radiusScrollbar", min: 0, max: 16 },
+  { name: "--scrollbar-size", labelKey: "scrollbarSize", min: 4, max: 20 },
 ];
 
 export const THEME_COLOR_GROUPS: ThemeColorGroup[] = [
@@ -40,6 +62,7 @@ export const THEME_COLOR_GROUPS: ThemeColorGroup[] = [
   "text",
   "accent",
   "border",
+  "scrollbar",
 ];
 
 /** Non-color vars preserved when forking / rebuilding CSS. */
@@ -49,6 +72,12 @@ const PRESERVED_NON_COLOR = [
   "--editor-font",
   "--editor-font-size",
   "--font-mono-size",
+  "--radius-code-block",
+  "--radius-code-inline",
+  "--padding-code-inline-y",
+  "--padding-code-inline-x",
+  "--radius-scrollbar",
+  "--scrollbar-size",
 ] as const;
 
 const LIGHT_DEFAULTS: Record<string, string> = {
@@ -70,6 +99,9 @@ const LIGHT_DEFAULTS: Record<string, string> = {
   "--accent-hover": "#3a9e6e",
   "--danger": "#e06c75",
   "--border": "#a5cfc0",
+  "--scrollbar-thumb": "#a5cfc0",
+  "--scrollbar-thumb-hover": "#6B6B6B",
+  "--scrollbar-track": "transparent",
 };
 
 const DARK_DEFAULTS: Record<string, string> = {
@@ -91,6 +123,9 @@ const DARK_DEFAULTS: Record<string, string> = {
   "--accent-hover": "#5fc99e",
   "--danger": "#e06c75",
   "--border": "#39393a",
+  "--scrollbar-thumb": "#39393a",
+  "--scrollbar-thumb-hover": "#818286",
+  "--scrollbar-track": "transparent",
 };
 
 /** Full color maps for each built-in theme (for fork). Keep in sync with themes.css. */
@@ -259,6 +294,29 @@ const DEFAULT_FONTS: ThemeVariable[] = [
   { name: "--font-mono-size", value: "14px", type: "size" },
 ];
 
+const DEFAULT_SIZES: ThemeVariable[] = [
+  { name: "--radius-code-block", value: "8px", type: "size" },
+  { name: "--radius-code-inline", value: "4px", type: "size" },
+  { name: "--padding-code-inline-y", value: "3px", type: "size" },
+  { name: "--padding-code-inline-x", value: "6px", type: "size" },
+  { name: "--radius-scrollbar", value: "4px", type: "size" },
+  { name: "--scrollbar-size", value: "8px", type: "size" },
+];
+
+function resolveColorTokenValue(
+  token: ThemeColorToken,
+  colors: Record<string, string>,
+  defaults: Record<string, string>,
+): string {
+  if (colors[token.name]) return colors[token.name];
+  if (token.name === "--scrollbar-thumb" && colors["--border"]) return colors["--border"];
+  if (token.name === "--scrollbar-thumb-hover" && colors["--text-secondary"]) {
+    return colors["--text-secondary"];
+  }
+  if (token.name === "--scrollbar-track") return colors[token.name] ?? "transparent";
+  return defaults[token.name] ?? LIGHT_DEFAULTS[token.name] ?? "#ffffff";
+}
+
 export function getBuiltinColorMap(builtinId: string): Record<string, string> | null {
   if (!(BUILTIN_THEMES as readonly string[]).includes(builtinId)) return null;
   return BUILTIN_THEME_COLORS[builtinId as BuiltinThemeName];
@@ -267,7 +325,7 @@ export function getBuiltinColorMap(builtinId: string): Record<string, string> | 
 export function colorMapToVariables(colors: Record<string, string>): ThemeVariable[] {
   return THEME_COLOR_SCHEMA.map((token) => ({
     name: token.name,
-    value: colors[token.name] ?? LIGHT_DEFAULTS[token.name] ?? "#ffffff",
+    value: resolveColorTokenValue(token, colors, LIGHT_DEFAULTS),
     type: "color" as const,
   }));
 }
@@ -275,12 +333,12 @@ export function colorMapToVariables(colors: Record<string, string>): ThemeVariab
 export function getBuiltinThemeVariables(builtinId: string): ThemeVariable[] | null {
   const colors = getBuiltinColorMap(builtinId);
   if (!colors) return null;
-  return [...colorMapToVariables(colors), ...DEFAULT_FONTS];
+  return [...colorMapToVariables(colors), ...DEFAULT_FONTS, ...DEFAULT_SIZES];
 }
 
 export function getTemplateVariables(kind: "light" | "dark"): ThemeVariable[] {
   const colors = kind === "dark" ? DARK_DEFAULTS : LIGHT_DEFAULTS;
-  return [...colorMapToVariables(colors), ...DEFAULT_FONTS];
+  return [...colorMapToVariables(colors), ...DEFAULT_FONTS, ...DEFAULT_SIZES];
 }
 
 /**
@@ -294,7 +352,11 @@ export function mergeWithSchema(
 ): ThemeVariable[] {
   const byName = new Map(parsed.map((v) => [v.name, v]));
   const defaults = fallback ?? LIGHT_DEFAULTS;
-
+  const parsedColors: Record<string, string> = {};
+  for (const v of parsed) {
+    parsedColors[v.name] = v.value;
+  }
+  const colorDefaults: Record<string, string> = { ...LIGHT_DEFAULTS, ...defaults, ...parsedColors };
   const colors: ThemeVariable[] = THEME_COLOR_SCHEMA.map((token) => {
     const existing = byName.get(token.name);
     if (existing) {
@@ -303,7 +365,7 @@ export function mergeWithSchema(
     }
     return {
       name: token.name,
-      value: defaults[token.name] ?? LIGHT_DEFAULTS[token.name] ?? "#ffffff",
+      value: resolveColorTokenValue(token, colorDefaults, LIGHT_DEFAULTS),
       type: "color" as const,
     };
   });
@@ -317,8 +379,8 @@ export function mergeWithSchema(
       byName.delete(name);
     }
   }
-  // Defaults fonts if missing
-  for (const def of DEFAULT_FONTS) {
+  // Defaults fonts / sizes if missing
+  for (const def of [...DEFAULT_FONTS, ...DEFAULT_SIZES]) {
     if (!rest.some((v) => v.name === def.name) && !colors.some((v) => v.name === def.name)) {
       rest.push(def);
     }
@@ -331,6 +393,24 @@ export function mergeWithSchema(
   }
 
   return [...colors, ...rest];
+}
+
+export function getEditableSizeVariables(variables: ThemeVariable[]): ThemeVariable[] {
+  const byName = new Map(variables.map((v) => [v.name, v]));
+  return THEME_SIZE_SCHEMA.map((token) => {
+    const existing = byName.get(token.name);
+    if (existing) return { ...existing, type: "size" as const };
+    const fallback = DEFAULT_SIZES.find((d) => d.name === token.name);
+    return {
+      name: token.name,
+      value: fallback?.value ?? "0px",
+      type: "size" as const,
+    };
+  });
+}
+
+export function getSizeTokenMeta(name: string): ThemeSizeToken | undefined {
+  return THEME_SIZE_SCHEMA.find((t) => t.name === name);
 }
 
 export function getEditableColorVariables(variables: ThemeVariable[]): ThemeVariable[] {
@@ -351,6 +431,7 @@ export function groupEditableColors(
     text: [],
     accent: [],
     border: [],
+    scrollbar: [],
   };
   for (const token of THEME_COLOR_SCHEMA) {
     if (token.hidden) continue;

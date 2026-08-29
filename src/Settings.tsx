@@ -17,12 +17,15 @@ import { parseCssVariables, getCustomThemeCss, type ThemeVariable, type ThemeMan
 import {
   mergeWithSchema,
   groupEditableColors,
+  getEditableSizeVariables,
   getTokenMeta,
+  getSizeTokenMeta,
   getBuiltinColorMap,
   THEME_COLOR_GROUPS,
   type ThemeColorGroup,
 } from "./themes/themeTokens";
 import { ThemeColorField } from "./themes/ThemeColorField";
+import { ThemeSizeField } from "./themes/ThemeSizeField";
 import { syncAccentRgb } from "./themes/colorUtils";
 import { CODE_THEMES, type CustomCodeTheme } from "./themes";
 import appIcon from "./assets/icon.png";
@@ -718,11 +721,28 @@ function ThemeSettingsContent({
   const [importing, setImporting] = useState(false);
   const [editingTheme, setEditingTheme] = useState<ThemeManifest | null>(null);
   const [editVariables, setEditVariables] = useState<ThemeVariable[]>([]);
-  const [editPreview, setEditPreview] = useState<{ bg: string; accent: string; text: string; strong: string }>({
+  const [editPreview, setEditPreview] = useState<{
+    bg: string;
+    accent: string;
+    text: string;
+    strong: string;
+    border: string;
+    codeBg: string;
+    codeText: string;
+    radiusInline: string;
+    paddingInlineY: string;
+    paddingInlineX: string;
+  }>({
     bg: "#ffffff",
     accent: "#4eb289",
     text: "#1e293b",
     strong: "#bd387d",
+    border: "#a5cfc0",
+    codeBg: "rgba(78, 178, 137, 0.08)",
+    codeText: "#e83e8c",
+    radiusInline: "4px",
+    paddingInlineY: "3px",
+    paddingInlineX: "6px",
   });
   const [deleteConfirm, setDeleteConfirm] = useState<ThemeManifest | null>(null);
   const [nameDialog, setNameDialog] = useState<{ open: boolean; filePath: string; defaultName: string }>({ open: false, filePath: "", defaultName: "" });
@@ -768,11 +788,19 @@ function ThemeSettingsContent({
   ];
 
   const updateEditPreview = useCallback((vars: ThemeVariable[]) => {
+    const get = (name: string, fallback: string) =>
+      vars.find((v) => v.name === name)?.value || fallback;
     setEditPreview({
-      bg: vars.find((v) => v.name === "--bg-primary")?.value || "#ffffff",
-      accent: vars.find((v) => v.name === "--accent")?.value || "#4eb289",
-      text: vars.find((v) => v.name === "--text-primary")?.value || "#1e293b",
-      strong: vars.find((v) => v.name === "--text-strong")?.value || "#bd387d",
+      bg: get("--bg-primary", "#ffffff"),
+      accent: get("--accent", "#4eb289"),
+      text: get("--text-primary", "#1e293b"),
+      strong: get("--text-strong", "#bd387d"),
+      border: get("--border", "#a5cfc0"),
+      codeBg: get("--bg-code-inline", "rgba(78, 178, 137, 0.08)"),
+      codeText: get("--text-code", "#e83e8c"),
+      radiusInline: get("--radius-code-inline", "4px"),
+      paddingInlineY: get("--padding-code-inline-y", "3px"),
+      paddingInlineX: get("--padding-code-inline-x", "6px"),
     });
   }, []);
 
@@ -940,46 +968,63 @@ function ThemeSettingsContent({
   }, [deleteCodeTheme, t]);
 
   const grouped = editingTheme ? groupEditableColors(editVariables) : null;
+  const sizeVariables = editingTheme ? getEditableSizeVariables(editVariables) : [];
   const groupTitleKey: Record<ThemeColorGroup, string> = {
     background: "settings.theme.groupBackground",
     text: "settings.theme.groupText",
     accent: "settings.theme.groupAccent",
     border: "settings.theme.groupBorder",
+    scrollbar: "settings.theme.groupScrollbar",
   };
 
   if (editingTheme && grouped) {
     return (
-      <div className="settings-section">
-        <div className="theme-editor-header">
-          <button className="theme-editor-back" onClick={handleCancelEdit}>
-            {t("settings.theme.back")}
-          </button>
-          <h3 className="settings-section-title" style={{ marginTop: 0 }}>
-            {t("settings.theme.editTheme", { name: editingTheme.name })}
-          </h3>
-          <div className="theme-editor-actions">
-            <button className="settings-button" onClick={handleSaveEdit}>{t("settings.theme.save")}</button>
-            <button className="settings-button theme-editor-cancel" onClick={handleCancelEdit}>{t("settings.theme.cancel")}</button>
+      <div className="settings-section theme-editor">
+        <div className="theme-editor-sticky">
+          <div className="theme-editor-header">
+            <button className="theme-editor-back" onClick={handleCancelEdit}>
+              {t("settings.theme.back")}
+            </button>
+            <h3 className="settings-section-title" style={{ marginTop: 0 }}>
+              {t("settings.theme.editTheme", { name: editingTheme.name })}
+            </h3>
+            <div className="theme-editor-actions">
+              <button className="settings-button" onClick={handleSaveEdit}>{t("settings.theme.save")}</button>
+              <button className="settings-button theme-editor-cancel" onClick={handleCancelEdit}>{t("settings.theme.cancel")}</button>
+            </div>
           </div>
-        </div>
 
-        <div
-          className="theme-editor-preview theme-editor-preview-rich"
-          style={{ background: editPreview.bg, borderColor: editPreview.accent }}
-        >
-          <div className="theme-editor-preview-sidebar" style={{ background: editVariables.find((v) => v.name === "--bg-secondary")?.value }}>
-            <div className="theme-editor-preview-line" style={{ background: editPreview.accent, width: "70%" }} />
-            <div className="theme-editor-preview-line" style={{ background: editPreview.text, opacity: 0.35, width: "55%" }} />
-          </div>
-          <div className="theme-editor-preview-editor">
-            <div className="theme-editor-preview-text" style={{ color: editPreview.text }}>
-              {t("settings.theme.previewText")}
+          <div
+            className="theme-editor-preview theme-editor-preview-rich"
+            style={{ background: editPreview.bg, borderColor: editPreview.accent }}
+          >
+            <div className="theme-editor-preview-sidebar" style={{ background: editVariables.find((v) => v.name === "--bg-secondary")?.value }}>
+              <div className="theme-editor-preview-line" style={{ background: editPreview.accent, width: "70%" }} />
+              <div className="theme-editor-preview-line" style={{ background: editPreview.text, opacity: 0.35, width: "55%" }} />
             </div>
-            <div className="theme-editor-preview-text" style={{ color: editPreview.strong, fontWeight: 700 }}>
-              {t("settings.theme.previewStrong")}
-            </div>
-            <div className="theme-editor-preview-accent" style={{ background: editPreview.accent }}>
-              {t("settings.theme.accent")}
+            <div className="theme-editor-preview-editor">
+              <div className="theme-editor-preview-text" style={{ color: editPreview.text }}>
+                {t("settings.theme.previewText")}
+              </div>
+              <div className="theme-editor-preview-text" style={{ color: editPreview.strong, fontWeight: 700 }}>
+                {t("settings.theme.previewStrong")}
+                {" "}
+                <code
+                  className="theme-editor-preview-inline-code"
+                  style={{
+                    background: editPreview.codeBg,
+                    color: editPreview.codeText,
+                    borderColor: editPreview.border,
+                    borderRadius: editPreview.radiusInline,
+                    padding: `${editPreview.paddingInlineY} ${editPreview.paddingInlineX}`,
+                  }}
+                >
+                  {t("settings.theme.previewInlineCode")}
+                </code>
+              </div>
+              <div className="theme-editor-preview-accent" style={{ background: editPreview.accent }}>
+                {t("settings.theme.accent")}
+              </div>
             </div>
           </div>
         </div>
@@ -1005,6 +1050,24 @@ function ThemeSettingsContent({
               })}
             </div>
           ))}
+
+          <div className="theme-editor-group">
+            <h4 className="theme-editor-group-title">{t("settings.theme.groupRadius")}</h4>
+            {sizeVariables.map((v) => {
+              const meta = getSizeTokenMeta(v.name);
+              if (!meta) return null;
+              return (
+                <ThemeSizeField
+                  key={v.name}
+                  label={t(`settings.theme.token.${meta.labelKey}`)}
+                  varName={v.name}
+                  value={v.value}
+                  meta={meta}
+                  onChange={(val) => handleVariableChange(v.name, val)}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
     );
