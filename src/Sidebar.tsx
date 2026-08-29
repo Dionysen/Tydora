@@ -1842,6 +1842,18 @@ function FileTree({
     };
   }, [handleReload]);
 
+  // 禁止文件树文本选中（重命名输入框除外）；WKWebView 对 CSS user-select 不完全可靠
+  useEffect(() => {
+    const el = treeRef.current;
+    if (!el) return;
+    const onSelectStart = (e: Event) => {
+      if ((e.target as HTMLElement).closest(".tree-name-input")) return;
+      e.preventDefault();
+    };
+    el.addEventListener("selectstart", onSelectStart);
+    return () => el.removeEventListener("selectstart", onSelectStart);
+  }, []);
+
   // ── Blank area actions ──
   /** 当前选中文件所在目录；未选中或不在本仓库内时回退到根目录。 */
   const selectionDir = activePath && activePath.startsWith(rootPath)
@@ -2127,11 +2139,6 @@ function FileTree({
         onContextMenu={handleBlankContextMenu}
         onScroll={handleScroll}
         onClick={(e) => { if (e.target === e.currentTarget) handleClearSelection(); }}
-        onSelectStart={(e) => {
-          // 禁止文件树文本选中（重命名输入框除外）；WKWebView 对 CSS user-select 不完全可靠
-          if ((e.target as HTMLElement).closest(".tree-name-input")) return;
-          e.preventDefault();
-        }}
         data-path={rootPath}
         data-is-dir="1"
       >

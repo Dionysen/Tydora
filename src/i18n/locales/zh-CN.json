@@ -220,7 +220,8 @@
         "toggle-mode": "模式切换",
         "escape": "关闭提示",
         "quick-open": "快速打开文件",
-        "command-palette": "命令面板"
+        "command-palette": "命令面板",
+        "open-settings": "打开/关闭设置"
       }
     },
     "theme": {
@@ -689,7 +690,7 @@
         "minimizeWindow": "最小化窗口",
         "maximizeWindow": "最大化窗口",
         "closeWindow": "关闭窗口",
-        "openSettings": "打开设置",
+        "openSettings": "打开/关闭设置",
         "generalSettings": "通用设置",
         "themeSettings": "主题设置",
         "shortcutSettings": "快捷键设置",

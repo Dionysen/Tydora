@@ -44,6 +44,7 @@ import {
   type MenuDensity,
 } from "./utils/menuDensity";
 import shortcutsConfig from "./config/shortcuts.json";
+import { formatShortcutKey, matchShortcut, loadShortcuts, getShortcutKeys } from "./Editor/shortcuts";
 import { isAnalyticsEnabled, setAnalyticsEnabled, track, trackPageview, ANALYTICS_EVENTS } from "./analytics";
 import "./Settings.css";
 
@@ -1873,6 +1874,7 @@ function ShortcutsSettingsContent() {
     escape: t("settings.shortcuts.labels.escape"),
     "quick-open": t("settings.shortcuts.labels.quick-open"),
     "command-palette": t("settings.shortcuts.labels.command-palette"),
+    "open-settings": t("settings.shortcuts.labels.open-settings"),
   };
   const filteredShortcuts = shortcuts.filter((s) => {
     const query = search.toLowerCase();
@@ -2029,7 +2031,7 @@ function ShortcutsSettingsContent() {
                         {editingKeys.length > 0 ? (
                           editingKeys.map((key, j) => (
                             <span key={j}>
-                              <kbd className="settings-kbd">{key}</kbd>
+                              <kbd className="settings-kbd">{formatShortcutKey(key)}</kbd>
                               {j < editingKeys.length - 1 && <span className="settings-kbd-sep">+</span>}
                             </span>
                           ))
@@ -2046,7 +2048,7 @@ function ShortcutsSettingsContent() {
                     ) : shortcut.keys.length > 0 ? (
                       shortcut.keys.map((key, j) => (
                         <span key={j}>
-                          <kbd className="settings-kbd">{key}</kbd>
+                          <kbd className="settings-kbd">{formatShortcutKey(key)}</kbd>
                           {j < shortcut.keys.length - 1 && <span className="settings-kbd-sep">+</span>}
                         </span>
                       ))
@@ -2978,10 +2980,17 @@ export default function Settings() {
     await win.close();
   }, []);
 
-  // Ctrl+W 关闭设置窗口
+  // Ctrl+W / Ctrl+,（macOS：⌘）关闭设置窗口
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "w") {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "w") {
+        e.preventDefault();
+        handleClose();
+        return;
+      }
+      const keys = getShortcutKeys(loadShortcuts(), "open-settings");
+      const fallback = shortcutsConfig.app["open-settings"] ?? ["Ctrl", ","];
+      if (matchShortcut(e, keys.length ? keys : fallback)) {
         e.preventDefault();
         handleClose();
       }

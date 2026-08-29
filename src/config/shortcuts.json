@@ -47,7 +47,8 @@
     { "id": "toggle-mode", "label": "模式切换", "keys": ["Ctrl", "/"], "group": "模式" },
     { "id": "escape", "label": "关闭提示", "keys": ["Escape"], "group": "系统" },
     { "id": "quick-open", "label": "快速打开文件", "keys": ["Ctrl", "O"], "group": "系统" },
-    { "id": "command-palette", "label": "命令面板", "keys": ["Ctrl", "P"], "group": "系统" }
+    { "id": "command-palette", "label": "命令面板", "keys": ["Ctrl", "P"], "group": "系统" },
+    { "id": "open-settings", "label": "打开/关闭设置", "keys": ["Ctrl", ","], "group": "系统" }
   ],
   "app": {
     "save": ["Ctrl", "S"],
@@ -59,7 +60,8 @@
     "open-mindmap": ["Ctrl", "M"],
     "split-lr": ["Ctrl", "\\"],
     "split-tb": ["Ctrl", "-"],
-    "terminal-new": ["Ctrl", "`"]
+    "terminal-new": ["Ctrl", "`"],
+    "open-settings": ["Ctrl", ","]
   },
   "canvas": {
     "undo": ["Ctrl", "Z"],
@@ -78,6 +80,7 @@
     "toggle-typewriter": "Ctrl+Alt+T",
     "split-lr": "Ctrl+\\",
     "split-tb": "Ctrl+-",
-    "terminal-new": "Ctrl+`"
+    "terminal-new": "Ctrl+`",
+    "open-settings": "Ctrl+,"
   }
 }

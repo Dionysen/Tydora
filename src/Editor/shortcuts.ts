@@ -7,6 +7,33 @@ export interface ShortcutItem {
   group?: string;
 }
 
+/** macOS（含 WKWebView）：配置里的 Ctrl 表示 Command */
+export function isMacPlatform(): boolean {
+  if (typeof document !== "undefined" && document.documentElement.classList.contains("platform-macos")) {
+    return true;
+  }
+  if (typeof navigator === "undefined") return false;
+  return /Mac|iPhone|iPod|iPad/i.test(navigator.platform);
+}
+
+/** 单键展示：macOS 上将 Ctrl→⌘、Alt→⌥、Shift→⇧ */
+export function formatShortcutKey(key: string): string {
+  if (!isMacPlatform()) return key;
+  switch (key.toLowerCase()) {
+    case "ctrl":
+      return "⌘";
+    case "alt":
+      return "⌥";
+    case "shift":
+      return "⇧";
+    case "meta":
+    case "cmd":
+      return "⌘";
+    default:
+      return key;
+  }
+}
+
 export function loadShortcuts(): ShortcutItem[] {
   try {
     const saved = localStorage.getItem(SHORTCUTS_KEY);
@@ -27,7 +54,8 @@ export function getShortcutKeys(shortcuts: ShortcutItem[], id: string): string[]
 }
 
 export function formatShortcutDisplay(keys: string[]): string {
-  return keys.join("+");
+  if (keys.length === 0) return "";
+  return keys.map(formatShortcutKey).join("+");
 }
 
 // 将快捷键字符串转换为事件匹配格式
@@ -40,11 +68,13 @@ export function matchShortcut(e: KeyboardEvent, keys: string[]): boolean {
   const hasAlt = requiredKeys.includes("alt");
   const hasMeta = requiredKeys.includes("meta") || requiredKeys.includes("cmd");
 
-  // 检查修饰键
-  if (hasCtrl !== (e.ctrlKey || e.metaKey)) return false;
+  // Ctrl = 主修饰键：Windows/Linux 为 Control，macOS 为 ⌘（meta）
+  const primaryMod = e.ctrlKey || e.metaKey;
+  if (hasCtrl !== primaryMod) return false;
   if (hasShift !== e.shiftKey) return false;
   if (hasAlt !== e.altKey) return false;
-  if (hasMeta !== e.metaKey) return false;
+  // 仅当配置显式写 Meta/Cmd 且未用 Ctrl 别名时，才单独校验 meta
+  if (hasMeta && !hasCtrl && !e.metaKey) return false;
 
   // 检查主键（排除修饰键）
   const mainKey = requiredKeys.find(
@@ -52,5 +82,25 @@ export function matchShortcut(e: KeyboardEvent, keys: string[]): boolean {
   );
   if (!mainKey) return false;
 
-  return e.key.toLowerCase() === mainKey || e.code.toLowerCase() === `key${mainKey}`;
+  const keyLower = e.key.toLowerCase();
+  if (keyLower === mainKey) return true;
+  if (e.code.toLowerCase() === `key${mainKey}`) return true;
+  // 标点：e.code 与配置字符对齐（如 Comma ↔ ,）
+  const codeMap: Record<string, string> = {
+    ",": "Comma",
+    ".": "Period",
+    "/": "Slash",
+    "\\": "Backslash",
+    "`": "Backquote",
+    "-": "Minus",
+    "=": "Equal",
+    ";": "Semicolon",
+    "'": "Quote",
+    "[": "BracketLeft",
+    "]": "BracketRight",
+  };
+  const expectedCode = codeMap[mainKey];
+  if (expectedCode && e.code === expectedCode) return true;
+
+  return false;
 }

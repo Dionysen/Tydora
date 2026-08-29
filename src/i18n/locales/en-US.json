@@ -220,7 +220,8 @@
         "toggle-mode": "Toggle Mode",
         "escape": "Close Tooltip",
         "quick-open": "Quick Open",
-        "command-palette": "Command Palette"
+        "command-palette": "Command Palette",
+        "open-settings": "Toggle Settings"
       }
     },
     "theme": {
@@ -690,7 +691,7 @@
         "minimizeWindow": "Minimize Window",
         "maximizeWindow": "Maximize Window",
         "closeWindow": "Close Window",
-        "openSettings": "Open Settings",
+        "openSettings": "Toggle Settings",
         "generalSettings": "General Settings",
         "themeSettings": "Theme Settings",
         "shortcutSettings": "Shortcut Settings",

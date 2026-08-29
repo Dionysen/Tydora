@@ -69,7 +69,7 @@ import "./tags/Tag.css";
 import "./tags/TagAutocomplete.css";
 import "./components/FindReplaceDialog.css";
 import shortcutsConfig from "./config/shortcuts.json";
-import { matchShortcut } from "./Editor/shortcuts";
+import { matchShortcut, formatShortcutDisplay, loadShortcuts, getShortcutKeys } from "./Editor/shortcuts";
 import { track, trackPageview, hasConsentChoice, isAnalyticsEnabled, setAnalyticsEnabled, ANALYTICS_EVENTS } from "./analytics";
 import { ConsentDialog } from "./analytics/ConsentDialog";
 
@@ -137,14 +137,16 @@ function isMarkdownFile(fileName: string): boolean {
   return ["md", "markdown", "mdx"].includes(ext);
 }
 
-// 命令面板显示快捷键：优先取 commandDisplay，其次取 editor，再取 app 配置
+// 命令面板显示快捷键：优先取 editor / app 配置，并用平台相关符号格式化（macOS：Ctrl→⌘）
 function getCommandShortcut(id: string): string | undefined {
-  const display = (shortcutsConfig.commandDisplay as Record<string, string>)[id];
-  if (display) return display;
   const item = shortcutsConfig.editor.find((s) => s.id === id);
-  if (item) return item.keys.join("+");
+  if (item?.keys?.length) return formatShortcutDisplay(item.keys);
   const appShortcut = shortcutsConfig.app[id as keyof typeof shortcutsConfig.app];
-  return appShortcut ? appShortcut.join("+") : undefined;
+  if (appShortcut) return formatShortcutDisplay(appShortcut);
+  const display = (shortcutsConfig.commandDisplay as Record<string, string>)[id];
+  if (!display) return undefined;
+  // commandDisplay 是 "Ctrl+S" 字符串，拆开后再按平台格式化
+  return formatShortcutDisplay(display.split("+"));
 }
 
 // ── N 窗格“共享缓冲” + 树形嵌套分屏模型 ──
@@ -2444,6 +2446,29 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     return () => window.removeEventListener("keydown", handler);
   }, [handleClose, closePane]);
 
+  // Ctrl+,（macOS：⌘+,）切换设置窗口；可在设置-快捷键中自定义
+  useEffect(() => {
+    const handler = async (e: KeyboardEvent) => {
+      const keys = getShortcutKeys(loadShortcuts(), "open-settings");
+      const fallback = shortcutsConfig.app["open-settings"] ?? ["Ctrl", ","];
+      if (!matchShortcut(e, keys.length ? keys : fallback)) return;
+      e.preventDefault();
+      try {
+        const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+        const existing = await WebviewWindow.getByLabel("settings");
+        if (existing) {
+          await existing.close();
+        } else {
+          await invoke("open_settings_window");
+        }
+      } catch {
+        invoke("open_settings_window").catch(() => {});
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   const toggleTypewriterMode = useCallback(() => {
     setTypewriterMode((prev: boolean) => !prev);
   }, []);
@@ -3143,7 +3168,16 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "close", label: t("app.command.labels.closeWindow"), category: t("app.command.categories.window"), action: handleClose },
 
     // 设置
-    { id: "open-settings", label: t("app.command.labels.openSettings"), category: t("app.command.categories.settings"), action: () => invoke("open_settings_window") },
+    { id: "open-settings", label: t("app.command.labels.openSettings"), category: t("app.command.categories.settings"), shortcut: getCommandShortcut("open-settings"), action: async () => {
+      try {
+        const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+        const existing = await WebviewWindow.getByLabel("settings");
+        if (existing) await existing.close();
+        else await invoke("open_settings_window");
+      } catch {
+        invoke("open_settings_window");
+      }
+    } },
     { id: "settings-general", label: t("app.command.labels.generalSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.generalSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "general"); invoke("open_settings_window"); } },
     { id: "settings-theme", label: t("app.command.labels.themeSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.themeSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "theme"); invoke("open_settings_window"); } },
     { id: "settings-shortcuts", label: t("app.command.labels.shortcutSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.shortcutSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "shortcuts"); invoke("open_settings_window"); } },
