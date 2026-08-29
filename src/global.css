@@ -30,7 +30,10 @@ body {
 #root {
   height: 100%;
   border-radius: 12px;
+  /* 优先 clip：hidden + border-radius 会在 WKWebView 里形成特殊合成层，
+     导致原生选区高亮在点击后无法失效（残留蓝块）。不支持 clip 时回退 hidden。 */
   overflow: hidden;
+  overflow: clip;
   background: var(--bg-primary);
 }
 

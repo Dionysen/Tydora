@@ -1646,6 +1646,9 @@
   background: transparent;
   border: none;
   pointer-events: auto;
+  /* 工具栏为 contentEditable=false 孤岛；禁止纳入选区，减轻 WebKit 残留高亮 */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .code-block-actions {

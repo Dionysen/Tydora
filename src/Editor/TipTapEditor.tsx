@@ -955,6 +955,24 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
       },
       editorProps: {
         handleDOMEvents: {
+          // WKWebView：祖先若有 overflow 裁剪 + border-radius，点击后可能留下「幽灵选区」
+          // （ProseMirror 选区已更新，但原生 Selection 高亮未清）。在非扩展选区的
+          // mousedown 上先清掉 DOM Selection，交给后续 PM 逻辑设置新光标/选区。
+          mousedown: (_view: any, event: MouseEvent) => {
+            if (event.button !== 0 || event.shiftKey) return false;
+            const target = event.target as HTMLElement | null;
+            // 工具栏等 contentEditable=false 区域会自行 preventDefault 以保留焦点，勿抢先清空
+            if (target?.closest?.(
+              ".code-block-toolbar, .code-block-lang-dropdown-portal, .mermaid-toolbar, .image-hover-toolbar, .image-resize-handle"
+            )) {
+              return false;
+            }
+            const domSel = window.getSelection();
+            if (domSel && !domSel.isCollapsed) {
+              domSel.removeAllRanges();
+            }
+            return false;
+          },
           keydown: (_view: any, event: KeyboardEvent) => {
             // 拦截 Ctrl+/（防止被当作 HTML 注释快捷键，模式切换由 App.tsx 全局处理）
             if ((event.ctrlKey || event.metaKey) && event.key === "/") {
