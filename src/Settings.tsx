@@ -88,6 +88,9 @@ export function loadEditorSettings(): EditorSettings {
   }
 }
 
+/** 代码块工具栏样式：minimal = 右上角浮动语言选择；classic = 顶栏 + 复制/删除 */
+export type CodeBlockToolbarStyle = "minimal" | "classic";
+
 interface GeneralSettings {
   appearance: "system" | "light" | "dark";
   fontSize: number;
@@ -104,6 +107,8 @@ interface GeneralSettings {
   lineHeight: number;
   irLineNumbers: boolean;
   expandOutlineOnOpen: boolean;
+  /** 代码块工具栏样式 */
+  codeBlockToolbarStyle: CodeBlockToolbarStyle;
 }
 
 interface ShortcutItem {
@@ -129,6 +134,7 @@ const DEFAULT_GENERAL: GeneralSettings = {
   lineHeight: 1.6,
   irLineNumbers: true,
   expandOutlineOnOpen: true,
+  codeBlockToolbarStyle: "minimal",
 };
 
 interface MindmapSettings {
@@ -339,6 +345,25 @@ function GeneralSettingsContent({
             />
             <span className="settings-switch-slider" />
           </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.codeBlockToolbarStyle")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.codeBlockToolbarStyleDesc")}</span>
+          </div>
+          <select
+            className="settings-select"
+            value={settings.codeBlockToolbarStyle}
+            onChange={(e) =>
+              onChange({
+                ...settings,
+                codeBlockToolbarStyle: e.target.value as CodeBlockToolbarStyle,
+              })
+            }
+          >
+            <option value="minimal">{t("settings.appearance.codeBlockToolbarMinimal")}</option>
+            <option value="classic">{t("settings.appearance.codeBlockToolbarClassic")}</option>
+          </select>
         </div>
       </div>
 
@@ -2319,6 +2344,8 @@ export default function Settings() {
           typeof parsed.codeFontSize === "number"
             ? Math.min(24, Math.max(10, Math.round(parsed.codeFontSize)))
             : DEFAULT_GENERAL.codeFontSize,
+        codeBlockToolbarStyle:
+          parsed.codeBlockToolbarStyle === "classic" ? "classic" : "minimal",
       };
     } catch {
       return DEFAULT_GENERAL;

@@ -451,39 +451,39 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     const applySettings = () => {
       try {
         const raw = localStorage.getItem("zmd-general-settings");
-        if (raw) {
-          const settings = JSON.parse(raw);
-          applyFontSettings({
-            editorFont: settings.editorFont ?? "system",
-            codeFont: settings.codeFont ?? "system",
-            codeFontSize:
-              typeof settings.codeFontSize === "number" ? settings.codeFontSize : 14,
-          });
-          if (settings.fontSize) {
-            document.documentElement.style.setProperty("--editor-font-size", settings.fontSize + "px");
-          }
-          if (typeof settings.autoHideTopbar === 'boolean') {
-            setAutoHideTopbar(settings.autoHideTopbar);
-          }
-          if (typeof settings.autoHideTopbarOnCollapse === 'boolean') {
-            setAutoHideTopbarOnCollapse(settings.autoHideTopbarOnCollapse);
-          }
-          if (typeof settings.typewriterMode === 'boolean') {
-            setTypewriterMode(settings.typewriterMode);
-          }
-          if (typeof settings.previewMaxWidth === 'number') {
-            setPreviewMaxWidth(settings.previewMaxWidth);
-          }
-          if (typeof settings.lineHeight === 'number') {
-            setLineHeight(settings.lineHeight);
-          }
-          if (typeof settings.irLineNumbers === 'boolean') {
-            setIrLineNumbers(settings.irLineNumbers);
-          }
-          if (typeof settings.expandOutlineOnOpen === 'boolean') {
-            setExpandOutlineOnOpen(settings.expandOutlineOnOpen);
-          }
+        const settings = raw ? JSON.parse(raw) : {};
+        applyFontSettings({
+          editorFont: settings.editorFont ?? "system",
+          codeFont: settings.codeFont ?? "system",
+          codeFontSize:
+            typeof settings.codeFontSize === "number" ? settings.codeFontSize : 14,
+        });
+        if (settings.fontSize) {
+          document.documentElement.style.setProperty("--editor-font-size", settings.fontSize + "px");
         }
+        if (typeof settings.autoHideTopbar === 'boolean') {
+          setAutoHideTopbar(settings.autoHideTopbar);
+        }
+        if (typeof settings.autoHideTopbarOnCollapse === 'boolean') {
+          setAutoHideTopbarOnCollapse(settings.autoHideTopbarOnCollapse);
+        }
+        if (typeof settings.typewriterMode === 'boolean') {
+          setTypewriterMode(settings.typewriterMode);
+        }
+        if (typeof settings.previewMaxWidth === 'number') {
+          setPreviewMaxWidth(settings.previewMaxWidth);
+        }
+        if (typeof settings.lineHeight === 'number') {
+          setLineHeight(settings.lineHeight);
+        }
+        if (typeof settings.irLineNumbers === 'boolean') {
+          setIrLineNumbers(settings.irLineNumbers);
+        }
+        if (typeof settings.expandOutlineOnOpen === 'boolean') {
+          setExpandOutlineOnOpen(settings.expandOutlineOnOpen);
+        }
+        document.documentElement.dataset.codeBlockToolbar =
+          settings.codeBlockToolbarStyle === "classic" ? "classic" : "minimal";
       } catch {}
     };
     applySettings();

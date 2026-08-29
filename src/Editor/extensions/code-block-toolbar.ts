@@ -38,6 +38,10 @@ const LANGUAGES = [
   { value: "plaintext", label: "Plain Text" },
 ];
 
+const COPY_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>`;
+const CHECK_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>`;
+const DELETE_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>`;
+
 function langLabel(lang: string | null | undefined): string {
   return LANGUAGES.find((l) => l.value === (lang || ""))?.label || "Plain Text";
 }
@@ -48,6 +52,10 @@ function langLabel(lang: string | null | undefined): string {
  * 事件全部绑在 NodeView 实例上（不用 document 全局 capture），
  * 避免与「点击外部关闭」在同一 mousedown 里互相打架。
  * 高亮交给 CodeBlockLowlight 的 decorations，不在这里改 contentDOM。
+ *
+ * 样式由 document.documentElement[data-code-block-toolbar] 控制：
+ * - minimal（默认）：右上角浮动语言选择
+ * - classic：顶栏 + 复制/删除按钮
  */
 export const CodeBlockToolbar = Extension.create({
   name: "codeBlockToolbar",
@@ -78,10 +86,13 @@ class CodeBlockToolbarView implements NodeView {
   private wrapper: HTMLElement;
   private toolbar: HTMLElement;
   private langButton: HTMLButtonElement;
+  private copyButton!: HTMLButtonElement;
+  private deleteButton!: HTMLButtonElement;
 
   private portal: HTMLDivElement | null = null;
   private onDocPointerDown: ((e: PointerEvent) => void) | null = null;
   private openTimer: ReturnType<typeof setTimeout> | null = null;
+  private copyResetTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     node: ProseMirrorNode,
@@ -112,6 +123,9 @@ class CodeBlockToolbarView implements NodeView {
     langSelector.appendChild(this.langButton);
     this.toolbar.appendChild(langSelector);
 
+    // classic 样式下显示的复制/删除；minimal 下由 CSS 隐藏
+    this.toolbar.appendChild(this.createActions());
+
     // TipTap CodeBlock 约定：pre > code，contentDOM 必须是 code
     const pre = document.createElement("pre");
     pre.className = "code-block-content";
@@ -122,6 +136,29 @@ class CodeBlockToolbarView implements NodeView {
     this.wrapper.appendChild(this.toolbar);
     this.wrapper.appendChild(pre);
     this.dom = this.wrapper;
+  }
+
+  private createActions(): HTMLElement {
+    const actions = document.createElement("div");
+    actions.className = "code-block-actions";
+
+    this.deleteButton = document.createElement("button");
+    this.deleteButton.type = "button";
+    this.deleteButton.className = "code-block-action-btn delete";
+    this.deleteButton.title = "删除";
+    this.deleteButton.innerHTML = DELETE_ICON;
+    this.deleteButton.addEventListener("pointerdown", this.onDeletePointerDown);
+
+    this.copyButton = document.createElement("button");
+    this.copyButton.type = "button";
+    this.copyButton.className = "code-block-action-btn copy";
+    this.copyButton.title = "复制";
+    this.copyButton.innerHTML = COPY_ICON;
+    this.copyButton.addEventListener("pointerdown", this.onCopyPointerDown);
+
+    actions.appendChild(this.deleteButton);
+    actions.appendChild(this.copyButton);
+    return actions;
   }
 
   private onLangButtonPointerDown = (e: PointerEvent) => {
@@ -135,6 +172,20 @@ class CodeBlockToolbarView implements NodeView {
       return;
     }
     this.openDropdown();
+  };
+
+  private onDeletePointerDown = (e: PointerEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    this.deleteCodeBlock();
+  };
+
+  private onCopyPointerDown = (e: PointerEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    this.copyCodeBlock();
   };
 
   private openDropdown() {
@@ -267,6 +318,30 @@ class CodeBlockToolbarView implements NodeView {
     );
   }
 
+  private deleteCodeBlock() {
+    const pos = this.getPos();
+    if (pos === undefined) return;
+    const nodeAtPos = this.view.state.doc.nodeAt(pos);
+    if (!nodeAtPos || nodeAtPos.type.name !== "codeBlock") return;
+    this.view.dispatch(this.view.state.tr.delete(pos, pos + nodeAtPos.nodeSize));
+  }
+
+  private copyCodeBlock() {
+    const pos = this.getPos();
+    if (pos === undefined) return;
+    const nodeAtPos = this.view.state.doc.nodeAt(pos);
+    if (!nodeAtPos || nodeAtPos.type.name !== "codeBlock") return;
+
+    void navigator.clipboard.writeText(nodeAtPos.textContent).then(() => {
+      this.copyButton.innerHTML = CHECK_ICON;
+      if (this.copyResetTimer !== null) clearTimeout(this.copyResetTimer);
+      this.copyResetTimer = setTimeout(() => {
+        this.copyResetTimer = null;
+        this.copyButton.innerHTML = COPY_ICON;
+      }, 2000);
+    });
+  }
+
   update(node: ProseMirrorNode) {
     if (node.type !== this.node.type) return false;
     this.node = node;
@@ -296,6 +371,9 @@ class CodeBlockToolbarView implements NodeView {
 
   destroy() {
     this.closeDropdown();
+    if (this.copyResetTimer !== null) clearTimeout(this.copyResetTimer);
     this.langButton.removeEventListener("pointerdown", this.onLangButtonPointerDown);
+    this.deleteButton.removeEventListener("pointerdown", this.onDeletePointerDown);
+    this.copyButton.removeEventListener("pointerdown", this.onCopyPointerDown);
   }
 }

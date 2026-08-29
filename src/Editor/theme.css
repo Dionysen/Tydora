@@ -1271,7 +1271,7 @@
   overflow: visible;
 }
 
-/* 右上角浮动控件：尺寸贴合按钮，不挡住下方代码编辑 */
+/* ── minimal（默认）：右上角浮动语言选择 ── */
 .code-block-toolbar {
   position: absolute;
   top: 4px;
@@ -1287,13 +1287,10 @@
   pointer-events: auto;
 }
 
-/* 兼容 HMR 残留的旧删除/复制按钮 */
-.code-block-actions,
-.code-block-action-btn {
-  display: none !important;
+.code-block-actions {
+  display: none;
 }
 
-/* 语言选择器 */
 .code-block-lang-selector {
   position: relative;
   pointer-events: auto;
@@ -1329,6 +1326,79 @@
   background: var(--bg-hover, #e8e8e8);
   border-color: var(--text-secondary, #999);
   opacity: 1;
+}
+
+/* ── classic：顶栏 + 复制/删除 ── */
+html[data-code-block-toolbar="classic"] .code-block-toolbar {
+  position: relative;
+  top: auto;
+  right: auto;
+  z-index: auto;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--bg-secondary, #f0f0f0);
+  border-bottom: 1px solid var(--border, #e0e0e0);
+  border-radius: 7px 7px 0 0;
+}
+
+html[data-code-block-toolbar="classic"] .code-block-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+html[data-code-block-toolbar="classic"] .code-block-lang-button {
+  padding: 4px 10px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border, #d0d0d0);
+  border-radius: 6px;
+  color: var(--text-primary, #333);
+  opacity: 1;
+}
+
+html[data-code-block-toolbar="classic"] .code-block-toolbar-wrapper:hover .code-block-lang-button,
+html[data-code-block-toolbar="classic"] .code-block-toolbar-wrapper.toolbar-active .code-block-lang-button {
+  background: var(--bg-primary, #fff);
+  border-color: var(--border, #d0d0d0);
+}
+
+html[data-code-block-toolbar="classic"] .code-block-lang-button:hover {
+  background: var(--bg-hover, #e8e8e8);
+  border-color: var(--text-secondary, #999);
+}
+
+html[data-code-block-toolbar="classic"] .code-block-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+html[data-code-block-toolbar="classic"] .code-block-action-btn:hover {
+  background: var(--bg-hover, #e0e0e0);
+  color: var(--text-primary, #333);
+}
+
+html[data-code-block-toolbar="classic"] .code-block-action-btn.delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+html[data-code-block-toolbar="classic"] .code-block-action-btn.copy:hover {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+html[data-code-block-toolbar="classic"] .code-block-content {
+  border-radius: 0 0 7px 7px;
 }
 
 /* 下拉菜单 portal：挂载到 document.body，不受任何 overflow 父级裁剪 */
@@ -1407,7 +1477,7 @@
   overflow: hidden;
 }
 
-/* 代码内容（顶栏默认叠加，内容区使用完整圆角） */
+/* 代码内容（minimal 顶栏叠加用完整圆角；classic 由上方覆盖为底部圆角） */
 .code-block-content {
   margin: 0;
   padding: 16px;
