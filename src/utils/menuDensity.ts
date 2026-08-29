@@ -32,8 +32,18 @@ export function applyEditorSpacingFromSettings(settings: {
   document.documentElement.style.setProperty("--code-line-height", String(codeLineHeight));
 }
 
+/**
+ * 清除曾由通用设置写入的侧栏玻璃不透明度内联样式，
+ * 避免盖过主题 CSS 变量（迁移后一次性清理即可）。
+ */
+function clearLegacySidebarChromeInlineStyles(): void {
+  document.documentElement.style.removeProperty("--sidebar-chrome-opacity");
+  document.documentElement.style.removeProperty("--sidebar-tab-active-opacity");
+}
+
 /** 从 localStorage 读取并应用到当前窗口（供各窗口入口尽早调用） */
 export function applyMenuDensityFromStorage(): void {
+  clearLegacySidebarChromeInlineStyles();
   try {
     const raw = localStorage.getItem("zmd-general-settings");
     const settings = raw ? JSON.parse(raw) : {};

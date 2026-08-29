@@ -336,6 +336,7 @@
         "accentRgb": "Accent RGB",
         "danger": "Danger / delete",
         "border": "Border",
+        "sidebarChromeOpacity": "Sidebar chrome opacity",
         "scrollbarThumb": "Scrollbar thumb",
         "scrollbarThumbHover": "Scrollbar thumb hover",
         "scrollbarTrack": "Scrollbar track",

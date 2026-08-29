@@ -25,6 +25,10 @@
   --editor-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --editor-font-size: 16px;
   --font-mono-size: 14px;
+  /* 侧栏 Tab / 底部仓库控件玻璃不透明度（0–1，默认完全不透明） */
+  --sidebar-chrome-opacity: 1;
+  /* 选中 Tab 相对背景的不透明度增量（可调） */
+  --sidebar-tab-active-opacity-delta: 0.18;
 }
 
 /* ── 白色主题 ── */

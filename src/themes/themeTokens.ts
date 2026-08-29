@@ -34,6 +34,13 @@ export interface ThemeSizeToken {
   min: number;
   max: number;
   step?: number;
+  /** CSS 单位；默认 `px`。空字符串表示无单位（如 0–1 不透明度） */
+  unit?: "px" | "";
+  /**
+   * 编辑器按 0–100% 显示，但 CSS 存 0–1（仅 unit 为 "" 时有效）。
+   * min/max/step 仍按百分比刻度填写（如 0–100）。
+   */
+  asPercent?: boolean;
 }
 
 export interface ThemeEditorSectionDef {
@@ -104,6 +111,16 @@ export const THEME_COLOR_SCHEMA: ThemeColorToken[] = [
 
 /** Radius / padding / width tokens shown in the theme editor. */
 export const THEME_SIZE_SCHEMA: ThemeSizeToken[] = [
+  {
+    name: "--sidebar-chrome-opacity",
+    section: "chrome",
+    labelKey: "sidebarChromeOpacity",
+    min: 0,
+    max: 100,
+    step: 5,
+    unit: "",
+    asPercent: true,
+  },
   { name: "--radius-code-block", section: "codeBlock", labelKey: "radiusCodeBlock", min: 0, max: 24 },
   { name: "--radius-code-inline", section: "codeInline", labelKey: "radiusCodeInline", min: 0, max: 16 },
   { name: "--padding-code-inline-y", section: "codeInline", labelKey: "paddingCodeInlineY", min: 0, max: 16 },
@@ -137,6 +154,7 @@ const PRESERVED_NON_COLOR = [
   "--editor-font",
   "--editor-font-size",
   "--font-mono-size",
+  "--sidebar-chrome-opacity",
   "--radius-code-block",
   "--radius-code-inline",
   "--padding-code-inline-y",
@@ -388,6 +406,7 @@ const DEFAULT_FONTS: ThemeVariable[] = [
 ];
 
 const DEFAULT_SIZES: ThemeVariable[] = [
+  { name: "--sidebar-chrome-opacity", value: "1", type: "size" },
   { name: "--radius-code-block", value: "8px", type: "size" },
   { name: "--radius-code-inline", value: "4px", type: "size" },
   { name: "--padding-code-inline-y", value: "3px", type: "size" },

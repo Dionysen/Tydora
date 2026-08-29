@@ -336,6 +336,7 @@
         "accentRgb": "主题色 RGB",
         "danger": "危险 / 删除",
         "border": "边框",
+        "sidebarChromeOpacity": "侧栏控件不透明度",
         "scrollbarThumb": "滚动条滑块",
         "scrollbarThumbHover": "滚动条滑块悬停",
         "scrollbarTrack": "滚动条轨道",

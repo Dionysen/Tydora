@@ -40,6 +40,7 @@ const FONT_PATTERNS = [/^--font-/, /^--editor-font$/];
 const SIZE_PATTERNS = [
   /^--editor-font-size$/,
   /^--font-mono-size$/,
+  /^--sidebar-chrome-opacity$/,
   /^--radius/,
   /^--padding-/,
   /^--scrollbar-size$/,
