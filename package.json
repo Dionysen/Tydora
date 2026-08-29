@@ -46,6 +46,7 @@
     "@codemirror/state": "^6.7.0",
     "@codemirror/view": "^6.43.4",
     "@lezer/highlight": "^1.2.3",
+    "@replit/codemirror-vim": "^6.4.0",
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
     "@tauri-apps/plugin-dialog": "^2.0.0",
@@ -82,6 +83,8 @@
     "@tiptap/react": "^3.27.1",
     "@tiptap/starter-kit": "^3.27.1",
     "@types/d3": "^7.4.3",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
     "@xyflow/react": "^12.11.2",
     "d3": "^7.9.0",
     "d3-force": "^3.0.0",
@@ -104,9 +107,8 @@
     "react-dom": "^19.0.0",
     "react-i18next": "^17.0.11",
     "tiptap-markdown": "^0.9.0",
-    "zustand": "^5.0.14",
-    "@xterm/xterm": "^5.5.0",
-    "@xterm/addon-fit": "^0.10.0"
+    "vim-prose": "^0.3.1",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",

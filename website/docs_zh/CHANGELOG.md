@@ -2,30 +2,36 @@
 
 ## 0.2.2（2026-08-27）
 
-1. 重构工作流以按平台分组上传资源并修复分屏与快捷键冲突
-2. 修复多行粘贴文本切换标题时整段变标题的问题
-3. add integrated terminal pane with xterm.js
-4. 优化启动体验并增加启动埋点
+## **🐛 Bug Fixes**
+
+- 重构工作流以按平台分组上传资源并修复分屏与快捷键冲突 ([<u>86d002e</u>](https://github.com/zuorn/Tydora/commit/86d002eab6af6c57561ee6ae24f8c1de883ca257))
+- 修复多行粘贴文本切换标题时整段变标题的问题 ([<u>64d4faf</u>](https://github.com/zuorn/Tydora/commit/64d4faf2ea26d2e7efbd0630cb974011923873af))
+
+### **🚀 Features**
+
+- 支持 Ctrl+\\ 和 Ctrl+- 分屏打开文件 ([<u>2ad7903</u>](https://github.com/zuorn/Tydora/commit/2ad7903962466c337549db0c594e73d53dcdbef1))
+- Add integrated terminal pane with xterm.js ([<u>689fe3e</u>](https://github.com/zuorn/Tydora/commit/689fe3e4cd1e0289d67724f4490175ae57c02c60))
+- 优化启动体验并增加启动埋点 ([<u>991cea4</u>](https://github.com/zuorn/Tydora/commit/991cea424d158768bc6e40b275224df5299b3029))
+- 优化终端默认 shell 探测逻辑并增加快速检查待打开文件功能 ([<u>d18aed5</u>](https://github.com/zuorn/Tydora/commit/d18aed51b3b6322ed1c2fc7d1004cc4032d021d1))
+- 更新版本号至 0.2.2 并添加安全性和安装徽章 ([<u>1a338f3</u>](https://github.com/zuorn/Tydora/commit/1a338f33d350b77980d59d84aa186b4c9eb68a6f))
 
 ## 0.2.1（2026-08-25）
 
-1. 侧栏工具栏添加<mark>定位当前文件</mark>按钮
-   1. 在侧边栏工具栏新增“定位当前文件”操作，支持自动展开目录并滚动到活动文件；同时补充禁用态样式和中英文文案。
-2. 优化wikilink悬停预览，并修复代码块误转换
-   1. 增加悬停延迟并取消离开时的待显示预览，避免误触发
-   2.  阻止预览弹窗内嵌套预览
-   3. 跳过内联代码段中的 wiki 链接转换
-3. 打开文件：
-   1. ctrl+o 打开文件，按下ctrl+enter 在新窗口打开文件
-   2. ctrl+o 打开文件，最近访问改成 搜索文件、搜索知识库，按下tab 可以切换搜索文件 和 搜索知识库，搜索知识库后按下 enter 在当前窗口打开知识库，按下ctrl+enter 在新窗口打开知识库
-4. 优化打字机光标居中逻辑
-5. 分屏编辑器
-   1. **嵌套分屏**：支持混合方向分屏。左右分屏后，可以在右侧（或左侧）再进行上下分屏，布局为 `[左, [右上, 右下]]`，不影响另一侧
-   2. **分屏快捷键**：`Ctrl+\` 左右分屏，`Alt+\` 上下分屏，可在命令面板（`Ctrl+P`）中搜索到
-   3. **分屏固定到顶部栏**：左右分屏和上下分屏支持图钉固定，固定后图标直接显示在顶部工具栏，无需打开下拉菜单
-   4. `Ctrl+W` **智能关闭**：多面板时关闭当前聚焦面板，单面板时关闭窗口
-   5. **菜单顺序优化**：「在新面板打开」「在新窗口打开」移至顶部并用分隔线区分，新建文件/白板/文件夹归为一组
-   6. **快捷键面板**：视图分组中补充「左右分屏」和「上下分屏」两个条目
+### **🏗️ Chores**
+
+- 发布 0.2.1 版本 ([<u>7d69e5e</u>](https://github.com/zuorn/Tydora/commit/7d69e5ee24d4c722c13b32001dd94fac92834d1b))
+
+### **🐛 Bug Fixes**
+
+- 优化悬停预览并修复代码块误转换 ([<u>787c93a</u>](https://github.com/zuorn/Tydora/commit/787c93a3eb375f567acf46b7c83c6a32c3b22620))
+- 优化打字机模式光标居中逻辑 ([<u>f844c82</u>](https://github.com/zuorn/Tydora/commit/f844c824feaf0206173cc71c7769bfb24f1881b3))
+
+### **🚀 Features**
+
+- Enhance CodeMirror and TipTap editors with selection handling and scroll adjustments ([<u>447c9d7</u>](https://github.com/zuorn/Tydora/commit/447c9d7d9df5af83b6b42dd19fd7e9415a070085))
+- 添加定位当前文件按钮 ([<u>9f8f472</u>](https://github.com/zuorn/Tydora/commit/9f8f472c773289b15050ab8af601da3f9c6c42d9))
+- 添加文件/知识库搜索标签切换与新窗口打开 ([<u>b2e104d</u>](https://github.com/zuorn/Tydora/commit/b2e104d9bc80b87c89d4395c2ee416a7b20c01bc))
+- 支持多窗格分屏与共享缓冲 ([<u>b8b0cbe</u>](https://github.com/zuorn/Tydora/commit/b8b0cbe9ae8190739b36c29899aa332637901389))
 
 ## [0.1.5](https://github.com/zuorn/Tydora/compare/v0.1.4...v0.1.5) (2026-08-09)
 

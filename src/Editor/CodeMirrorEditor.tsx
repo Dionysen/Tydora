@@ -1,4 +1,4 @@
-import { useRef, useEffect, forwardRef, useImperativeHandle, useMemo } from "react";
+import { useRef, useEffect, forwardRef, useImperativeHandle, useMemo, useCallback } from "react";
 import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, Decoration, ViewPlugin, placeholder, ViewUpdate } from "@codemirror/view";
 import { EditorState, Compartment, RangeSetBuilder } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
@@ -18,6 +18,10 @@ import { tags } from "@lezer/highlight";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
+import { useVim, createVimExtension, useLeader, LeaderMenu, executeCodeMirrorAction } from "../vim";
+import { prefixMConfig } from "../vim/config/prefixM";
+import { prefixGConfig } from "../vim/config/prefixG";
+import { prefixZConfig } from "../vim/config/prefixZ";
 
 
 // 判断是否为 Markdown 文件
@@ -364,6 +368,8 @@ export interface CodeMirrorEditorHandle {
 }
 
 const highlightCompartment = new Compartment();
+// Vim 扩展独立 Compartment：动态开关 vim 时不重建整个 editor
+const vimCompartment = new Compartment();
 
 const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(
   ({ value, onChange, onWordCount, filePath, onSelectionChange }, ref) => {
@@ -413,6 +419,66 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
 
     // 根据 filePath 获取语言扩展
     const languageExtension = useMemo(() => getLanguageExtension(filePath), [filePath]);
+
+    // Vim 模式状态（默认 enabled=false，关闭时零开销）
+    const { enabled: vimEnabled, leaderKey, mode: vimMode, menuTimeout, setMode: onModeChange } = useVim();
+
+    // Leader 菜单：normal 态按 Space 触发，匹配动作后按命名空间分发
+    const dispatchAction = useCallback((action: string) => {
+      if (action.startsWith("editor.")) {
+        const view = viewRef.current;
+        if (!view) return false;
+        return executeCodeMirrorAction(action.slice("editor.".length), view);
+      }
+      if (action.startsWith("app.")) {
+        // app.* 动作通过全局事件分发到 App.tsx，Vim 模块不依赖 App 内部 handler
+        window.dispatchEvent(new CustomEvent("vim-app-action", {
+          detail: { action: action.slice("app.".length) }
+        }));
+        return true;
+      }
+      return false;
+    }, []);
+
+    const leader = useLeader({
+      enabled: vimEnabled,
+      triggerKey: leaderKey,
+      timeout: menuTimeout,
+      active: vimMode === "normal",
+      dispatchAction,
+    });
+
+    // m 前缀键：normal 态按 m 弹出 Markdown 格式化菜单（mb=加粗, mi=斜体…）
+    const prefixM = useLeader({
+      enabled: vimEnabled,
+      triggerKey: "m",
+      timeout: menuTimeout,
+      active: vimMode === "normal" && !leader.open,
+      dispatchAction,
+      initialItems: prefixMConfig.items,
+    });
+
+    // g 前缀键：被动模式，弹窗仅作视觉引导，按键由 vim 扩展原生处理
+    const prefixG = useLeader({
+      enabled: vimEnabled,
+      triggerKey: "g",
+      timeout: menuTimeout,
+      active: vimMode === "normal" && !leader.open && !prefixM.open,
+      dispatchAction,
+      initialItems: prefixGConfig.items,
+      passive: true,
+    });
+
+    // z 前缀键：被动模式，弹窗仅作视觉引导，按键由 vim 扩展原生处理
+    const prefixZ = useLeader({
+      enabled: vimEnabled,
+      triggerKey: "z",
+      timeout: menuTimeout,
+      active: vimMode === "normal" && !leader.open && !prefixM.open && !prefixG.open,
+      dispatchAction,
+      initialItems: prefixZConfig.items,
+      passive: true,
+    });
 
     useEffect(() => {
       if (!containerRef.current) return;
@@ -470,6 +536,8 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
           ]),
           updateListener,
           EditorView.lineWrapping,
+          // Vim 扩展通过独立 Compartment 动态开关（enabled=false 时为空数组，零影响）
+          vimCompartment.of([]),
         ],
       });
 
@@ -549,11 +617,41 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       return () => window.removeEventListener("code-theme-changed", handleCodeThemeChanged);
     }, [markdownHighlighting, codeHighlighting]);
 
+    // Vim 扩展动态注入：enabled 切换或 leaderKey 变化时通过 Compartment reconfigure
+    // enabled=false 时 reconfigure 为空数组 → 完全移除 vim 行为，零残留
+    useEffect(() => {
+      if (!viewRef.current) return;
+      viewRef.current.dispatch({
+        effects: vimCompartment.reconfigure(
+          createVimExtension({
+            enabled: vimEnabled,
+            leaderKey,
+            onModeChange,
+          })
+        ),
+      });
+    }, [vimEnabled, leaderKey, onModeChange]);
+
     return (
       <div className="editor-wrapper">
         <div className="codemirror-editor-container">
           <div ref={containerRef} className="codemirror-editor" />
         </div>
+        <LeaderMenu
+          open={leader.open || prefixM.open || prefixG.open || prefixZ.open}
+          items={
+            leader.open ? leader.items
+            : prefixM.open ? prefixM.items
+            : prefixG.open ? prefixG.items
+            : prefixZ.items
+          }
+          path={
+            leader.open ? leader.path
+            : prefixM.open ? prefixM.path
+            : prefixG.open ? prefixG.path
+            : prefixZ.path
+          }
+        />
       </div>
     );
   }
