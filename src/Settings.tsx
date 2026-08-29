@@ -771,15 +771,18 @@ function GraphSettingsContent({
   );
 }
 
-function ThemeSettingsContent({
-  theme,
-  setTheme,
-}: {
-  theme: ThemeName;
-  setTheme: (t: ThemeName) => void;
-}) {
+function ThemeSettingsContent() {
   const { t } = useTranslation();
   const {
+    theme,
+    setTheme,
+    appearanceMode,
+    setAppearanceMode,
+    resolvedMode,
+    preferredAppTheme,
+    preferredCodeTheme,
+    setPreferredAppTheme,
+    setPreferredCodeTheme,
     customThemes,
     importTheme,
     deleteTheme,
@@ -795,6 +798,7 @@ function ThemeSettingsContent({
     createCodeThemeFromBuiltin,
     updateCodeThemeVariables,
     previewCodeThemeVariables,
+    getAppThemeIsDark,
   } = useTheme();
   const [importing, setImporting] = useState(false);
   const [editingTheme, setEditingTheme] = useState<ThemeManifest | null>(null);
@@ -835,7 +839,14 @@ function ThemeSettingsContent({
   const [editCodeIsDark, setEditCodeIsDark] = useState(false);
   const [codeSampleLang, setCodeSampleLang] = useState(CODE_THEME_SAMPLE_SNIPPETS[0].id);
   const [forkingCode, setForkingCode] = useState(false);
+  const [appThemeTab, setAppThemeTab] = useState<"light" | "dark">(resolvedMode);
+  const [codeThemeTab, setCodeThemeTab] = useState<"light" | "dark">(resolvedMode);
   const codePreviewTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setAppThemeTab(resolvedMode);
+    setCodeThemeTab(resolvedMode);
+  }, [resolvedMode]);
 
   const [codeSampleHtml, setCodeSampleHtml] = useState("");
   useEffect(() => {
@@ -1299,123 +1310,184 @@ function ThemeSettingsContent({
 
   return (
     <div className="settings-section">
-      <h3 className="settings-section-title">{t("settings.theme.builtinThemes")}</h3>
+      <h3 className="settings-section-title">{t("settings.theme.appearanceMode")}</h3>
       <p className="settings-hint" style={{ marginTop: -8, marginBottom: 12 }}>
-        {t("settings.theme.forkHint")}
+        {t("settings.theme.appearanceModeHint")}
       </p>
-      <div className="settings-theme-grid">
-        {builtinThemes.map((item) => (
-          <div
-            key={item.value}
-            className={`settings-theme-card${theme === item.value ? " active" : ""}`}
-            onClick={() => setTheme(item.value)}
+      <div className="appearance-mode-toggle" role="radiogroup" aria-label={t("settings.theme.appearanceMode")}>
+        {([
+          ["system", "appearanceSystem"],
+          ["light", "appearanceLight"],
+          ["dark", "appearanceDark"],
+        ] as const).map(([mode, labelKey]) => (
+          <button
+            key={mode}
+            type="button"
+            role="radio"
+            aria-checked={appearanceMode === mode}
+            className={`appearance-mode-btn${appearanceMode === mode ? " active" : ""}`}
+            onClick={() => setAppearanceMode(mode)}
           >
-            <div className="settings-theme-preview" data-theme={item.value}>
-              <div className="theme-preview-mock">
-                <div className="mock-titlebar" style={{ background: item.colors[0] }}>
-                  <div className="mock-dots">
-                    <span style={{ background: item.colors[1] }} />
-                    <span style={{ background: item.colors[3] }} />
-                    <span style={{ background: item.colors[3] }} />
-                  </div>
-                </div>
-                <div className="mock-body">
-                  <div className="mock-sidebar" style={{ background: item.colors[3] }}>
-                    <div className="mock-line" style={{ background: item.colors[1], width: "60%" }} />
-                    <div className="mock-line" style={{ background: item.colors[2], opacity: 0.3, width: "80%" }} />
-                    <div className="mock-line" style={{ background: item.colors[2], opacity: 0.3, width: "45%" }} />
-                  </div>
-                  <div className="mock-editor" style={{ background: item.colors[0] }}>
-                    <div className="mock-line" style={{ background: item.colors[2], opacity: 0.2, width: "70%" }} />
-                    <div className="mock-line" style={{ background: item.colors[2], opacity: 0.15, width: "55%" }} />
-                    <div className="mock-accent-line" style={{ background: item.colors[1], width: "40%" }} />
-                  </div>
-                </div>
-              </div>
-              {theme === item.value && (
-                <div className="settings-theme-check">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                </div>
-              )}
-              <div className="custom-theme-actions">
-                <button
-                  className="custom-theme-edit-btn"
-                  title={t("settings.theme.forkAndEdit")}
-                  disabled={forking}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleForkBuiltin(item.value, item.label);
-                  }}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 20h9" />
-                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <span className="settings-theme-name">{item.label}</span>
-          </div>
+            {t(`settings.theme.${labelKey}`)}
+          </button>
         ))}
       </div>
-
-      <h3 className="settings-section-title">{t("settings.theme.customThemes")}</h3>
-      <div className="settings-theme-grid">
-        {customThemes.map((m) => {
-          const themeId = `custom-${m.id}`;
-          const isActive = theme === themeId;
-          return (
-            <div
-              key={m.id}
-              className={`settings-theme-card custom-theme-card${isActive ? " active" : ""}`}
-              onClick={() => setTheme(themeId)}
-            >
-              <div className="settings-theme-preview custom-theme-preview" data-custom-theme={m.id}>
-                <div
-                  className="custom-theme-gradient"
-                  style={{
-                    background: `linear-gradient(135deg, ${m.previewBg || "#ffffff"} 0%, ${m.previewAccent || "#4eb289"} 100%)`,
-                  }}
-                />
-                {isActive && (
-                  <div className="settings-theme-check">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  </div>
-                )}
-                <div className="custom-theme-actions">
-                  <button
-                    className="custom-theme-edit-btn"
-                    title={t("settings.theme.edit")}
-                    onClick={(e) => { e.stopPropagation(); handleStartEdit(m); }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                    </svg>
-                  </button>
-                  <button
-                    className="custom-theme-delete-btn"
-                    title={t("settings.theme.delete")}
-                    onClick={(e) => { e.stopPropagation(); handleDelete(m); }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <span className="settings-theme-name">{m.name}</span>
-            </div>
-          );
+      <p className="settings-hint appearance-mode-status">
+        {t("settings.theme.appearanceStatus", {
+          mode: t(`settings.theme.${resolvedMode === "dark" ? "appearanceDark" : "appearanceLight"}`),
+          app: (() => {
+            const builtin = builtinThemes.find((b) => b.value === theme);
+            if (builtin) return builtin.label;
+            if (theme.startsWith("custom-")) {
+              const id = theme.replace("custom-", "");
+              return customThemes.find((m) => m.id === id)?.name || theme;
+            }
+            return theme;
+          })(),
+          code: (() => {
+            const builtin = CODE_THEMES.find((c) => c.id === codeTheme);
+            if (builtin) return builtin.name;
+            return customCodeThemes.find((m) => m.id === codeTheme)?.name || codeTheme;
+          })(),
         })}
+      </p>
+
+      <h3 className="settings-section-title">{t("settings.theme.appTheme")}</h3>
+      <div className="theme-pair-tabs" role="tablist" aria-label={t("settings.theme.appTheme")}>
+        {(["light", "dark"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            role="tab"
+            aria-selected={appThemeTab === tab}
+            className={`theme-pair-tab${appThemeTab === tab ? " active" : ""}`}
+            onClick={() => setAppThemeTab(tab)}
+          >
+            {t(tab === "dark" ? "settings.theme.appearanceDark" : "settings.theme.appearanceLight")}
+            {resolvedMode === tab && (
+              <span className="appearance-in-use-badge">{t("settings.theme.inUse")}</span>
+            )}
+          </button>
+        ))}
+      </div>
+      <div className="settings-theme-grid">
+        {builtinThemes
+          .filter((b) => getAppThemeIsDark(b.value) === (appThemeTab === "dark"))
+          .map((item) => {
+            const preferred = preferredAppTheme[appThemeTab] === item.value;
+            return (
+              <div
+                key={item.value}
+                className={`settings-theme-card${preferred ? " active" : ""}`}
+                onClick={() => setPreferredAppTheme(appThemeTab, item.value)}
+              >
+                <div className="settings-theme-preview" data-theme={item.value}>
+                  <div className="theme-preview-mock">
+                    <div className="mock-titlebar" style={{ background: item.colors[0] }}>
+                      <div className="mock-dots">
+                        <span style={{ background: item.colors[1] }} />
+                        <span style={{ background: item.colors[3] }} />
+                        <span style={{ background: item.colors[3] }} />
+                      </div>
+                    </div>
+                    <div className="mock-body">
+                      <div className="mock-sidebar" style={{ background: item.colors[3] }}>
+                        <div className="mock-line" style={{ background: item.colors[1], width: "60%" }} />
+                        <div className="mock-line" style={{ background: item.colors[2], opacity: 0.3, width: "80%" }} />
+                        <div className="mock-line" style={{ background: item.colors[2], opacity: 0.3, width: "45%" }} />
+                      </div>
+                      <div className="mock-editor" style={{ background: item.colors[0] }}>
+                        <div className="mock-line" style={{ background: item.colors[2], opacity: 0.2, width: "70%" }} />
+                        <div className="mock-line" style={{ background: item.colors[2], opacity: 0.15, width: "55%" }} />
+                        <div className="mock-accent-line" style={{ background: item.colors[1], width: "40%" }} />
+                      </div>
+                    </div>
+                  </div>
+                  {preferred && (
+                    <div className="settings-theme-check">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className="custom-theme-actions">
+                    <button
+                      className="custom-theme-edit-btn"
+                      title={t("settings.theme.forkAndEdit")}
+                      disabled={forking}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleForkBuiltin(item.value, item.label);
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <span className="settings-theme-name">{item.label}</span>
+              </div>
+            );
+          })}
+
+        {customThemes
+          .filter((m) => !!m.isDark === (appThemeTab === "dark"))
+          .map((m) => {
+            const themeId = `custom-${m.id}`;
+            const preferred = preferredAppTheme[appThemeTab] === themeId;
+            return (
+              <div
+                key={m.id}
+                className={`settings-theme-card custom-theme-card${preferred ? " active" : ""}`}
+                onClick={() => setPreferredAppTheme(appThemeTab, themeId)}
+              >
+                <div className="settings-theme-preview custom-theme-preview" data-custom-theme={m.id}>
+                  <div
+                    className="custom-theme-gradient"
+                    style={{
+                      background: `linear-gradient(135deg, ${m.previewBg || "#ffffff"} 0%, ${m.previewAccent || "#4eb289"} 100%)`,
+                    }}
+                  />
+                  {preferred && (
+                    <div className="settings-theme-check">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className="custom-theme-actions">
+                    <button
+                      className="custom-theme-edit-btn"
+                      title={t("settings.theme.edit")}
+                      onClick={(e) => { e.stopPropagation(); handleStartEdit(m); }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                      </svg>
+                    </button>
+                    <button
+                      className="custom-theme-delete-btn"
+                      title={t("settings.theme.delete")}
+                      onClick={(e) => { e.stopPropagation(); handleDelete(m); }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <span className="settings-theme-name">{m.name}</span>
+              </div>
+            );
+          })}
+
         <div
           className="settings-theme-card settings-theme-import-card"
-          onClick={() => handleCreateBlank("light")}
+          onClick={() => handleCreateBlank(appThemeTab)}
         >
           <div className="settings-theme-preview settings-theme-import-preview">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1423,7 +1495,9 @@ function ThemeSettingsContent({
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
           </div>
-          <span className="settings-theme-name">{forking ? t("settings.theme.importing") : t("settings.theme.newTheme")}</span>
+          <span className="settings-theme-name">
+            {appThemeTab === "dark" ? t("settings.theme.newDarkTheme") : t("settings.theme.newLightTheme")}
+          </span>
         </div>
         <div
           className="settings-theme-card settings-theme-import-card"
@@ -1440,156 +1514,143 @@ function ThemeSettingsContent({
         </div>
       </div>
 
-      {customThemes.length === 0 && (
-        <p className="settings-hint" style={{ marginTop: 8 }}>
-          {t("settings.theme.importThemeHint")}
-        </p>
-      )}
-
       <h3 className="settings-section-title">{t("settings.theme.codeTheme")}</h3>
-      <p className="settings-hint" style={{ marginTop: -8, marginBottom: 12 }}>
-        {t("settings.theme.codeThemeCardHint")}
-      </p>
-
-      <div className="settings-theme-grid">
-        <div
-          className={`settings-theme-card${codeTheme === "auto" ? " active" : ""}`}
-          onClick={() => setCodeTheme("auto")}
-        >
-          <div
-            className="settings-theme-preview code-theme-card-preview"
-            style={{ background: "linear-gradient(135deg, #f6f8fa 50%, #0d1117 50%)" }}
+      <div className="theme-pair-tabs" role="tablist" aria-label={t("settings.theme.codeTheme")}>
+        {(["light", "dark"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            role="tab"
+            aria-selected={codeThemeTab === tab}
+            className={`theme-pair-tab${codeThemeTab === tab ? " active" : ""}`}
+            onClick={() => setCodeThemeTab(tab)}
           >
-            <div className="code-theme-card-mock" aria-hidden>
-              <span className="code-theme-card-line" style={{ background: "#d73a49", width: "70%" }} />
-              <span className="code-theme-card-line" style={{ background: "#ff7b72", width: "55%" }} />
-              <span className="code-theme-card-line" style={{ background: "#6a737d", width: "40%" }} />
-            </div>
-            {codeTheme === "auto" && (
-              <div className="settings-theme-check">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-              </div>
+            {t(tab === "dark" ? "settings.theme.appearanceDark" : "settings.theme.appearanceLight")}
+            {resolvedMode === tab && (
+              <span className="appearance-in-use-badge">{t("settings.theme.inUse")}</span>
             )}
-          </div>
-          <span className="settings-theme-name">{t("settings.theme.followAppTheme")}</span>
-        </div>
-
-        {CODE_THEMES.map((ct) => {
-          const colors = [
-            ct.variables["--hljs-keyword"],
-            ct.variables["--hljs-string"],
-            ct.variables["--hljs-comment"],
-            ct.variables["--hljs-number"],
-            ct.variables["--hljs-built_in"],
-          ];
-          const active = codeTheme === ct.id;
-          return (
-            <div
-              key={ct.id}
-              className={`settings-theme-card${active ? " active" : ""}`}
-              onClick={() => setCodeTheme(ct.id)}
-            >
-              <div
-                className="settings-theme-preview code-theme-card-preview"
-                style={{ background: ct.isDark ? "#0d1117" : "#f6f8fa" }}
-              >
-                <div className="code-theme-card-mock" aria-hidden>
-                  <span className="code-theme-card-line" style={{ background: colors[0], width: "72%" }} />
-                  <span className="code-theme-card-line" style={{ background: colors[1], width: "58%" }} />
-                  <span className="code-theme-card-line" style={{ background: colors[2], width: "45%" }} />
-                  <span className="code-theme-card-line" style={{ background: colors[3], width: "38%" }} />
-                  <span className="code-theme-card-line" style={{ background: colors[4], width: "50%" }} />
-                </div>
-                {active && (
-                  <div className="settings-theme-check">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  </div>
-                )}
-                <div className="custom-theme-actions">
-                  <button
-                    className="custom-theme-edit-btn"
-                    title={t("settings.theme.forkAndEdit")}
-                    disabled={forkingCode}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleForkCodeTheme(ct.id, ct.name);
-                    }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <span className="settings-theme-name">{ct.name}</span>
-            </div>
-          );
-        })}
+          </button>
+        ))}
       </div>
-
-      <h3 className="settings-section-title">{t("settings.theme.customCodeTheme")}</h3>
       <div className="settings-theme-grid">
-        {customCodeThemes.map((m) => {
-          const colors = m.previewColors ?? ["#d73a49", "#032f62", "#6a737d", "#005cc5", "#e36209"];
-          const active = codeTheme === m.id;
-          return (
-            <div
-              key={m.id}
-              className={`settings-theme-card custom-theme-card${active ? " active" : ""}`}
-              onClick={() => setCodeTheme(m.id)}
-            >
+        {CODE_THEMES
+          .filter((c) => c.isDark === (codeThemeTab === "dark"))
+          .map((ct) => {
+            const colors = [
+              ct.variables["--hljs-keyword"],
+              ct.variables["--hljs-string"],
+              ct.variables["--hljs-comment"],
+              ct.variables["--hljs-number"],
+              ct.variables["--hljs-built_in"],
+            ];
+            const preferred = preferredCodeTheme[codeThemeTab] === ct.id;
+            return (
               <div
-                className="settings-theme-preview code-theme-card-preview"
-                style={{ background: m.isDark ? "#0d1117" : "#f6f8fa" }}
+                key={ct.id}
+                className={`settings-theme-card${preferred ? " active" : ""}`}
+                onClick={() => setPreferredCodeTheme(codeThemeTab, ct.id)}
               >
-                <div className="code-theme-card-mock" aria-hidden>
-                  {colors.slice(0, 5).map((c, i) => (
-                    <span
-                      key={i}
-                      className="code-theme-card-line"
-                      style={{ background: c, width: `${72 - i * 8}%` }}
-                    />
-                  ))}
-                </div>
-                {active && (
-                  <div className="settings-theme-check">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
+                <div
+                  className="settings-theme-preview code-theme-card-preview"
+                  style={{ background: ct.isDark ? "#0d1117" : "#f6f8fa" }}
+                >
+                  <div className="code-theme-card-mock" aria-hidden>
+                    {colors.map((c, i) => (
+                      <span
+                        key={i}
+                        className="code-theme-card-line"
+                        style={{ background: c, width: `${72 - i * 8}%` }}
+                      />
+                    ))}
                   </div>
-                )}
-                <div className="custom-theme-actions">
-                  <button
-                    className="custom-theme-edit-btn"
-                    title={t("settings.theme.edit")}
-                    onClick={(e) => { e.stopPropagation(); handleStartEditCodeTheme(m); }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                    </svg>
-                  </button>
-                  <button
-                    className="custom-theme-delete-btn"
-                    title={t("settings.theme.deleteBtn")}
-                    onClick={(e) => { e.stopPropagation(); handleDeleteCodeTheme(m); }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
+                  {preferred && (
+                    <div className="settings-theme-check">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className="custom-theme-actions">
+                    <button
+                      className="custom-theme-edit-btn"
+                      title={t("settings.theme.forkAndEdit")}
+                      disabled={forkingCode}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleForkCodeTheme(ct.id, ct.name);
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
+                <span className="settings-theme-name">{ct.name}</span>
               </div>
-              <span className="settings-theme-name">{m.name}</span>
-            </div>
-          );
-        })}
+            );
+          })}
+
+        {customCodeThemes
+          .filter((m) => m.isDark === (codeThemeTab === "dark"))
+          .map((m) => {
+            const colors = m.previewColors ?? ["#d73a49", "#032f62", "#6a737d", "#005cc5", "#e36209"];
+            const preferred = preferredCodeTheme[codeThemeTab] === m.id;
+            return (
+              <div
+                key={m.id}
+                className={`settings-theme-card custom-theme-card${preferred ? " active" : ""}`}
+                onClick={() => setPreferredCodeTheme(codeThemeTab, m.id)}
+              >
+                <div
+                  className="settings-theme-preview code-theme-card-preview"
+                  style={{ background: m.isDark ? "#0d1117" : "#f6f8fa" }}
+                >
+                  <div className="code-theme-card-mock" aria-hidden>
+                    {colors.slice(0, 5).map((c, i) => (
+                      <span
+                        key={i}
+                        className="code-theme-card-line"
+                        style={{ background: c, width: `${72 - i * 8}%` }}
+                      />
+                    ))}
+                  </div>
+                  {preferred && (
+                    <div className="settings-theme-check">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className="custom-theme-actions">
+                    <button
+                      className="custom-theme-edit-btn"
+                      title={t("settings.theme.edit")}
+                      onClick={(e) => { e.stopPropagation(); handleStartEditCodeTheme(m); }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                      </svg>
+                    </button>
+                    <button
+                      className="custom-theme-delete-btn"
+                      title={t("settings.theme.deleteBtn")}
+                      onClick={(e) => { e.stopPropagation(); handleDeleteCodeTheme(m); }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <span className="settings-theme-name">{m.name}</span>
+              </div>
+            );
+          })}
+
         <div
           className="settings-theme-card settings-theme-import-card"
           onClick={handleImportCodeTheme}
@@ -1605,7 +1666,7 @@ function ThemeSettingsContent({
         </div>
       </div>
 
-      <div className="settings-code-theme-preview" style={{ marginTop: 16 }}>
+      <div className="settings-code-theme-preview" style={{ marginTop: 8 }}>
         <div className="settings-code-theme-preview-toolbar">
           <div className="settings-code-theme-preview-title">{t("settings.theme.preview")}</div>
           <div className="settings-code-sample-tabs">
@@ -2672,8 +2733,6 @@ export default function Settings() {
     } catch { }
     return "general";
   });
-  const { theme, setTheme } = useTheme();
-
   const [navWidth, setNavWidth] = useState(() => {
     try {
       const saved = Number(localStorage.getItem(SETTINGS_NAV_WIDTH_KEY));
@@ -3127,9 +3186,7 @@ export default function Settings() {
             {activeTab === "general" && (
               <GeneralSettingsContent settings={generalSettings} onChange={setGeneralSettings} />
             )}
-            {activeTab === "theme" && (
-              <ThemeSettingsContent theme={theme} setTheme={setTheme} />
-            )}
+            {activeTab === "theme" && <ThemeSettingsContent />}
             {activeTab === "shortcuts" && <ShortcutsSettingsContent />}
             {activeTab === "mindmap" && (
               <MindmapSettingsContent settings={mindmapSettings} onChange={setMindmapSettings} />

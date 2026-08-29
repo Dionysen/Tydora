@@ -1734,6 +1734,124 @@
   gap: 12px;
 }
 
+/* ── Appearance mode (follow system / light / dark) ───────────── */
+
+.appearance-mode-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.appearance-mode-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.appearance-mode-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.appearance-mode-btn.active {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-surface));
+  font-weight: 600;
+}
+
+.appearance-mode-status {
+  margin: 0 0 20px;
+}
+
+.theme-pair-tabs {
+  display: flex;
+  gap: 4px;
+  margin: -4px 0 14px;
+  padding: 3px;
+  width: fit-content;
+  max-width: 100%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.theme-pair-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.theme-pair-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.theme-pair-tab.active {
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  font-weight: 600;
+}
+
+.theme-pair-tab .appearance-in-use-badge {
+  margin-left: 0;
+}
+
+.appearance-preference-block {
+  margin-bottom: 28px;
+  padding-bottom: 8px;
+}
+
+.appearance-preference-block.is-active-mode .settings-section-title {
+  color: var(--text-primary);
+}
+
+.appearance-subheading {
+  margin: 12px 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.appearance-in-use-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  vertical-align: middle;
+}
+
+.appearance-preference-block .settings-section-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
 /* ── Code Theme Settings ──────────────────────────────────────── */
 
 .settings-code-theme-row {

@@ -10,6 +10,8 @@ export interface ThemeManifest {
   importedAt: string;
   previewBg?: string;
   previewAccent?: string;
+  /** Explicit light/dark; inferred from --bg-primary when missing. */
+  isDark?: boolean;
 }
 
 export interface ThemeVariable {
@@ -193,6 +195,7 @@ export async function importTheme(
 
   // Extract preview colors
   const { bg, accent } = extractPreviewColors(processedCss);
+  const isDark = inferAppThemeIsDark(parseCssVariables(processedCss));
 
   // Update manifest
   const manifests = await loadManifest();
@@ -203,6 +206,7 @@ export async function importTheme(
     importedAt: new Date().toISOString(),
     previewBg: bg,
     previewAccent: accent,
+    isDark,
   };
   manifests.push(manifest);
   await saveManifest(manifests);
@@ -239,6 +243,7 @@ export async function saveThemeCss(id: string, css: string): Promise<void> {
 export async function createThemeFromVariables(
   displayName: string,
   variables: ThemeVariable[],
+  isDark?: boolean,
 ): Promise<ThemeManifest> {
   const dir = await ensureThemesDir();
   const id = generateThemeId();
@@ -255,6 +260,7 @@ export async function createThemeFromVariables(
     importedAt: new Date().toISOString(),
     previewBg: bg,
     previewAccent: accent,
+    isDark: typeof isDark === "boolean" ? isDark : inferAppThemeIsDark(variables),
   };
   manifests.push(manifest);
   await saveManifest(manifests);
@@ -285,6 +291,7 @@ export async function persistThemeVariables(
     ...manifests[idx],
     previewBg: bg,
     previewAccent: accent,
+    isDark: inferAppThemeIsDark(variables),
   };
   await saveManifest(manifests);
   return manifests[idx];
@@ -297,6 +304,24 @@ export function extractPreviewColors(css: string): { bg: string; accent: string 
   const bg = vars.find((v) => v.name === "--bg-primary")?.value || "#ffffff";
   const accent = vars.find((v) => v.name === "--accent")?.value || "#4eb289";
   return { bg, accent };
+}
+
+/** Infer dark UI theme from --bg-primary luminance. */
+export function inferAppThemeIsDark(variables: ThemeVariable[]): boolean {
+  const bg = variables.find((v) => v.name === "--bg-primary")?.value?.trim();
+  if (!bg || !/^#[0-9a-fA-F]{3,8}$/.test(bg)) {
+    // rgba / oklch fallback: treat very dark-looking strings
+    return /oklch\(\s*0\.[0-4]|rgba?\(\s*\d{1,2}\s*,|#[0-2]/.test(bg || "");
+  }
+  let h = bg.slice(1);
+  if (h.length === 3 || h.length === 4) {
+    h = h.split("").map((c) => c + c).join("");
+  }
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return lum < 0.45;
 }
 
 // ── Code Theme Operations ──────────────────────────────────────
