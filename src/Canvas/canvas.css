@@ -561,6 +561,7 @@
   background: transparent;
   padding: 0;
   font-size: inherit;
+  font-family: inherit;
   color: inherit;
 }
 
@@ -812,6 +813,7 @@
   background: transparent;
   padding: 0;
   font-size: inherit;
+  font-family: inherit;
   color: inherit;
 }
 
@@ -912,6 +914,7 @@
   background: none;
   padding: 0;
   font-size: inherit;
+  font-family: inherit;
   border-radius: 0;
 }
 

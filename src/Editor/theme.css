@@ -358,6 +358,7 @@
   padding: 0;
   border-radius: 0;
   font-size: inherit;
+  font-family: inherit;
 }
 
 /* IR 模式代码块语法高亮 */
@@ -850,6 +851,7 @@
   padding: 0;
   border-radius: 0;
   font-size: inherit;
+  font-family: inherit;
   color: inherit;
 }
 
@@ -1450,6 +1452,7 @@
   background: none;
   padding: 0;
   font-size: inherit;
+  font-family: inherit;
   border-radius: 0;
 }
 
@@ -1855,6 +1858,7 @@ html[data-code-block-toolbar="classic"] .code-block-content {
   padding: 0;
   border-radius: 0;
   font-size: inherit;
+  font-family: inherit;
   color: inherit;
 }
 
