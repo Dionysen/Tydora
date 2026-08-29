@@ -16,13 +16,9 @@ import { loadTerminalSettings, type TerminalSettings } from "./Terminal/terminal
 import { parseCssVariables, getCustomThemeCss, type ThemeVariable, type ThemeManifest } from "./themes/CustomThemeManager";
 import {
   mergeWithSchema,
-  groupEditableColors,
-  getEditableSizeVariables,
-  getTokenMeta,
-  getSizeTokenMeta,
+  buildThemeEditorSections,
   getBuiltinColorMap,
-  THEME_COLOR_GROUPS,
-  type ThemeColorGroup,
+  type ThemeEditorSectionView,
 } from "./themes/themeTokens";
 import { ThemeColorField } from "./themes/ThemeColorField";
 import { ThemeSizeField } from "./themes/ThemeSizeField";
@@ -967,21 +963,11 @@ function ThemeSettingsContent({
     }
   }, [deleteCodeTheme, t]);
 
-  const grouped = editingTheme ? groupEditableColors(editVariables) : null;
-  const sizeVariables = editingTheme ? getEditableSizeVariables(editVariables) : [];
-  const groupTitleKey: Record<ThemeColorGroup, string> = {
-    background: "settings.theme.groupBackground",
-    text: "settings.theme.groupText",
-    accent: "settings.theme.groupAccent",
-    border: "settings.theme.groupBorder",
-    scrollbar: "settings.theme.groupScrollbar",
-    metadata: "settings.theme.groupMetadata",
-    blockquote: "settings.theme.groupBlockquote",
-    table: "settings.theme.groupTable",
-    tag: "settings.theme.groupTag",
-  };
+  const editorSections: ThemeEditorSectionView[] | null = editingTheme
+    ? buildThemeEditorSections(editVariables)
+    : null;
 
-  if (editingTheme && grouped) {
+  if (editingTheme && editorSections) {
     return (
       <div className="settings-section theme-editor">
         <div className="theme-editor-sticky">
@@ -1034,44 +1020,37 @@ function ThemeSettingsContent({
         </div>
 
         <div className="theme-editor-variables">
-          {THEME_COLOR_GROUPS.map((group) => (
-            <div key={group} className="theme-editor-group">
-              <h4 className="theme-editor-group-title">{t(groupTitleKey[group])}</h4>
-              {grouped[group].map((v) => {
-                const meta = getTokenMeta(v.name);
-                const label = meta
-                  ? t(`settings.theme.token.${meta.labelKey}`)
-                  : v.name;
+          {editorSections.map((section) => (
+            <div key={section.id} className="theme-editor-group">
+              <h4 className="theme-editor-group-title">
+                {t(`settings.theme.${section.titleKey}`)}
+              </h4>
+              {section.fields.map((field) => {
+                if (field.kind === "color") {
+                  const label = t(`settings.theme.token.${field.meta.labelKey}`);
+                  return (
+                    <ThemeColorField
+                      key={field.variable.name}
+                      label={label}
+                      varName={field.variable.name}
+                      value={field.variable.value}
+                      onChange={(val) => handleVariableChange(field.variable.name, val)}
+                    />
+                  );
+                }
                 return (
-                  <ThemeColorField
-                    key={v.name}
-                    label={label}
-                    varName={v.name}
-                    value={v.value}
-                    onChange={(val) => handleVariableChange(v.name, val)}
+                  <ThemeSizeField
+                    key={field.variable.name}
+                    label={t(`settings.theme.token.${field.meta.labelKey}`)}
+                    varName={field.variable.name}
+                    value={field.variable.value}
+                    meta={field.meta}
+                    onChange={(val) => handleVariableChange(field.variable.name, val)}
                   />
                 );
               })}
             </div>
           ))}
-
-          <div className="theme-editor-group">
-            <h4 className="theme-editor-group-title">{t("settings.theme.groupRadius")}</h4>
-            {sizeVariables.map((v) => {
-              const meta = getSizeTokenMeta(v.name);
-              if (!meta) return null;
-              return (
-                <ThemeSizeField
-                  key={v.name}
-                  label={t(`settings.theme.token.${meta.labelKey}`)}
-                  varName={v.name}
-                  value={v.value}
-                  meta={meta}
-                  onChange={(val) => handleVariableChange(v.name, val)}
-                />
-              );
-            })}
-          </div>
         </div>
       </div>
     );

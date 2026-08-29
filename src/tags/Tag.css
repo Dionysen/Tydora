@@ -11,7 +11,7 @@ span[data-tag] {
   cursor: pointer;
   text-decoration: none;
   transition: all 0.15s ease;
-  border: 1px solid color-mix(in srgb, var(--tag-text, var(--accent, #8fa9f2)) 12%, transparent);
+  border: 1px solid var(--tag-border, color-mix(in srgb, var(--tag-text, var(--accent, #8fa9f2)) 12%, transparent));
   white-space: nowrap;
   vertical-align: baseline;
   user-select: all;
@@ -21,7 +21,7 @@ span[data-tag] {
 span[data-tag]:hover {
   filter: brightness(1.05);
   transform: translateY(-1px);
-  box-shadow: 0 2px 6px color-mix(in srgb, var(--tag-text, var(--accent, #8fa9f2)) 18%, transparent);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--tag-border, var(--tag-text, var(--accent, #8fa9f2))) 35%, transparent);
 }
 
 /* 编辑器内部的标签 */
@@ -33,7 +33,7 @@ span[data-tag]:hover {
   border-radius: var(--radius-tag, 10px) !important;
   cursor: pointer !important;
   text-decoration: none !important;
-  border: 1px solid color-mix(in srgb, var(--tag-text, var(--accent, #8fa9f2)) 10%, transparent) !important;
+  border: 1px solid var(--tag-border, color-mix(in srgb, var(--tag-text, var(--accent, #8fa9f2)) 10%, transparent)) !important;
   font-family: inherit !important;
   font-size: 0.92em !important;
   white-space: nowrap !important;
@@ -45,7 +45,7 @@ span[data-tag]:hover {
 .tiptap-editor span[data-tag]:hover {
   filter: brightness(1.06) !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 2px 6px color-mix(in srgb, var(--tag-text, var(--accent, #8fa9f2)) 14%, transparent) !important;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--tag-border, var(--tag-text, var(--accent, #8fa9f2))) 30%, transparent) !important;
 }
 
 /* Slash 子标签（如 #状态/待整理）斜杠稍暗 */

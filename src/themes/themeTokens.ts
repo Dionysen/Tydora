@@ -2,20 +2,24 @@ import type { ThemeVariable } from "./CustomThemeManager";
 import type { BuiltinThemeName } from "./ThemeManager";
 import { BUILTIN_THEMES } from "./ThemeManager";
 
-export type ThemeColorGroup =
-  | "background"
-  | "text"
-  | "accent"
-  | "border"
-  | "scrollbar"
-  | "metadata"
+/** 主题编辑器分组：按编辑器/界面元素分类 */
+export type ThemeEditorSectionId =
+  | "chrome"
+  | "body"
+  | "codeBlock"
+  | "codeInline"
   | "blockquote"
+  | "metadata"
   | "table"
-  | "tag";
+  | "tag"
+  | "scrollbar";
+
+/** @deprecated 使用 ThemeEditorSectionId；保留别名以免外部引用断裂 */
+export type ThemeColorGroup = ThemeEditorSectionId;
 
 export interface ThemeColorToken {
   name: string;
-  group: ThemeColorGroup;
+  section: ThemeEditorSectionId;
   /** i18n key under settings.theme.token.* */
   labelKey: string;
   /** Hidden from color editor UI (auto-derived) */
@@ -24,6 +28,7 @@ export interface ThemeColorToken {
 
 export interface ThemeSizeToken {
   name: string;
+  section: ThemeEditorSectionId;
   /** i18n key under settings.theme.token.* */
   labelKey: string;
   min: number;
@@ -31,69 +36,99 @@ export interface ThemeSizeToken {
   step?: number;
 }
 
+export interface ThemeEditorSectionDef {
+  id: ThemeEditorSectionId;
+  /** i18n key under settings.theme.* */
+  titleKey: string;
+}
+
+/** 编辑器 UI 分组顺序 */
+export const THEME_EDITOR_SECTIONS: ThemeEditorSectionDef[] = [
+  { id: "chrome", titleKey: "groupChrome" },
+  { id: "body", titleKey: "groupBody" },
+  { id: "codeBlock", titleKey: "groupCodeBlock" },
+  { id: "codeInline", titleKey: "groupCodeInline" },
+  { id: "blockquote", titleKey: "groupBlockquote" },
+  { id: "metadata", titleKey: "groupMetadata" },
+  { id: "table", titleKey: "groupTable" },
+  { id: "tag", titleKey: "groupTag" },
+  { id: "scrollbar", titleKey: "groupScrollbar" },
+];
+
+/** @deprecated 使用 THEME_EDITOR_SECTIONS */
+export const THEME_COLOR_GROUPS: ThemeEditorSectionId[] = THEME_EDITOR_SECTIONS.map((s) => s.id);
+
 /** Canonical editable color tokens for the theme editor. */
 export const THEME_COLOR_SCHEMA: ThemeColorToken[] = [
-  { name: "--bg-primary", group: "background", labelKey: "bgPrimary" },
-  { name: "--bg-secondary", group: "background", labelKey: "bgSecondary" },
-  { name: "--bg-surface", group: "background", labelKey: "bgSurface" },
-  { name: "--bg-hover", group: "background", labelKey: "bgHover" },
-  { name: "--bg-tertiary", group: "background", labelKey: "bgTertiary" },
-  { name: "--bg-code", group: "background", labelKey: "bgCode" },
-  { name: "--bg-code-inline", group: "background", labelKey: "bgCodeInline" },
-  { name: "--bg-input", group: "background", labelKey: "bgInput" },
-  { name: "--text-primary", group: "text", labelKey: "textPrimary" },
-  { name: "--text-secondary", group: "text", labelKey: "textSecondary" },
-  { name: "--text-tertiary", group: "text", labelKey: "textTertiary" },
-  { name: "--text-strong", group: "text", labelKey: "textStrong" },
-  { name: "--text-code", group: "text", labelKey: "textCode" },
-  { name: "--accent", group: "accent", labelKey: "accent" },
-  { name: "--accent-hover", group: "accent", labelKey: "accentHover" },
-  { name: "--accent-rgb", group: "accent", labelKey: "accentRgb", hidden: true },
-  { name: "--danger", group: "accent", labelKey: "danger" },
-  { name: "--border", group: "border", labelKey: "border" },
-  { name: "--scrollbar-thumb", group: "scrollbar", labelKey: "scrollbarThumb" },
-  { name: "--scrollbar-thumb-hover", group: "scrollbar", labelKey: "scrollbarThumbHover" },
-  { name: "--scrollbar-track", group: "scrollbar", labelKey: "scrollbarTrack" },
-  { name: "--metadata-bg", group: "metadata", labelKey: "metadataBg" },
-  { name: "--metadata-border", group: "metadata", labelKey: "metadataBorder" },
-  { name: "--blockquote-border", group: "blockquote", labelKey: "blockquoteBorder" },
-  { name: "--blockquote-bg", group: "blockquote", labelKey: "blockquoteBg" },
-  { name: "--blockquote-text", group: "blockquote", labelKey: "blockquoteText" },
-  { name: "--table-header-bg", group: "table", labelKey: "tableHeaderBg" },
-  { name: "--table-cell-bg", group: "table", labelKey: "tableCellBg" },
-  { name: "--tag-bg", group: "tag", labelKey: "tagBg" },
-  { name: "--tag-text", group: "tag", labelKey: "tagText" },
+  // 界面
+  { name: "--bg-secondary", section: "chrome", labelKey: "bgSecondary" },
+  { name: "--bg-surface", section: "chrome", labelKey: "bgSurface" },
+  { name: "--bg-hover", section: "chrome", labelKey: "bgHover" },
+  { name: "--bg-tertiary", section: "chrome", labelKey: "bgTertiary" },
+  { name: "--bg-input", section: "chrome", labelKey: "bgInput" },
+  { name: "--border", section: "chrome", labelKey: "border" },
+  { name: "--accent", section: "chrome", labelKey: "accent" },
+  { name: "--accent-hover", section: "chrome", labelKey: "accentHover" },
+  { name: "--accent-rgb", section: "chrome", labelKey: "accentRgb", hidden: true },
+  { name: "--danger", section: "chrome", labelKey: "danger" },
+  // 正文
+  { name: "--bg-primary", section: "body", labelKey: "bgPrimary" },
+  { name: "--text-primary", section: "body", labelKey: "textPrimary" },
+  { name: "--text-secondary", section: "body", labelKey: "textSecondary" },
+  { name: "--text-tertiary", section: "body", labelKey: "textTertiary" },
+  { name: "--text-strong", section: "body", labelKey: "textStrong" },
+  // 代码块
+  { name: "--bg-code", section: "codeBlock", labelKey: "bgCode" },
+  // 行内代码
+  { name: "--bg-code-inline", section: "codeInline", labelKey: "bgCodeInline" },
+  { name: "--text-code", section: "codeInline", labelKey: "textCode" },
+  // 引用块
+  { name: "--blockquote-border", section: "blockquote", labelKey: "blockquoteBorder" },
+  { name: "--blockquote-bg", section: "blockquote", labelKey: "blockquoteBg" },
+  { name: "--blockquote-text", section: "blockquote", labelKey: "blockquoteText" },
+  // Metadata
+  { name: "--metadata-bg", section: "metadata", labelKey: "metadataBg" },
+  { name: "--metadata-border", section: "metadata", labelKey: "metadataBorder" },
+  // 表格
+  { name: "--table-header-bg", section: "table", labelKey: "tableHeaderBg" },
+  { name: "--table-cell-bg", section: "table", labelKey: "tableCellBg" },
+  // 标签
+  { name: "--tag-bg", section: "tag", labelKey: "tagBg" },
+  { name: "--tag-text", section: "tag", labelKey: "tagText" },
+  { name: "--tag-border", section: "tag", labelKey: "tagBorder" },
+  // 滚动条
+  { name: "--scrollbar-thumb", section: "scrollbar", labelKey: "scrollbarThumb" },
+  { name: "--scrollbar-thumb-hover", section: "scrollbar", labelKey: "scrollbarThumbHover" },
+  { name: "--scrollbar-track", section: "scrollbar", labelKey: "scrollbarTrack" },
 ];
 
 /** Radius / padding / width tokens shown in the theme editor. */
 export const THEME_SIZE_SCHEMA: ThemeSizeToken[] = [
-  { name: "--radius-code-block", labelKey: "radiusCodeBlock", min: 0, max: 24 },
-  { name: "--radius-code-inline", labelKey: "radiusCodeInline", min: 0, max: 16 },
-  { name: "--padding-code-inline-y", labelKey: "paddingCodeInlineY", min: 0, max: 16 },
-  { name: "--padding-code-inline-x", labelKey: "paddingCodeInlineX", min: 0, max: 24 },
-  { name: "--radius-metadata", labelKey: "radiusMetadata", min: 0, max: 24 },
-  { name: "--blockquote-border-width", labelKey: "blockquoteBorderWidth", min: 0, max: 16 },
-  { name: "--padding-blockquote-y", labelKey: "paddingBlockquoteY", min: 0, max: 32 },
-  { name: "--padding-blockquote-x", labelKey: "paddingBlockquoteX", min: 0, max: 48 },
-  { name: "--radius-table", labelKey: "radiusTable", min: 0, max: 24 },
-  { name: "--radius-tag", labelKey: "radiusTag", min: 0, max: 24 },
-  { name: "--padding-tag-y", labelKey: "paddingTagY", min: 0, max: 16 },
-  { name: "--padding-tag-x", labelKey: "paddingTagX", min: 0, max: 24 },
-  { name: "--radius-scrollbar", labelKey: "radiusScrollbar", min: 0, max: 16 },
-  { name: "--scrollbar-size", labelKey: "scrollbarSize", min: 4, max: 20 },
+  { name: "--radius-code-block", section: "codeBlock", labelKey: "radiusCodeBlock", min: 0, max: 24 },
+  { name: "--radius-code-inline", section: "codeInline", labelKey: "radiusCodeInline", min: 0, max: 16 },
+  { name: "--padding-code-inline-y", section: "codeInline", labelKey: "paddingCodeInlineY", min: 0, max: 16 },
+  { name: "--padding-code-inline-x", section: "codeInline", labelKey: "paddingCodeInlineX", min: 0, max: 24 },
+  { name: "--blockquote-border-width", section: "blockquote", labelKey: "blockquoteBorderWidth", min: 0, max: 16 },
+  { name: "--padding-blockquote-y", section: "blockquote", labelKey: "paddingBlockquoteY", min: 0, max: 32 },
+  { name: "--padding-blockquote-x", section: "blockquote", labelKey: "paddingBlockquoteX", min: 0, max: 48 },
+  { name: "--radius-metadata", section: "metadata", labelKey: "radiusMetadata", min: 0, max: 24 },
+  { name: "--radius-table", section: "table", labelKey: "radiusTable", min: 0, max: 24 },
+  { name: "--radius-tag", section: "tag", labelKey: "radiusTag", min: 0, max: 24 },
+  { name: "--padding-tag-y", section: "tag", labelKey: "paddingTagY", min: 0, max: 16 },
+  { name: "--padding-tag-x", section: "tag", labelKey: "paddingTagX", min: 0, max: 24 },
+  { name: "--radius-scrollbar", section: "scrollbar", labelKey: "radiusScrollbar", min: 0, max: 16 },
+  { name: "--scrollbar-size", section: "scrollbar", labelKey: "scrollbarSize", min: 4, max: 20 },
 ];
 
-export const THEME_COLOR_GROUPS: ThemeColorGroup[] = [
-  "background",
-  "text",
-  "accent",
-  "border",
-  "scrollbar",
-  "metadata",
-  "blockquote",
-  "table",
-  "tag",
-];
+export type ThemeEditorField =
+  | { kind: "color"; variable: ThemeVariable; meta: ThemeColorToken }
+  | { kind: "size"; variable: ThemeVariable; meta: ThemeSizeToken };
+
+export interface ThemeEditorSectionView {
+  id: ThemeEditorSectionId;
+  titleKey: string;
+  fields: ThemeEditorField[];
+}
 
 /** Non-color vars preserved when forking / rebuilding CSS. */
 const PRESERVED_NON_COLOR = [
@@ -149,6 +184,7 @@ const LIGHT_DEFAULTS: Record<string, string> = {
   "--table-cell-bg": "transparent",
   "--tag-bg": "rgba(78, 178, 137, 0.15)",
   "--tag-text": "#4eb289",
+  "--tag-border": "rgba(78, 178, 137, 0.2)",
 };
 
 const DARK_DEFAULTS: Record<string, string> = {
@@ -182,6 +218,7 @@ const DARK_DEFAULTS: Record<string, string> = {
   "--table-cell-bg": "transparent",
   "--tag-bg": "rgba(78, 178, 137, 0.18)",
   "--tag-text": "#4eb289",
+  "--tag-border": "rgba(78, 178, 137, 0.25)",
 };
 
 /** Full color maps for each built-in theme (for fork). Keep in sync with themes.css. */
@@ -393,6 +430,9 @@ function resolveColorTokenValue(
   if (token.name === "--tag-bg" && colors["--accent-rgb"]) {
     return `rgba(${colors["--accent-rgb"]}, 0.15)`;
   }
+  if (token.name === "--tag-border" && colors["--accent-rgb"]) {
+    return `rgba(${colors["--accent-rgb"]}, 0.2)`;
+  }
   return defaults[token.name] ?? LIGHT_DEFAULTS[token.name] ?? "#ffffff";
 }
 
@@ -500,26 +540,63 @@ export function getEditableColorVariables(variables: ThemeVariable[]): ThemeVari
   return variables.filter((v) => schemaNames.has(v.name) && !hidden.has(v.name));
 }
 
+/** 按编辑器元素分组，颜色与尺寸字段穿插在同一 section 内 */
+export function buildThemeEditorSections(variables: ThemeVariable[]): ThemeEditorSectionView[] {
+  const byName = new Map(variables.map((v) => [v.name, v]));
+
+  const resolveColor = (token: ThemeColorToken): ThemeVariable => {
+    const existing = byName.get(token.name);
+    if (existing) return { ...existing, type: "color" };
+    return {
+      name: token.name,
+      value: LIGHT_DEFAULTS[token.name] ?? "#ffffff",
+      type: "color",
+    };
+  };
+
+  const resolveSize = (token: ThemeSizeToken): ThemeVariable => {
+    const existing = byName.get(token.name);
+    if (existing) return { ...existing, type: "size" };
+    const fallback = DEFAULT_SIZES.find((d) => d.name === token.name);
+    return {
+      name: token.name,
+      value: fallback?.value ?? "0px",
+      type: "size",
+    };
+  };
+
+  return THEME_EDITOR_SECTIONS.map((section) => {
+    const fields: ThemeEditorField[] = [];
+
+    for (const token of THEME_COLOR_SCHEMA) {
+      if (token.hidden || token.section !== section.id) continue;
+      fields.push({ kind: "color", variable: resolveColor(token), meta: token });
+    }
+    for (const token of THEME_SIZE_SCHEMA) {
+      if (token.section !== section.id) continue;
+      fields.push({ kind: "size", variable: resolveSize(token), meta: token });
+    }
+
+    return {
+      id: section.id,
+      titleKey: section.titleKey,
+      fields,
+    };
+  }).filter((s) => s.fields.length > 0);
+}
+
+/** @deprecated 使用 buildThemeEditorSections */
 export function groupEditableColors(
   variables: ThemeVariable[],
-): Record<ThemeColorGroup, ThemeVariable[]> {
-  const editable = getEditableColorVariables(variables);
-  const byName = new Map(editable.map((v) => [v.name, v]));
-  const result: Record<ThemeColorGroup, ThemeVariable[]> = {
-    background: [],
-    text: [],
-    accent: [],
-    border: [],
-    scrollbar: [],
-    metadata: [],
-    blockquote: [],
-    table: [],
-    tag: [],
-  };
-  for (const token of THEME_COLOR_SCHEMA) {
-    if (token.hidden) continue;
-    const v = byName.get(token.name);
-    if (v) result[token.group].push(v);
+): Record<ThemeEditorSectionId, ThemeVariable[]> {
+  const sections = buildThemeEditorSections(variables);
+  const result = Object.fromEntries(
+    THEME_EDITOR_SECTIONS.map((s) => [s.id, [] as ThemeVariable[]]),
+  ) as Record<ThemeEditorSectionId, ThemeVariable[]>;
+  for (const section of sections) {
+    result[section.id] = section.fields
+      .filter((f) => f.kind === "color")
+      .map((f) => f.variable);
   }
   return result;
 }
