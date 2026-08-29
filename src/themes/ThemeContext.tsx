@@ -21,6 +21,8 @@ import {
   extractCodeThemePreviewColors,
   parseCssVariables,
   inferAppThemeIsDark,
+  renameTheme as renameThemeFs,
+  renameCodeTheme as renameCodeThemeFs,
   type ThemeManifest,
   type ThemeVariable,
 } from "./CustomThemeManager";
@@ -48,6 +50,14 @@ import {
   withPreferredApp,
   withPreferredCode,
 } from "./appearance";
+import {
+  buildThemePack,
+  exportThemePackToFile,
+  importThemePackData,
+  pickAndReadThemePackFile,
+  type ThemePackImportResult,
+} from "./themePack";
+import { CODE_THEMES } from "./codeThemes";
 
 export type ThemeName = string;
 
@@ -86,6 +96,10 @@ interface ThemeContextValue {
   previewCodeThemeVariables: (id: string, variables: ThemeVariable[]) => void;
   getAppThemeIsDark: (id: string) => boolean;
   getCodeThemeIsDark: (id: string) => boolean;
+  renameAppTheme: (id: string, name: string) => Promise<void>;
+  renameCodeTheme: (id: string, name: string) => Promise<void>;
+  exportCurrentThemePack: (packName: string) => Promise<string | null>;
+  importThemePack: () => Promise<ThemePackImportResult | null>;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
@@ -116,6 +130,10 @@ const ThemeContext = createContext<ThemeContextValue>({
   previewCodeThemeVariables: () => {},
   getAppThemeIsDark: () => false,
   getCodeThemeIsDark: () => false,
+  renameAppTheme: async () => {},
+  renameCodeTheme: async () => {},
+  exportCurrentThemePack: async () => null,
+  importThemePack: async () => null,
 });
 
 const THEME_CSS_EVENT = "theme-css-updated";
@@ -705,6 +723,91 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return manifest;
   }, [registerNewTheme]);
 
+  const renameAppTheme = useCallback(async (id: string, name: string) => {
+    const manifest = await renameThemeFs(id, name);
+    if (manifest) {
+      setCustomThemes((prev) => prev.map((m) => (m.id === id ? manifest : m)));
+    }
+  }, []);
+
+  const renameCodeTheme = useCallback(async (id: string, name: string) => {
+    const manifest = await renameCodeThemeFs(id, name);
+    if (manifest) {
+      setCustomCodeThemes((prev) => prev.map((m) => (m.id === id ? manifest : m)));
+    }
+  }, []);
+
+  const resolveAppDisplayName = useCallback((id: string) => {
+    if (id.startsWith("custom-")) {
+      const mid = id.replace("custom-", "");
+      return customThemes.find((m) => m.id === mid)?.name || id;
+    }
+    return id;
+  }, [customThemes]);
+
+  const resolveCodeDisplayName = useCallback((id: string) => {
+    const builtin = CODE_THEMES.find((c) => c.id === id);
+    if (builtin) return builtin.name;
+    return customCodeThemes.find((m) => m.id === id)?.name || id;
+  }, [customCodeThemes]);
+
+  const exportCurrentThemePack = useCallback(async (packName: string) => {
+    const pack = await buildThemePack({
+      name: packName,
+      preferredAppTheme,
+      preferredCodeTheme,
+      resolveAppName: resolveAppDisplayName,
+      resolveCodeName: resolveCodeDisplayName,
+    });
+    return exportThemePackToFile(pack);
+  }, [preferredAppTheme, preferredCodeTheme, resolveAppDisplayName, resolveCodeDisplayName]);
+
+  const importThemePack = useCallback(async () => {
+    const picked = await pickAndReadThemePackFile();
+    if (!picked) return null;
+    const result = await importThemePackData(picked.pack);
+
+    // Inject app theme styles
+    for (const fullId of [result.preferredAppTheme.light, result.preferredAppTheme.dark]) {
+      const id = fullId.replace("custom-", "");
+      try {
+        const css = await getCustomThemeCss(id);
+        injectOrUpdateStyle(id, css, false);
+        emit(THEME_CSS_EVENT, { id, css, enable: false } satisfies ThemeCssPayload).catch(() => {});
+      } catch {
+        /* ignore */
+      }
+    }
+    // Inject code theme styles
+    for (const id of [result.preferredCodeTheme.light, result.preferredCodeTheme.dark]) {
+      try {
+        const css = await getCodeThemeCss(id);
+        if (css) {
+          injectOrUpdateCodeThemeStyle(id, css, false);
+          emit(CODE_THEME_CSS_EVENT, { id, css, enable: false } satisfies CodeThemeCssPayload).catch(() => {});
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    await refreshCustomThemes();
+    await refreshCustomCodeThemes();
+
+    applyAppearancePatch({
+      preferredAppTheme: result.preferredAppTheme,
+      preferredCodeTheme: result.preferredCodeTheme,
+    });
+
+    return result;
+  }, [
+    applyAppearancePatch,
+    injectOrUpdateCodeThemeStyle,
+    injectOrUpdateStyle,
+    refreshCustomCodeThemes,
+    refreshCustomThemes,
+  ]);
+
   bootStamp("theme_provider_render_children");
   bootEnd("theme_provider_init");
   return (
@@ -737,6 +840,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         previewCodeThemeVariables,
         getAppThemeIsDark,
         getCodeThemeIsDark,
+        renameAppTheme,
+        renameCodeTheme,
+        exportCurrentThemePack,
+        importThemePack,
       }}
     >
       {children}

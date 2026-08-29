@@ -784,7 +784,6 @@ function ThemeSettingsContent() {
     setPreferredAppTheme,
     setPreferredCodeTheme,
     customThemes,
-    importTheme,
     deleteTheme,
     updateThemeVariables,
     previewThemeVariables,
@@ -793,14 +792,18 @@ function ThemeSettingsContent() {
     codeTheme,
     setCodeTheme,
     customCodeThemes,
-    importCodeTheme,
     deleteCodeTheme,
     createCodeThemeFromBuiltin,
     updateCodeThemeVariables,
     previewCodeThemeVariables,
     getAppThemeIsDark,
+    renameAppTheme,
+    renameCodeTheme,
+    exportCurrentThemePack,
+    importThemePack,
   } = useTheme();
   const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [editingTheme, setEditingTheme] = useState<ThemeManifest | null>(null);
   const [editVariables, setEditVariables] = useState<ThemeVariable[]>([]);
   const [editPreview, setEditPreview] = useState<{
@@ -827,13 +830,16 @@ function ThemeSettingsContent() {
     paddingInlineX: "6px",
   });
   const [deleteConfirm, setDeleteConfirm] = useState<ThemeManifest | null>(null);
-  const [nameDialog, setNameDialog] = useState<{ open: boolean; filePath: string; defaultName: string }>({ open: false, filePath: "", defaultName: "" });
+  const [nameDialog, setNameDialog] = useState<{
+    open: boolean;
+    mode: "export-pack" | "rename-app" | "rename-code";
+    id: string;
+    defaultName: string;
+  }>({ open: false, mode: "export-pack", id: "", defaultName: "" });
   const [themeName, setThemeName] = useState("");
   const [forking, setForking] = useState(false);
   const previewTimerRef = useRef<number | null>(null);
 
-  const [codeThemeName, setCodeThemeName] = useState("");
-  const [codeThemeDialog, setCodeThemeDialog] = useState<{ open: boolean; filePath: string }>({ open: false, filePath: "" });
   const [editingCodeTheme, setEditingCodeTheme] = useState<CustomCodeTheme | null>(null);
   const [editCodeVariables, setEditCodeVariables] = useState<ThemeVariable[]>([]);
   const [editCodeIsDark, setEditCodeIsDark] = useState(false);
@@ -911,39 +917,63 @@ function ThemeSettingsContent() {
     }, 120);
   }, [previewThemeVariables]);
 
-  const handleImport = useCallback(async () => {
-    try {
-      const selected = await open({
-        filters: [{ name: "CSS", extensions: ["css"] }],
-        multiple: false,
-        title: t("settings.theme.selectThemeFile"),
-      });
-      if (!selected || typeof selected !== "string") return;
+  const handleExportPack = useCallback(() => {
+    const lightName =
+      customThemes.find((m) => `custom-${m.id}` === preferredAppTheme.light)?.name
+      || preferredAppTheme.light;
+    setNameDialog({
+      open: true,
+      mode: "export-pack",
+      id: "",
+      defaultName: lightName,
+    });
+    setThemeName(lightName);
+  }, [customThemes, preferredAppTheme.light]);
 
-      const fileName = selected.split(/[/\\]/).pop() || t("settings.theme.customThemeDefaultName");
-      const defaultName = fileName.replace(/\.css$/i, "");
-
-      setNameDialog({ open: true, filePath: selected, defaultName });
-      setThemeName(defaultName);
-    } catch (err) {
-      console.error(t("settings.theme.importThemeFailed"), err);
-    }
-  }, [t]);
-
-  const handleConfirmImport = useCallback(async () => {
-    if (!nameDialog.filePath) return;
-    const name = themeName.trim() || nameDialog.defaultName;
+  const handleImportPack = useCallback(async () => {
     try {
       setImporting(true);
-      await importTheme(nameDialog.filePath, name);
-      setNameDialog({ open: false, filePath: "", defaultName: "" });
+      const result = await importThemePack();
+      if (!result) return;
     } catch (err) {
-      console.error(t("settings.theme.importThemeFailed"), err);
-      alert(`${t("settings.theme.importThemeFailed")} ${err instanceof Error ? err.message : t("settings.theme.unknownError")}`);
+      console.error(t("settings.theme.importPackFailed"), err);
+      alert(`${t("settings.theme.importPackFailed")} ${err instanceof Error ? err.message : t("settings.theme.unknownError")}`);
     } finally {
       setImporting(false);
     }
-  }, [nameDialog, themeName, importTheme, t]);
+  }, [importThemePack, t]);
+
+  const handleConfirmNameDialog = useCallback(async () => {
+    const name = themeName.trim() || nameDialog.defaultName;
+    try {
+      if (nameDialog.mode === "export-pack") {
+        setExporting(true);
+        await exportCurrentThemePack(name);
+        setNameDialog({ open: false, mode: "export-pack", id: "", defaultName: "" });
+      } else if (nameDialog.mode === "rename-app") {
+        await renameAppTheme(nameDialog.id, name);
+        setNameDialog({ open: false, mode: "export-pack", id: "", defaultName: "" });
+      } else if (nameDialog.mode === "rename-code") {
+        await renameCodeTheme(nameDialog.id, name);
+        setNameDialog({ open: false, mode: "export-pack", id: "", defaultName: "" });
+      }
+    } catch (err) {
+      console.error(t("settings.theme.renameFailed"), err);
+      alert(`${t("settings.theme.renameFailed")} ${err instanceof Error ? err.message : t("settings.theme.unknownError")}`);
+    } finally {
+      setExporting(false);
+    }
+  }, [themeName, nameDialog, exportCurrentThemePack, renameAppTheme, renameCodeTheme, t]);
+
+  const handleRenameApp = useCallback((manifest: ThemeManifest) => {
+    setNameDialog({ open: true, mode: "rename-app", id: manifest.id, defaultName: manifest.name });
+    setThemeName(manifest.name);
+  }, []);
+
+  const handleRenameCode = useCallback((manifest: CustomCodeTheme) => {
+    setNameDialog({ open: true, mode: "rename-code", id: manifest.id, defaultName: manifest.name });
+    setThemeName(manifest.name);
+  }, []);
 
   const handleDelete = useCallback(async (manifest: ThemeManifest) => {
     setDeleteConfirm(manifest);
@@ -1035,31 +1065,6 @@ function ThemeSettingsContent() {
     }
     setEditingTheme(null);
   }, [editingTheme, previewThemeVariables]);
-
-  const handleImportCodeTheme = useCallback(async () => {
-    const { open: openDialog } = await import("@tauri-apps/plugin-dialog");
-    const selected = await openDialog({
-      filters: [{ name: "CSS", extensions: ["css"] }],
-      multiple: false,
-      title: t("settings.theme.selectCodeThemeFile"),
-    });
-    if (!selected || typeof selected !== "string") return;
-    const fileName = selected.split(/[\\/]/).pop() || t("settings.theme.customCodeThemeDefaultName");
-    const defaultName = fileName.replace(/\.css$/i, "");
-    setCodeThemeName(defaultName);
-    setCodeThemeDialog({ open: true, filePath: selected });
-  }, [t]);
-
-  const handleConfirmImportCodeTheme = useCallback(async () => {
-    if (!codeThemeDialog.filePath) return;
-    const name = codeThemeName.trim() || t("settings.theme.customCodeThemeDefaultName");
-    try {
-      await importCodeTheme(codeThemeDialog.filePath, name);
-      setCodeThemeDialog({ open: false, filePath: "" });
-    } catch (err) {
-      console.error(t("settings.theme.importCodeThemeFailed"), err);
-    }
-  }, [codeThemeDialog, codeThemeName, importCodeTheme, t]);
 
   const handleDeleteCodeTheme = useCallback(async (m: CustomCodeTheme) => {
     if (confirm(t("settings.theme.deleteCodeThemeConfirm", { name: m.name }))) {
@@ -1352,6 +1357,38 @@ function ThemeSettingsContent() {
         })}
       </p>
 
+      <div className="theme-pack-bar">
+        <div className="theme-pack-actions">
+          <button
+            type="button"
+            className="theme-pack-btn"
+            onClick={handleExportPack}
+            disabled={exporting}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <span>{exporting ? t("settings.theme.exportingPack") : t("settings.theme.exportPack")}</span>
+          </button>
+          <button
+            type="button"
+            className="theme-pack-btn"
+            onClick={handleImportPack}
+            disabled={importing}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span>{importing ? t("settings.theme.importing") : t("settings.theme.importPack")}</span>
+          </button>
+        </div>
+        <p className="settings-hint theme-pack-hint">{t("settings.theme.packHint")}</p>
+      </div>
+
       <h3 className="settings-section-title">{t("settings.theme.appTheme")}</h3>
       <div className="theme-pair-tabs" role="tablist" aria-label={t("settings.theme.appTheme")}>
         {(["light", "dark"] as const).map((tab) => (
@@ -1469,6 +1506,16 @@ function ThemeSettingsContent() {
                       </svg>
                     </button>
                     <button
+                      className="custom-theme-edit-btn"
+                      title={t("settings.theme.rename")}
+                      onClick={(e) => { e.stopPropagation(); handleRenameApp(m); }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 20h4L18 10l-4-4L4 16v4z" />
+                        <path d="M13 6l4 4" />
+                      </svg>
+                    </button>
+                    <button
                       className="custom-theme-delete-btn"
                       title={t("settings.theme.delete")}
                       onClick={(e) => { e.stopPropagation(); handleDelete(m); }}
@@ -1498,19 +1545,6 @@ function ThemeSettingsContent() {
           <span className="settings-theme-name">
             {appThemeTab === "dark" ? t("settings.theme.newDarkTheme") : t("settings.theme.newLightTheme")}
           </span>
-        </div>
-        <div
-          className="settings-theme-card settings-theme-import-card"
-          onClick={handleImport}
-        >
-          <div className="settings-theme-preview settings-theme-import-preview">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-          </div>
-          <span className="settings-theme-name">{importing ? t("settings.theme.importing") : t("settings.theme.importTheme")}</span>
         </div>
       </div>
 
@@ -1635,6 +1669,16 @@ function ThemeSettingsContent() {
                       </svg>
                     </button>
                     <button
+                      className="custom-theme-edit-btn"
+                      title={t("settings.theme.rename")}
+                      onClick={(e) => { e.stopPropagation(); handleRenameCode(m); }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 20h4L18 10l-4-4L4 16v4z" />
+                        <path d="M13 6l4 4" />
+                      </svg>
+                    </button>
+                    <button
                       className="custom-theme-delete-btn"
                       title={t("settings.theme.deleteBtn")}
                       onClick={(e) => { e.stopPropagation(); handleDeleteCodeTheme(m); }}
@@ -1650,20 +1694,6 @@ function ThemeSettingsContent() {
               </div>
             );
           })}
-
-        <div
-          className="settings-theme-card settings-theme-import-card"
-          onClick={handleImportCodeTheme}
-        >
-          <div className="settings-theme-preview settings-theme-import-preview">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-          </div>
-          <span className="settings-theme-name">{t("settings.theme.importCodeTheme")}</span>
-        </div>
       </div>
 
       <div className="settings-code-theme-preview" style={{ marginTop: 8 }}>
@@ -1688,31 +1718,46 @@ function ThemeSettingsContent() {
       </div>
 
       {nameDialog.open && (
-        <div className="theme-name-dialog-overlay" onClick={() => setNameDialog({ open: false, filePath: "", defaultName: "" })}>
+        <div
+          className="theme-name-dialog-overlay"
+          onClick={() => setNameDialog({ open: false, mode: "export-pack", id: "", defaultName: "" })}
+        >
           <div className="theme-name-dialog" onClick={(e) => e.stopPropagation()}>
-            <h3 className="theme-name-dialog-title">{t("settings.theme.nameTheme")}</h3>
+            <h3 className="theme-name-dialog-title">
+              {nameDialog.mode === "export-pack"
+                ? t("settings.theme.namePack")
+                : t("settings.theme.renameTheme")}
+            </h3>
             <input
               type="text"
               className="theme-name-dialog-input"
               value={themeName}
               onChange={(e) => setThemeName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleConfirmImport(); }}
-              placeholder={t("settings.theme.nameThemePlaceholder")}
+              onKeyDown={(e) => { if (e.key === "Enter") handleConfirmNameDialog(); }}
+              placeholder={
+                nameDialog.mode === "export-pack"
+                  ? t("settings.theme.namePackPlaceholder")
+                  : t("settings.theme.nameThemePlaceholder")
+              }
               autoFocus
             />
             <div className="theme-name-dialog-actions">
               <button
                 className="settings-button theme-name-dialog-cancel"
-                onClick={() => setNameDialog({ open: false, filePath: "", defaultName: "" })}
+                onClick={() => setNameDialog({ open: false, mode: "export-pack", id: "", defaultName: "" })}
               >
                 {t("settings.theme.cancel")}
               </button>
               <button
                 className="settings-button"
-                onClick={handleConfirmImport}
-                disabled={importing}
+                onClick={handleConfirmNameDialog}
+                disabled={exporting}
               >
-                {importing ? t("settings.theme.importing") : t("settings.theme.confirm")}
+                {exporting
+                  ? t("settings.theme.exportingPack")
+                  : nameDialog.mode === "export-pack"
+                    ? t("settings.theme.exportPack")
+                    : t("settings.theme.confirm")}
               </button>
             </div>
           </div>
@@ -1729,27 +1774,6 @@ function ThemeSettingsContent() {
             <div className="theme-name-dialog-actions">
               <button className="settings-button theme-name-dialog-cancel" onClick={() => setDeleteConfirm(null)}>{t("settings.theme.cancel")}</button>
               <button className="settings-button warning" onClick={handleConfirmDelete}>{t("settings.theme.deleteBtn")}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {codeThemeDialog.open && (
-        <div className="theme-name-dialog-overlay" onClick={() => setCodeThemeDialog({ open: false, filePath: "" })}>
-          <div className="theme-name-dialog" onClick={(e) => e.stopPropagation()}>
-            <h3 className="theme-name-dialog-title">{t("settings.theme.nameCodeTheme")}</h3>
-            <input
-              type="text"
-              className="theme-name-dialog-input"
-              value={codeThemeName}
-              onChange={(e) => setCodeThemeName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleConfirmImportCodeTheme(); }}
-              placeholder={t("settings.theme.nameCodeThemePlaceholder")}
-              autoFocus
-            />
-            <div className="theme-name-dialog-actions">
-              <button className="settings-button theme-name-dialog-cancel" onClick={() => setCodeThemeDialog({ open: false, filePath: "" })}>{t("settings.theme.cancel")}</button>
-              <button className="settings-button" onClick={handleConfirmImportCodeTheme}>{t("settings.theme.confirm")}</button>
             </div>
           </div>
         </div>

@@ -450,6 +450,15 @@ export async function persistCodeThemeVariables(
   return manifests[idx];
 }
 
+export async function renameCodeTheme(id: string, name: string): Promise<CustomCodeTheme | null> {
+  const manifests = await loadCodeThemeManifest();
+  const idx = manifests.findIndex((m) => m.id === id);
+  if (idx < 0) return null;
+  manifests[idx] = { ...manifests[idx], name: name.trim() || manifests[idx].name };
+  await saveCodeThemeManifest(manifests);
+  return manifests[idx];
+}
+
 export async function importCodeThemeFile(
   filePath: string,
   displayName: string,
