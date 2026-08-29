@@ -28,6 +28,7 @@ import appIcon from "./assets/icon.png";
 import { useLanguage } from "./i18n/LanguageContext";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "./i18n";
 import { FontPicker } from "./components/FontPicker";
+import { SettingsSelect } from "./components/SettingsSelect";
 import { normalizeCodeFontValue, normalizeEditorFontValue } from "./utils/systemFonts";
 import {
   applyMenuDensity,
@@ -222,17 +223,14 @@ function GeneralSettingsContent({
             <span className="canvas-settings-row-title">{t("settings.appearance.language")}</span>
             <span className="canvas-settings-row-desc">{t("settings.appearance.languageDesc")}</span>
           </div>
-          <select
-            className="settings-select"
+          <SettingsSelect
             value={language}
-            onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
-          >
-            {SUPPORTED_LANGUAGES.map((lang) => (
-              <option key={lang.code} value={lang.code}>
-                {lang.label}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setLanguage(v as SupportedLanguage)}
+            options={SUPPORTED_LANGUAGES.map((lang) => ({
+              value: lang.code,
+              label: lang.label,
+            }))}
+          />
         </div>
       </div>
 
@@ -405,39 +403,39 @@ function GeneralSettingsContent({
             <span className="canvas-settings-row-title">{t("settings.appearance.codeBlockToolbarStyle")}</span>
             <span className="canvas-settings-row-desc">{t("settings.appearance.codeBlockToolbarStyleDesc")}</span>
           </div>
-          <select
-            className="settings-select"
+          <SettingsSelect
             value={settings.codeBlockToolbarStyle}
-            onChange={(e) =>
+            onChange={(v) =>
               onChange({
                 ...settings,
-                codeBlockToolbarStyle: e.target.value as CodeBlockToolbarStyle,
+                codeBlockToolbarStyle: v as CodeBlockToolbarStyle,
               })
             }
-          >
-            <option value="minimal">{t("settings.appearance.codeBlockToolbarMinimal")}</option>
-            <option value="classic">{t("settings.appearance.codeBlockToolbarClassic")}</option>
-          </select>
+            options={[
+              { value: "minimal", label: t("settings.appearance.codeBlockToolbarMinimal") },
+              { value: "classic", label: t("settings.appearance.codeBlockToolbarClassic") },
+            ]}
+          />
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
             <span className="canvas-settings-row-title">{t("settings.appearance.menuDensity")}</span>
             <span className="canvas-settings-row-desc">{t("settings.appearance.menuDensityDesc")}</span>
           </div>
-          <select
-            className="settings-select"
+          <SettingsSelect
             value={settings.menuDensity}
-            onChange={(e) =>
+            onChange={(v) =>
               onChange({
                 ...settings,
-                menuDensity: e.target.value as MenuDensity,
+                menuDensity: v as MenuDensity,
               })
             }
-          >
-            <option value="compact">{t("settings.appearance.menuDensityCompact")}</option>
-            <option value="normal">{t("settings.appearance.menuDensityNormal")}</option>
-            <option value="comfortable">{t("settings.appearance.menuDensityComfortable")}</option>
-          </select>
+            options={[
+              { value: "compact", label: t("settings.appearance.menuDensityCompact") },
+              { value: "normal", label: t("settings.appearance.menuDensityNormal") },
+              { value: "comfortable", label: t("settings.appearance.menuDensityComfortable") },
+            ]}
+          />
         </div>
       </div>
 
@@ -1283,23 +1281,29 @@ function ThemeSettingsContent({
       <h3 className="settings-section-title">{t("settings.theme.codeTheme")}</h3>
       <div className="settings-code-theme-row">
         <label className="settings-item-label">{t("settings.theme.codeHighlightTheme")}</label>
-        <select
-          className="settings-select"
+        <SettingsSelect
           value={codeTheme}
-          onChange={(e) => setCodeTheme(e.target.value)}
-        >
-          <option value="auto">{t("settings.theme.followAppTheme")}</option>
-          <optgroup label={t("settings.theme.lightTheme")}>
-            {CODE_THEMES.filter((ct) => !ct.isDark).map((ct) => (
-              <option key={ct.id} value={ct.id}>{ct.name}</option>
-            ))}
-          </optgroup>
-          <optgroup label={t("settings.theme.darkTheme")}>
-            {CODE_THEMES.filter((ct) => ct.isDark).map((ct) => (
-              <option key={ct.id} value={ct.id}>{ct.name}</option>
-            ))}
-          </optgroup>
-        </select>
+          onChange={setCodeTheme}
+          minWidth={200}
+          options={[
+            { value: "auto", label: t("settings.theme.followAppTheme") },
+            ...CODE_THEMES.filter((ct) => !ct.isDark).map((ct) => ({
+              value: ct.id,
+              label: ct.name,
+              group: t("settings.theme.lightTheme"),
+            })),
+            ...CODE_THEMES.filter((ct) => ct.isDark).map((ct) => ({
+              value: ct.id,
+              label: ct.name,
+              group: t("settings.theme.darkTheme"),
+            })),
+            ...customCodeThemes.map((m) => ({
+              value: m.id,
+              label: m.name,
+              group: t("settings.theme.customCodeTheme"),
+            })),
+          ]}
+        />
       </div>
       <div className="settings-code-theme-preview">
         <div className="settings-code-theme-preview-title">{t("settings.theme.preview")}</div>
@@ -1718,15 +1722,15 @@ function ImageSettingsContent({
             <span className="canvas-settings-row-title">{t("settings.image.storageMode")}</span>
             <span className="canvas-settings-row-desc">{t("settings.image.storageModeDesc")}</span>
           </div>
-          <select
-            className="settings-select"
+          <SettingsSelect
             value={settings.storageMode}
-            onChange={(e) => onChange({ ...settings, storageMode: e.target.value as StorageMode })}
-          >
-            <option value="vault-assets">{t("settings.image.vaultAssets")}</option>
-            <option value="fixed-directory">{t("settings.image.fixedLocal")}</option>
-            <option value="image-bed">{t("settings.image.uploadLater")}</option>
-          </select>
+            onChange={(v) => onChange({ ...settings, storageMode: v as StorageMode })}
+            options={[
+              { value: "vault-assets", label: t("settings.image.vaultAssets") },
+              { value: "fixed-directory", label: t("settings.image.fixedLocal") },
+              { value: "image-bed", label: t("settings.image.uploadLater") },
+            ]}
+          />
         </div>
       </div>
 
@@ -1737,18 +1741,20 @@ function ImageSettingsContent({
               <span className="canvas-settings-row-title">{t("settings.image.filenameFormat")}</span>
               <span className="canvas-settings-row-desc">{t("settings.image.filenameFormatDesc")}</span>
             </div>
-            <select
-              className="settings-select"
+            <SettingsSelect
               value={settings.local.filenameFormat}
-              onChange={(e) => onChange({
-                ...settings,
-                local: { ...settings.local, filenameFormat: e.target.value as FilenameFormat },
-              })}
-            >
-              <option value="original">{t("settings.image.originalName")}</option>
-              <option value="timestamp">{t("settings.image.timestamp")}</option>
-              <option value="both">{t("settings.image.originalAndTimestamp")}</option>
-            </select>
+              onChange={(v) =>
+                onChange({
+                  ...settings,
+                  local: { ...settings.local, filenameFormat: v as FilenameFormat },
+                })
+              }
+              options={[
+                { value: "original", label: t("settings.image.originalName") },
+                { value: "timestamp", label: t("settings.image.timestamp") },
+                { value: "both", label: t("settings.image.originalAndTimestamp") },
+              ]}
+            />
           </div>
           <div className="canvas-settings-row">
             <div className="canvas-settings-row-label">
@@ -1795,18 +1801,20 @@ function ImageSettingsContent({
             <div className="canvas-settings-row-label">
               <span className="canvas-settings-row-title">文件命名格式</span>
             </div>
-            <select
-              className="settings-select"
+            <SettingsSelect
               value={settings.local.filenameFormat}
-              onChange={(e) => onChange({
-                ...settings,
-                local: { ...settings.local, filenameFormat: e.target.value as FilenameFormat },
-              })}
-            >
-              <option value="original">原始名称</option>
-              <option value="timestamp">时间戳</option>
-              <option value="both">原始名称 + 时间戳</option>
-            </select>
+              onChange={(v) =>
+                onChange({
+                  ...settings,
+                  local: { ...settings.local, filenameFormat: v as FilenameFormat },
+                })
+              }
+              options={[
+                { value: "original", label: t("settings.image.originalName") },
+                { value: "timestamp", label: t("settings.image.timestamp") },
+                { value: "both", label: t("settings.image.originalAndTimestamp") },
+              ]}
+            />
           </div>
         </div>
       )}
@@ -1845,27 +1853,27 @@ function EditorSettingsContent({
             <span className="canvas-settings-row-title">{t("settings.editor.defaultMode")}</span>
             <span className="canvas-settings-row-desc">{t("settings.editor.defaultModeDesc")}</span>
           </div>
-          <select
-            className="settings-select"
+          <SettingsSelect
             value={settings.defaultMode}
-            onChange={(e) => update("defaultMode", e.target.value as EditorSettings["defaultMode"])}
-          >
-            <option value="ir">{t("settings.editor.instantRender")}</option>
-            <option value="sv">{t("settings.editor.source")}</option>
-          </select>
+            onChange={(v) => update("defaultMode", v as EditorSettings["defaultMode"])}
+            options={[
+              { value: "ir", label: t("settings.editor.instantRender") },
+              { value: "sv", label: t("settings.editor.source") },
+            ]}
+          />
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
             <span className="canvas-settings-row-title">{t("settings.editor.wordCountType")}</span>
           </div>
-          <select
-            className="settings-select"
+          <SettingsSelect
             value={settings.counterType}
-            onChange={(e) => update("counterType", e.target.value as EditorSettings["counterType"])}
-          >
-            <option value="markdown">{t("settings.editor.markdown")}</option>
-            <option value="text">{t("settings.editor.plainText")}</option>
-          </select>
+            onChange={(v) => update("counterType", v as EditorSettings["counterType"])}
+            options={[
+              { value: "markdown", label: t("settings.editor.markdown") },
+              { value: "text", label: t("settings.editor.plainText") },
+            ]}
+          />
         </div>
       </div>
 
@@ -1962,15 +1970,15 @@ function CanvasSettingsContent({
           <div className="canvas-settings-row-label">
             <span className="canvas-settings-row-title">{t("settings.canvas.defaultLocation")}</span>
           </div>
-          <select
-            className="settings-select"
+          <SettingsSelect
             value={settings.storageLocation}
-            onChange={(e) => handleChange('storageLocation', e.target.value)}
-          >
-            <option value="vault-root">{t("settings.canvas.vaultRoot")}</option>
-            <option value="current-folder">{t("settings.canvas.currentFolder")}</option>
-            <option value="custom-folder">{t("settings.canvas.attachmentFolder")}</option>
-          </select>
+            onChange={(v) => handleChange("storageLocation", v)}
+            options={[
+              { value: "vault-root", label: t("settings.canvas.vaultRoot") },
+              { value: "current-folder", label: t("settings.canvas.currentFolder") },
+              { value: "custom-folder", label: t("settings.canvas.attachmentFolder") },
+            ]}
+          />
         </div>
         {settings.storageLocation === 'custom-folder' && (
           <div className="canvas-settings-row canvas-settings-row-nested">
@@ -2077,15 +2085,15 @@ function CanvasSettingsContent({
             <div className="canvas-settings-row-label">
               <span className="canvas-settings-row-title">{t("settings.canvas.minimapPosition")}</span>
             </div>
-            <select
-              className="settings-select"
+            <SettingsSelect
               value={settings.minimapPosition}
-              onChange={(e) => handleChange('minimapPosition', e.target.value)}
-            >
-              <option value="top-left">{t("settings.canvas.topLeft")}</option>
-              <option value="bottom-left">{t("settings.canvas.bottomLeft")}</option>
-              <option value="bottom-right">{t("settings.canvas.bottomRight")}</option>
-            </select>
+              onChange={(v) => handleChange("minimapPosition", v)}
+              options={[
+                { value: "top-left", label: t("settings.canvas.topLeft") },
+                { value: "bottom-left", label: t("settings.canvas.bottomLeft") },
+                { value: "bottom-right", label: t("settings.canvas.bottomRight") },
+              ]}
+            />
           </div>
         )}
         <div className="canvas-settings-row">

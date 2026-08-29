@@ -3,6 +3,7 @@
 
 import { useTranslation } from "react-i18next";
 import type { PublishConfig } from "./PublishService";
+import { SettingsSelect } from "../components/SettingsSelect";
 
 interface PublishConfigFieldsProps {
   config: PublishConfig;
@@ -48,16 +49,16 @@ export default function PublishConfigFields({ config, onChange, onBrowseOutput }
             <span className="canvas-settings-row-title">{t("settings.publish.siteLang")}</span>
             <span className="canvas-settings-row-desc">{t("settings.publish.siteLangDesc")}</span>
           </div>
-          <select
-            className="settings-select"
+          <SettingsSelect
             value={config.siteLang}
-            onChange={(e) => onChange("siteLang", e.target.value)}
-          >
-            <option value="zh">中文</option>
-            <option value="en">English</option>
-            <option value="ja">日本語</option>
-            <option value="ko">한국어</option>
-          </select>
+            onChange={(v) => onChange("siteLang", v)}
+            options={[
+              { value: "zh", label: "中文" },
+              { value: "en", label: "English" },
+              { value: "ja", label: "日本語" },
+              { value: "ko", label: "한국어" },
+            ]}
+          />
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">

@@ -10,6 +10,7 @@ import { clampWindowToMonitor } from "../services/windowState";
 import { track, trackPageview, ANALYTICS_EVENTS } from "../analytics";
 import { useLanguage } from "../i18n/LanguageContext";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "../i18n";
+import { SettingsSelect } from "../components/SettingsSelect";
 import appIcon from "../assets/icon.png";
 import "./VaultManager.css";
 
@@ -427,17 +428,14 @@ export default function VaultManagerWindow() {
               <div className="vault-manager-action-title">{t("vaultManager.language")}</div>
               <div className="vault-manager-action-desc">{t("vaultManager.languageDesc")}</div>
             </div>
-            <select
-              className="vault-manager-language-select"
+            <SettingsSelect
               value={language}
-              onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
-            >
-              {SUPPORTED_LANGUAGES.map((lang) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.label}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setLanguage(v as SupportedLanguage)}
+              options={SUPPORTED_LANGUAGES.map((lang) => ({
+                value: lang.code,
+                label: lang.label,
+              }))}
+            />
           </div>
         </div>
       </div>

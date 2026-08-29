@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
   BUILTIN_EDITOR_FONTS,
@@ -24,13 +25,23 @@ interface FontOption {
   group: "default" | "builtin" | "mono" | "system";
 }
 
+interface DropdownPos {
+  top: number;
+  left: number;
+  width: number;
+  maxHeight: number;
+  openUp: boolean;
+}
+
 export function FontPicker({ mode, value, onChange }: FontPickerProps) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [fonts, setFonts] = useState<SystemFontInfo[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pos, setPos] = useState<DropdownPos | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,13 +58,50 @@ export function FontPicker({ mode, value, onChange }: FontPickerProps) {
     };
   }, []);
 
+  const updatePosition = () => {
+    const trigger = rootRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const gap = 4;
+    const preferredMax = 320;
+    const spaceBelow = window.innerHeight - rect.bottom - gap - 8;
+    const spaceAbove = rect.top - gap - 8;
+    const openUp = spaceBelow < 160 && spaceAbove > spaceBelow;
+    const maxHeight = Math.max(160, Math.min(preferredMax, openUp ? spaceAbove : spaceBelow));
+    setPos({
+      top: openUp ? rect.top - gap : rect.bottom + gap,
+      left: rect.left,
+      width: Math.max(rect.width, 200),
+      maxHeight,
+      openUp,
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setPos(null);
+      return;
+    }
+    updatePosition();
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (dropdownRef.current?.contains(target)) return;
+      setOpen(false);
     };
+    const onReposition = () => updatePosition();
     document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    window.addEventListener("resize", onReposition);
+    document.addEventListener("scroll", onReposition, true);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      window.removeEventListener("resize", onReposition);
+      document.removeEventListener("scroll", onReposition, true);
+    };
   }, [open]);
 
   const options = useMemo<FontOption[]>(() => {
@@ -92,7 +140,6 @@ export function FontPicker({ mode, value, onChange }: FontPickerProps) {
       });
     };
 
-    // 代码字体：等宽优先；编辑器字体：全部系统字体
     if (mode === "code") {
       mono.forEach((f) => pushFamily(f, "mono"));
       rest.forEach((f) => pushFamily(f, "system"));
@@ -129,6 +176,73 @@ export function FontPicker({ mode, value, onChange }: FontPickerProps) {
     setQuery("");
   };
 
+  const dropdown =
+    open &&
+    pos &&
+    createPortal(
+      <div
+        ref={dropdownRef}
+        className="font-picker-dropdown font-picker-dropdown--portal"
+        style={{
+          top: pos.openUp ? undefined : pos.top,
+          bottom: pos.openUp ? window.innerHeight - pos.top : undefined,
+          left: pos.left,
+          width: pos.width,
+          maxHeight: pos.maxHeight,
+        }}
+      >
+        <input
+          type="text"
+          className="font-picker-search"
+          autoFocus
+          placeholder={t("settings.appearance.fontSearchPlaceholder")}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setOpen(false);
+            if (e.key === "Enter" && filtered[0]) select(filtered[0].value);
+          }}
+        />
+        <div className="font-picker-list">
+          {loading && (
+            <div className="font-picker-empty">{t("settings.appearance.fontLoading")}</div>
+          )}
+          {!loading && filtered.length === 0 && (
+            <div className="font-picker-empty">{t("settings.appearance.fontEmpty")}</div>
+          )}
+          {!loading &&
+            filtered.map((opt, index) => {
+              const prev = filtered[index - 1];
+              const showGroup =
+                !prev || prev.group !== opt.group
+                  ? opt.group === "builtin"
+                    ? t("settings.appearance.fontGroupBuiltin")
+                    : opt.group === "mono"
+                      ? t("settings.appearance.fontGroupMono")
+                      : opt.group === "system"
+                        ? t("settings.appearance.fontGroupSystem")
+                        : null
+                  : null;
+
+              return (
+                <div key={`${opt.group}-${opt.value}`}>
+                  {showGroup && <div className="font-picker-group">{showGroup}</div>}
+                  <button
+                    type="button"
+                    className={`font-picker-option${opt.value === value ? " active" : ""}`}
+                    style={{ fontFamily: opt.previewFamily }}
+                    onClick={() => select(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                </div>
+              );
+            })}
+        </div>
+      </div>,
+      document.body,
+    );
+
   return (
     <div className="font-picker" ref={rootRef}>
       <button
@@ -147,59 +261,7 @@ export function FontPicker({ mode, value, onChange }: FontPickerProps) {
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
-
-      {open && (
-        <div className="font-picker-dropdown">
-          <input
-            type="text"
-            className="font-picker-search"
-            autoFocus
-            placeholder={t("settings.appearance.fontSearchPlaceholder")}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") setOpen(false);
-              if (e.key === "Enter" && filtered[0]) select(filtered[0].value);
-            }}
-          />
-          <div className="font-picker-list">
-            {loading && (
-              <div className="font-picker-empty">{t("settings.appearance.fontLoading")}</div>
-            )}
-            {!loading && filtered.length === 0 && (
-              <div className="font-picker-empty">{t("settings.appearance.fontEmpty")}</div>
-            )}
-            {!loading &&
-              filtered.map((opt, index) => {
-                const prev = filtered[index - 1];
-                const showGroup =
-                  !prev || prev.group !== opt.group
-                    ? opt.group === "builtin"
-                      ? t("settings.appearance.fontGroupBuiltin")
-                      : opt.group === "mono"
-                        ? t("settings.appearance.fontGroupMono")
-                        : opt.group === "system"
-                          ? t("settings.appearance.fontGroupSystem")
-                          : null
-                    : null;
-
-                return (
-                  <div key={`${opt.group}-${opt.value}`}>
-                    {showGroup && <div className="font-picker-group">{showGroup}</div>}
-                    <button
-                      type="button"
-                      className={`font-picker-option${opt.value === value ? " active" : ""}`}
-                      style={{ fontFamily: opt.previewFamily }}
-                      onClick={() => select(opt.value)}
-                    >
-                      {opt.label}
-                    </button>
-                  </div>
-                );
-              })}
-          </div>
-        </div>
-      )}
+      {dropdown}
     </div>
   );
 }
