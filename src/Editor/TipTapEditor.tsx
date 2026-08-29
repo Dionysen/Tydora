@@ -103,6 +103,8 @@ interface TipTapEditorProps {
   typewriterMode?: boolean;
   previewMaxWidth?: number;
   lineHeight?: number;
+  paragraphSpacing?: number;
+  codeLineHeight?: number;
   irLineNumbers?: boolean;
   editorSettings?: EditorSettings;
   imageSettings?: ImageSettings;
@@ -112,7 +114,7 @@ interface TipTapEditorProps {
 }
 
 const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
-  ({ value, onChange, mode, typewriterMode, previewMaxWidth, lineHeight, irLineNumbers, editorSettings, imageSettings, currentFilePath, activeVaultPath, onWordCount }, ref) => {
+  ({ value, onChange, mode, typewriterMode, previewMaxWidth, lineHeight, paragraphSpacing, codeLineHeight, irLineNumbers, editorSettings, imageSettings, currentFilePath, activeVaultPath, onWordCount }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const onChangeRef = useRef(onChange);
     const onWordCountRef = useRef(onWordCount);
@@ -1751,7 +1753,12 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
     return (
       <div
         className={`editor-wrapper${typewriterMode ? ' typewriter-mode' : ''}${irLineNumbers === false ? ' hide-ir-line-numbers' : ''}`}
-        style={{ '--editor-max-width': previewMaxWidth ? `${previewMaxWidth}px` : '880px', '--editor-line-height': lineHeight ?? 1.8 } as React.CSSProperties}
+        style={{
+          '--editor-max-width': previewMaxWidth ? `${previewMaxWidth}px` : '880px',
+          '--editor-line-height': lineHeight ?? 1.6,
+          '--editor-paragraph-spacing': `${paragraphSpacing ?? 0.5}em`,
+          '--code-line-height': codeLineHeight ?? 1.5,
+        } as React.CSSProperties}
       >
         <div
           ref={containerRef}

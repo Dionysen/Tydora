@@ -315,7 +315,7 @@
 
 /* 段落 */
 .tiptap-editor p {
-  margin: 0.5em 0;
+  margin: var(--editor-paragraph-spacing, 0.5em) 0;
 }
 
 /* TipTap Placeholder：空文档时显示"输入@插入"提示 */
@@ -350,7 +350,7 @@
   overflow-x: auto;
   font-family: var(--font-mono, "Fira Code", "Consolas", monospace);
   font-size: var(--font-mono-size, 14px);
-  line-height: 1.5;
+  line-height: var(--code-line-height, 1.5);
 }
 
 .tiptap-editor pre code {
@@ -648,8 +648,8 @@
 /* ── 导出内容样式（.tiptap-export-content 用于 PDF/PNG 截图） ── */
 
 .tiptap-export-content p {
-  margin: 0.5em 0;
-  line-height: 1.6;
+  margin: var(--editor-paragraph-spacing, 0.5em) 0;
+  line-height: var(--editor-line-height, 1.6);
 }
 
 .tiptap-export-content hr {
@@ -842,7 +842,7 @@
   overflow-x: auto;
   font-family: var(--font-mono, "Fira Code", "Consolas", monospace);
   font-size: var(--font-mono-size, 14px);
-  line-height: 1.5;
+  line-height: var(--code-line-height, 1.5);
   color: var(--text-primary, #1f2330);
 }
 
@@ -1831,7 +1831,7 @@ html[data-code-block-toolbar="classic"] .code-block-content {
   pointer-events: none;
   font-family: var(--font-mono, "JetBrains Mono", "Fira Code", monospace);
   font-size: var(--font-mono-size, 14px);
-  line-height: 1.5;
+  line-height: var(--code-line-height, 1.5);
   color: var(--text-secondary, #999);
   opacity: 0.35;
   white-space: pre;
@@ -1845,7 +1845,7 @@ html[data-code-block-toolbar="classic"] .code-block-content {
   overflow: auto;
   font-family: var(--font-mono, "Fira Code", "Consolas", monospace);
   font-size: var(--font-mono-size, 14px);
-  line-height: 1.5;
+  line-height: var(--code-line-height, 1.5);
   border-radius: var(--radius-code-block, 8px);
   background: transparent;
   border: none;

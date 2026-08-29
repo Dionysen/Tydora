@@ -502,7 +502,7 @@
 }
 
 .canvas-text-editor p {
-  margin: 0.5em 0;
+  margin: var(--editor-paragraph-spacing, 0.5em) 0;
 }
 
 /* TipTap Placeholder：空内容时显示"输入@插入"提示 */
@@ -554,7 +554,7 @@
   overflow-x: auto;
   font-family: var(--font-mono);
   font-size: 0.9em;
-  line-height: 1.5;
+  line-height: var(--code-line-height, 1.5);
 }
 
 .canvas-text-editor pre code {
@@ -766,7 +766,7 @@
 }
 
 .canvas-note-editor p {
-  margin: 0.5em 0;
+  margin: var(--editor-paragraph-spacing, 0.5em) 0;
 }
 
 .canvas-note-editor> :first-child {
@@ -806,7 +806,7 @@
   overflow-x: auto;
   font-family: var(--font-mono);
   font-size: 0.9em;
-  line-height: 1.5;
+  line-height: var(--code-line-height, 1.5);
 }
 
 .canvas-note-editor pre code {

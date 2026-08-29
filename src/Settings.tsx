@@ -31,6 +31,7 @@ import { FontPicker } from "./components/FontPicker";
 import { normalizeCodeFontValue, normalizeEditorFontValue } from "./utils/systemFonts";
 import {
   applyMenuDensity,
+  applyEditorSpacingFromSettings,
   normalizeMenuDensity,
   type MenuDensity,
 } from "./utils/menuDensity";
@@ -109,6 +110,10 @@ interface GeneralSettings {
   previewMaxWidth: number;
   typewriterMode: boolean;
   lineHeight: number;
+  /** 段落上下外边距（em） */
+  paragraphSpacing: number;
+  /** 代码块行高 */
+  codeLineHeight: number;
   irLineNumbers: boolean;
   expandOutlineOnOpen: boolean;
   /** 代码块工具栏样式 */
@@ -138,6 +143,8 @@ const DEFAULT_GENERAL: GeneralSettings = {
   previewMaxWidth: 800,
   typewriterMode: false,
   lineHeight: 1.6,
+  paragraphSpacing: 0.5,
+  codeLineHeight: 1.5,
   irLineNumbers: true,
   expandOutlineOnOpen: true,
   codeBlockToolbarStyle: "minimal",
@@ -320,6 +327,46 @@ function GeneralSettingsContent({
               onChange={(e) => onChange({ ...settings, lineHeight: Number(e.target.value) / 10 })}
             />
             <span className="canvas-settings-unit">{settings.lineHeight.toFixed(1)}</span>
+          </div>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.paragraphSpacing")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.paragraphSpacingDesc")}</span>
+          </div>
+          <div className="canvas-settings-row-control">
+            <input
+              type="range"
+              className="canvas-settings-slider"
+              min={0}
+              max={20}
+              step={1}
+              value={Math.round(settings.paragraphSpacing * 10)}
+              onChange={(e) =>
+                onChange({ ...settings, paragraphSpacing: Number(e.target.value) / 10 })
+              }
+            />
+            <span className="canvas-settings-unit">{settings.paragraphSpacing.toFixed(1)}</span>
+          </div>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.codeLineHeight")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.codeLineHeightDesc")}</span>
+          </div>
+          <div className="canvas-settings-row-control">
+            <input
+              type="range"
+              className="canvas-settings-slider"
+              min={12}
+              max={24}
+              step={1}
+              value={Math.round(settings.codeLineHeight * 10)}
+              onChange={(e) =>
+                onChange({ ...settings, codeLineHeight: Number(e.target.value) / 10 })
+              }
+            />
+            <span className="canvas-settings-unit">{settings.codeLineHeight.toFixed(1)}</span>
           </div>
         </div>
       </div>
@@ -787,7 +834,7 @@ function ThemeSettingsContent({
           hljs.highlight(`function greet(name) {\n  return 42;\n}`, { language: "javascript" }).value,
         );
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       cancelled = true;
     };
@@ -1373,7 +1420,7 @@ function ShortcutsSettingsContent() {
         });
         return merged;
       }
-    } catch {}
+    } catch { }
     return DEFAULT_SHORTCUTS;
   });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -2326,7 +2373,7 @@ export default function Settings() {
         localStorage.removeItem("zmd-settings-initial-tab");
         return saved;
       }
-    } catch {}
+    } catch { }
     return "general";
   });
   const { theme, setTheme } = useTheme();
@@ -2337,7 +2384,7 @@ export default function Settings() {
       if (Number.isFinite(saved)) {
         return Math.max(SETTINGS_NAV_WIDTH_MIN, Math.min(SETTINGS_NAV_WIDTH_MAX, saved));
       }
-    } catch {}
+    } catch { }
     return SETTINGS_NAV_WIDTH_DEFAULT;
   });
   const [isNavResizing, setIsNavResizing] = useState(false);
@@ -2380,7 +2427,7 @@ export default function Settings() {
   }, []);
 
   // ── 窗口位置/大小记忆 ──
-  const saveWindowStateRef = useRef<() => Promise<void>>(async () => {});
+  const saveWindowStateRef = useRef<() => Promise<void>>(async () => { });
   useEffect(() => {
     const win = getCurrentWebviewWindow();
 
@@ -2397,7 +2444,7 @@ export default function Settings() {
           state.height = size.height;
         }
         localStorage.setItem(SETTINGS_WINDOW_STATE_KEY, JSON.stringify(state));
-      } catch {}
+      } catch { }
     };
     saveWindowStateRef.current = saveWindowState;
 
@@ -2422,10 +2469,10 @@ export default function Settings() {
             await win.maximize();
           }
         }
-      } catch {}
+      } catch { }
       // 无论是否有保存的窗口状态，都必须显示窗口（Rust 端以 visible(false) 创建）
       await win.show();
-      await win.setFocus().catch(() => {});
+      await win.setFocus().catch(() => { });
     })();
 
     let moveTimer: ReturnType<typeof setTimeout>;
@@ -2444,8 +2491,8 @@ export default function Settings() {
     return () => {
       clearTimeout(moveTimer);
       clearTimeout(resizeTimer);
-      unlistenMove.then((fn) => fn()).catch(() => {});
-      unlistenResize.then((fn) => fn()).catch(() => {});
+      unlistenMove.then((fn) => fn()).catch(() => { });
+      unlistenResize.then((fn) => fn()).catch(() => { });
     };
   }, []);
 
@@ -2467,16 +2514,25 @@ export default function Settings() {
         codeBlockToolbarStyle:
           parsed.codeBlockToolbarStyle === "classic" ? "classic" : "minimal",
         menuDensity: normalizeMenuDensity(parsed.menuDensity),
+        paragraphSpacing:
+          typeof parsed.paragraphSpacing === "number"
+            ? Math.min(2, Math.max(0, Math.round(parsed.paragraphSpacing * 10) / 10))
+            : DEFAULT_GENERAL.paragraphSpacing,
+        codeLineHeight:
+          typeof parsed.codeLineHeight === "number"
+            ? Math.min(2.4, Math.max(1.2, Math.round(parsed.codeLineHeight * 10) / 10))
+            : DEFAULT_GENERAL.codeLineHeight,
       };
     } catch {
       return DEFAULT_GENERAL;
     }
   });
 
-  // 保存通用设置到 localStorage，并立即应用菜单密度（设置窗口内即时生效）
+  // 保存通用设置到 localStorage，并立即应用菜单密度 / 间距相关 CSS 变量
   useEffect(() => {
     localStorage.setItem(GENERAL_SETTINGS_KEY, JSON.stringify(generalSettings));
     applyMenuDensity(generalSettings.menuDensity);
+    applyEditorSpacingFromSettings(generalSettings);
   }, [generalSettings]);
 
   // 思维导图设置状态
@@ -2562,86 +2618,106 @@ export default function Settings() {
     {
       title: t("settings.tabs.groupGeneral"),
       items: [
-        { id: "general", label: t("settings.tabs.general"), icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-        ), searchTerms: ["通用", "general", "外观", "字体", "编辑设置"] },
-        { id: "theme", label: t("settings.tabs.theme"), icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="13.5" cy="6.5" r="0.5" fill="currentColor" stroke="none" />
-            <circle cx="17.5" cy="10.5" r="0.5" fill="currentColor" stroke="none" />
-            <circle cx="8.5" cy="7.5" r="0.5" fill="currentColor" stroke="none" />
-            <circle cx="6.5" cy="12" r="0.5" fill="currentColor" stroke="none" />
-            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
-          </svg>
-        ), searchTerms: ["主题", "theme", "颜色", "自定义主题", "代码主题"] },
-        { id: "shortcuts", label: t("settings.tabs.shortcuts"), icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="4" width="20" height="16" rx="2" />
-            <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10" />
-          </svg>
-        ), searchTerms: ["快捷键", "shortcuts", "键盘", "热键"] },
-        { id: "image", label: t("settings.tabs.image"), icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <polyline points="21 15 16 10 5 21" />
-          </svg>
-        ), searchTerms: ["图像", "image", "图片", "上传", "存储"] },
+        {
+          id: "general", label: t("settings.tabs.general"), icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          ), searchTerms: ["通用", "general", "外观", "字体", "编辑设置"]
+        },
+        {
+          id: "theme", label: t("settings.tabs.theme"), icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="13.5" cy="6.5" r="0.5" fill="currentColor" stroke="none" />
+              <circle cx="17.5" cy="10.5" r="0.5" fill="currentColor" stroke="none" />
+              <circle cx="8.5" cy="7.5" r="0.5" fill="currentColor" stroke="none" />
+              <circle cx="6.5" cy="12" r="0.5" fill="currentColor" stroke="none" />
+              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+            </svg>
+          ), searchTerms: ["主题", "theme", "颜色", "自定义主题", "代码主题"]
+        },
+        {
+          id: "shortcuts", label: t("settings.tabs.shortcuts"), icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10" />
+            </svg>
+          ), searchTerms: ["快捷键", "shortcuts", "键盘", "热键"]
+        },
+        {
+          id: "image", label: t("settings.tabs.image"), icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+          ), searchTerms: ["图像", "image", "图片", "上传", "存储"]
+        },
       ]
     },
     {
       title: t("settings.tabs.groupFeatures"),
       items: [
-        { id: "mindmap", label: t("settings.tabs.mindmap"), icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M20 4a1 1 0 0 1 0 2h-2.7a7.4 7.4 0 0 0-7.2 6H20a1 1 0 0 1 0 2h-9.9a7.4 7.4 0 0 0 7.2 6H20a1 1 0 0 1 0 2h-2.7a9.4 9.4 0 0 1-9.2-8H4a1 1 0 0 1 0-2h4.1a9.4 9.4 0 0 1 9.2-8H20z" />
-          </svg>
-        ), searchTerms: ["思维导图", "mindmap", "脑图", "布局", "节点"] },
-        { id: "graph", label: t("settings.tabs.graph"), icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="5" r="3" />
-            <circle cx="5" cy="19" r="3" />
-            <circle cx="19" cy="19" r="3" />
-            <line x1="9.5" y1="7" x2="6.5" y2="16.5" />
-            <line x1="14.5" y1="7" x2="17.5" y2="16.5" />
-            <line x1="7.5" y1="19" x2="16.5" y2="19" />
-          </svg>
-        ), searchTerms: ["关系图谱", "graph", "知识图谱", "链接图"] },
-        { id: "canvas", label: t("settings.tabs.canvas"), icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <path d="M3 9h18" />
-            <path d="M9 21V9" />
-          </svg>
-        ), searchTerms: ["白板", "canvas", "画布", "卡片"] },
-        { id: "terminal", label: t("settings.tabs.terminal"), icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="4" width="20" height="16" rx="2" />
-            <path d="M7 9l3 3-3 3" />
-            <line x1="13" y1="15" x2="17" y2="15" />
-          </svg>
-        ), searchTerms: ["终端", "terminal", "命令行", "shell", "配色", "字体"] },
-        { id: "publish", label: t("settings.tabs.publish"), icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 2L11 13" />
-            <path d="M22 2l-7 20-4-9-9-4 20-7z" />
-          </svg>
-        ), searchTerms: ["发布", "publish", "导出", "部署", "网站"] },
+        {
+          id: "mindmap", label: t("settings.tabs.mindmap"), icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 4a1 1 0 0 1 0 2h-2.7a7.4 7.4 0 0 0-7.2 6H20a1 1 0 0 1 0 2h-9.9a7.4 7.4 0 0 0 7.2 6H20a1 1 0 0 1 0 2h-2.7a9.4 9.4 0 0 1-9.2-8H4a1 1 0 0 1 0-2h4.1a9.4 9.4 0 0 1 9.2-8H20z" />
+            </svg>
+          ), searchTerms: ["思维导图", "mindmap", "脑图", "布局", "节点"]
+        },
+        {
+          id: "graph", label: t("settings.tabs.graph"), icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="5" r="3" />
+              <circle cx="5" cy="19" r="3" />
+              <circle cx="19" cy="19" r="3" />
+              <line x1="9.5" y1="7" x2="6.5" y2="16.5" />
+              <line x1="14.5" y1="7" x2="17.5" y2="16.5" />
+              <line x1="7.5" y1="19" x2="16.5" y2="19" />
+            </svg>
+          ), searchTerms: ["关系图谱", "graph", "知识图谱", "链接图"]
+        },
+        {
+          id: "canvas", label: t("settings.tabs.canvas"), icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M3 9h18" />
+              <path d="M9 21V9" />
+            </svg>
+          ), searchTerms: ["白板", "canvas", "画布", "卡片"]
+        },
+        {
+          id: "terminal", label: t("settings.tabs.terminal"), icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <path d="M7 9l3 3-3 3" />
+              <line x1="13" y1="15" x2="17" y2="15" />
+            </svg>
+          ), searchTerms: ["终端", "terminal", "命令行", "shell", "配色", "字体"]
+        },
+        {
+          id: "publish", label: t("settings.tabs.publish"), icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 2L11 13" />
+              <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+            </svg>
+          ), searchTerms: ["发布", "publish", "导出", "部署", "网站"]
+        },
       ]
     },
     {
       title: t("settings.tabs.groupAbout"),
       items: [
-        { id: "about", label: t("settings.tabs.about"), icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="16" x2="12" y2="12" />
-            <line x1="12" y1="8" x2="12.01" y2="8" />
-          </svg>
-        ), searchTerms: ["关于", "about", "版本", "更新", "GitHub"] },
+        {
+          id: "about", label: t("settings.tabs.about"), icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+          ), searchTerms: ["关于", "about", "版本", "更新", "GitHub"]
+        },
       ]
     }
   ];
@@ -2752,33 +2828,33 @@ export default function Settings() {
             </div>
           </div>
           <main className="settings-main">
-          {activeTab === "general" && (
-            <GeneralSettingsContent settings={generalSettings} onChange={setGeneralSettings} />
-          )}
-          {activeTab === "theme" && (
-            <ThemeSettingsContent theme={theme} setTheme={setTheme} />
-          )}
-          {activeTab === "shortcuts" && <ShortcutsSettingsContent />}
-          {activeTab === "mindmap" && (
-            <MindmapSettingsContent settings={mindmapSettings} onChange={setMindmapSettings} />
-          )}
-          {activeTab === "graph" && (
-            <GraphSettingsContent settings={graphSettings} onChange={setGraphSettings} />
-          )}
-          {activeTab === "image" && (
-            <ImageSettingsContent settings={imageSettings} onChange={setImageSettings} />
-          )}
-          {activeTab === "canvas" && (
-            <CanvasSettingsContent settings={canvasSettings} onChange={setCanvasSettings} />
-          )}
-          {activeTab === "terminal" && (
-            <TerminalSettingsContent settings={terminalSettings} onChange={setTerminalSettings} />
-          )}
-          {activeTab === "publish" && (
-            <PublishSettings />
-          )}
-          {activeTab === "about" && <AboutSettingsContent />}
-        </main>
+            {activeTab === "general" && (
+              <GeneralSettingsContent settings={generalSettings} onChange={setGeneralSettings} />
+            )}
+            {activeTab === "theme" && (
+              <ThemeSettingsContent theme={theme} setTheme={setTheme} />
+            )}
+            {activeTab === "shortcuts" && <ShortcutsSettingsContent />}
+            {activeTab === "mindmap" && (
+              <MindmapSettingsContent settings={mindmapSettings} onChange={setMindmapSettings} />
+            )}
+            {activeTab === "graph" && (
+              <GraphSettingsContent settings={graphSettings} onChange={setGraphSettings} />
+            )}
+            {activeTab === "image" && (
+              <ImageSettingsContent settings={imageSettings} onChange={setImageSettings} />
+            )}
+            {activeTab === "canvas" && (
+              <CanvasSettingsContent settings={canvasSettings} onChange={setCanvasSettings} />
+            )}
+            {activeTab === "terminal" && (
+              <TerminalSettingsContent settings={terminalSettings} onChange={setTerminalSettings} />
+            )}
+            {activeTab === "publish" && (
+              <PublishSettings />
+            )}
+            {activeTab === "about" && <AboutSettingsContent />}
+          </main>
         </div>
       </div>
     </div>

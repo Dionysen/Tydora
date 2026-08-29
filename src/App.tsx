@@ -28,7 +28,7 @@ import { emit, listen } from "@tauri-apps/api/event";
 import { loadImageSettings, type ImageSettings } from "./services";
 import { loadEditorSettings, type EditorSettings, EDITOR_SETTINGS_KEY, SHORTCUTS_KEY, GRAPH_SETTINGS_KEY, DEFAULT_GRAPH } from "./Settings";
 import { applyFontSettings } from "./utils/systemFonts";
-import { applyMenuDensity, normalizeMenuDensity } from "./utils/menuDensity";
+import { applyMenuDensity, applyEditorSpacingFromSettings, normalizeMenuDensity } from "./utils/menuDensity";
 import { checkForUpdate, downloadAndInstall, relaunchApp, exitApp, isPortableVersion, type UpdateInfo } from "./services";
 import { LinkIndexService } from "./wikilink";
 import { WikiLinkAutocomplete } from "./wikilink";
@@ -393,6 +393,12 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const [typewriterMode, setTypewriterMode] = useState(() => s.typewriterMode ?? false);
   const [previewMaxWidth, setPreviewMaxWidth] = useState(() => s.previewMaxWidth ?? 800);
   const [lineHeight, setLineHeight] = useState(() => s.lineHeight ?? 1.6);
+  const [paragraphSpacing, setParagraphSpacing] = useState(() =>
+    typeof s.paragraphSpacing === "number" ? s.paragraphSpacing : 0.5,
+  );
+  const [codeLineHeight, setCodeLineHeight] = useState(() =>
+    typeof s.codeLineHeight === "number" ? s.codeLineHeight : 1.5,
+  );
   const [irLineNumbers, setIrLineNumbers] = useState(() => s.irLineNumbers ?? true);
   // 双击 .md 文件外部打开时，是否展开侧栏并自动切换到大纲视图（默认开启）
   const [expandOutlineOnOpen, setExpandOutlineOnOpen] = useState(() => s.expandOutlineOnOpen ?? true);
@@ -477,6 +483,13 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         if (typeof settings.lineHeight === 'number') {
           setLineHeight(settings.lineHeight);
         }
+        if (typeof settings.paragraphSpacing === "number") {
+          setParagraphSpacing(Math.min(2, Math.max(0, settings.paragraphSpacing)));
+        }
+        if (typeof settings.codeLineHeight === "number") {
+          setCodeLineHeight(Math.min(2.4, Math.max(1.2, settings.codeLineHeight)));
+        }
+        applyEditorSpacingFromSettings(settings);
         if (typeof settings.irLineNumbers === 'boolean') {
           setIrLineNumbers(settings.irLineNumbers);
         }
@@ -2135,6 +2148,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
             typewriterMode={typewriterMode}
             previewMaxWidth={previewMaxWidth}
             lineHeight={lineHeight}
+            paragraphSpacing={paragraphSpacing}
+            codeLineHeight={codeLineHeight}
             irLineNumbers={irLineNumbers}
             editorSettings={editorSettings}
             imageSettings={imageSettings}
