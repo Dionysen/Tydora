@@ -48,7 +48,10 @@ import { loadShortcuts, matchShortcut } from "./shortcuts";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import CodeMirrorEditor, { type CodeMirrorEditorHandle } from "./CodeMirrorEditor";
-import { useVim, useLeader, LeaderMenu } from "../vim";
+import { useVim, useLeader, LeaderMenu, createTiptapVimExtensions, syncVimMode } from "../vim";
+import { prefixMConfig } from "../vim/config/prefixM";
+import { prefixGConfig } from "../vim/config/prefixG";
+import { prefixZConfig } from "../vim/config/prefixZ";
 import { buildPositionMap, mdOffsetToPmPos, pmPosToMdOffset } from "./markdown-position-map";
 import { ContextMenu } from "./ContextMenu";
 import { LinkDialog } from "./LinkDialog";
@@ -201,6 +204,9 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         return null;
       }
     };
+
+    // Vim 配置（需在 useEditor 前读取，用于条件注入 vim-prose 扩展）
+    const { enabled: vimEnabled, leaderKey: vimLeaderKey, menuTimeout: vimMenuTimeout, mode: vimMode, setMode: onVimModeChange } = useVim();
 
     const editor = useEditor({
       extensions: [
@@ -897,6 +903,8 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         ...(editorSettings?.tableToolbar !== false ? [TableFloatingToolbar] : []),
         BulletListMindmap,
         HardBreakCleanup,
+        // vim-prose：Vim 模态扩展（enabled=false 时返回空数组，零侵入）
+        ...createTiptapVimExtensions(vimEnabled),
       ],
       content: value || "",
       onUpdate: ({ editor: ed }) => {
@@ -1068,7 +1076,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
           return content.content.textBetween(0, content.content.size, '\n', '\n');
         },
       },
-    });
+    }, [vimEnabled]);
 
     // 图片处理
     const handleImageFile = useCallback(async (file: File) => {
@@ -1437,8 +1445,13 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
 
     // 快捷键已移至 handleDOMEvents.keydown 中处理
 
-    // Vim Leader 菜单（TipTap 模式：; 触发，editor.* 走 executeCommand，app.* 走全局事件）
-    const { enabled: vimEnabled, tiptapLeaderKey, menuTimeout: vimMenuTimeout } = useVim();
+    // Vim mode 同步：vim-prose 模式变化 → VimProvider
+    useEffect(() => {
+      if (!editor || !vimEnabled) return;
+      const cleanup = syncVimMode(editor, onVimModeChange);
+      return cleanup;
+    }, [editor, vimEnabled, onVimModeChange]);
+
     const vimEditorRef = useRef<Editor | null>(editor);
     vimEditorRef.current = editor;
 
@@ -1466,12 +1479,45 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
       return false;
     }, []);
 
-    const tipTapLeader = useLeader({
+    // Leader 菜单（Space 触发，normal 态激活，与 CodeMirror 源码模式统一）
+    const leader = useLeader({
       enabled: vimEnabled,
-      triggerKey: tiptapLeaderKey,
+      triggerKey: vimLeaderKey,
       timeout: vimMenuTimeout,
-      active: true, // TipTap 恒为 insert 态，始终可触发
+      active: vimMode === "normal",
       dispatchAction: dispatchTipTapAction,
+    });
+
+    // m 前缀键：normal 态按 m 弹出 Markdown 格式化菜单（mb=加粗, mi=斜体…）
+    const prefixM = useLeader({
+      enabled: vimEnabled,
+      triggerKey: "m",
+      timeout: vimMenuTimeout,
+      active: vimMode === "normal" && !leader.open,
+      dispatchAction: dispatchTipTapAction,
+      initialItems: prefixMConfig.items,
+    });
+
+    // g 前缀键：被动模式，弹窗仅作视觉引导，按键由 vim-prose 原生处理
+    const prefixG = useLeader({
+      enabled: vimEnabled,
+      triggerKey: "g",
+      timeout: vimMenuTimeout,
+      active: vimMode === "normal" && !leader.open && !prefixM.open,
+      dispatchAction: dispatchTipTapAction,
+      initialItems: prefixGConfig.items,
+      passive: true,
+    });
+
+    // z 前缀键：被动模式，弹窗仅作视觉引导，按键由 vim-prose 原生处理
+    const prefixZ = useLeader({
+      enabled: vimEnabled,
+      triggerKey: "z",
+      timeout: vimMenuTimeout,
+      active: vimMode === "normal" && !leader.open && !prefixM.open && !prefixG.open,
+      dispatchAction: dispatchTipTapAction,
+      initialItems: prefixZConfig.items,
+      passive: true,
     });
 
     // 暴露 API
@@ -1830,7 +1876,21 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
             onCancel={handleMathDialogCancel}
           />
         )}
-        <LeaderMenu open={tipTapLeader.open} items={tipTapLeader.items} path={tipTapLeader.path} />
+        <LeaderMenu
+          open={leader.open || prefixM.open || prefixG.open || prefixZ.open}
+          items={
+            leader.open ? leader.items
+            : prefixM.open ? prefixM.items
+            : prefixG.open ? prefixG.items
+            : prefixZ.items
+          }
+          path={
+            leader.open ? leader.path
+            : prefixM.open ? prefixM.path
+            : prefixG.open ? prefixG.path
+            : prefixZ.path
+          }
+        />
       </div>
     );
   }

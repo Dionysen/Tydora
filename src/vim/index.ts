@@ -10,6 +10,7 @@
 export { VimProvider, useVim } from "./VimProvider";
 export { createVimExtension } from "./codemirror/vimExtension";
 export type { VimAdapterOptions } from "./codemirror/vimExtension";
+export { createTiptapVimExtensions, syncVimMode, mapVimMode } from "./tiptap/tiptapVimExtension";
 export { FileTreeVim } from "./filetree/FileTreeVim";
 
 // Leader 菜单（编辑器集成用）

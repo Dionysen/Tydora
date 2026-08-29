@@ -40,7 +40,7 @@ export function VimSettingsPanel() {
             <span className="canvas-settings-row-desc">
               {t(
                 "settings.vim.enableDesc",
-                "LazyVim 风格键盘操作。默认关闭，关闭时不影响任何现有功能。源码模式启用完整三态，所见即所得模式仅接入 Leader 菜单。"
+                "LazyVim 风格键盘操作。默认关闭，关闭时不影响任何现有功能。源码模式与所见即所得模式均支持完整 Vim 三态（normal/insert/visual）。"
               )}
             </span>
           </div>
@@ -60,12 +60,12 @@ export function VimSettingsPanel() {
           <div className="canvas-settings-row">
             <div className="canvas-settings-row-label">
               <span className="canvas-settings-row-title">
-                {t("settings.vim.leaderKey", "Leader 键（源码模式）")}
+                {t("settings.vim.leaderKey", "Leader 键")}
               </span>
               <span className="canvas-settings-row-desc">
                 {t(
                   "settings.vim.leaderKeyDesc",
-                  "normal 模式下按此键弹出 Leader 菜单。默认空格。"
+                  "normal 模式下按此键弹出 Leader 菜单。默认空格，源码模式与所见即所得模式统一。"
                 )}
               </span>
             </div>
@@ -78,30 +78,6 @@ export function VimSettingsPanel() {
               onChange={(e) => {
                 const v = e.target.value;
                 if (v.length <= 1) update({ leaderKey: v || " " });
-              }}
-            />
-          </div>
-          <div className="canvas-settings-row">
-            <div className="canvas-settings-row-label">
-              <span className="canvas-settings-row-title">
-                {t("settings.vim.tiptapLeaderKey", "Leader 触发键（所见即所得模式）")}
-              </span>
-              <span className="canvas-settings-row-desc">
-                {t(
-                  "settings.vim.tiptapLeaderKeyDesc",
-                  "所见即所得模式无完整模态，用此键触发 Leader 菜单。默认分号。"
-                )}
-              </span>
-            </div>
-            <input
-              type="text"
-              className="settings-input"
-              style={{ width: 80, textAlign: "center" }}
-              value={config.tiptapLeaderKey}
-              maxLength={1}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v.length <= 1) update({ tiptapLeaderKey: v || ";" });
               }}
             />
           </div>

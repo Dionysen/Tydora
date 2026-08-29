@@ -25,7 +25,7 @@ const VimContext = createContext<VimContextValue | null>(null);
  */
 export function VimProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<VimConfig>(() => loadVimConfig());
-  // 模式：CodeMirror 启用 vim 时由扩展驱动；TipTap 恒为 insert
+  // 模式：由 CodeMirror vim 扩展或 vim-prose（TipTap）驱动，通过 setMode 更新
   const [mode, setMode] = useState<VimMode>("normal");
 
   // 跨窗口同步：设置窗口改动 → 主窗口 storage 事件
@@ -55,7 +55,6 @@ export function VimProvider({ children }: { children: ReactNode }) {
       enabled: config.enabled,
       mode,
       leaderKey: config.leaderKey,
-      tiptapLeaderKey: config.tiptapLeaderKey,
       menuTimeout: config.menuTimeout,
       updateConfig,
       setMode,
@@ -74,7 +73,6 @@ export function useVim(): VimContextValue {
     enabled: false,
     mode: "insert",
     leaderKey: DEFAULT_VIM_CONFIG.leaderKey,
-    tiptapLeaderKey: DEFAULT_VIM_CONFIG.tiptapLeaderKey,
     menuTimeout: DEFAULT_VIM_CONFIG.menuTimeout,
     updateConfig: () => {},
     setMode: () => {},

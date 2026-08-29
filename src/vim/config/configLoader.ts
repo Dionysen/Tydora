@@ -11,7 +11,6 @@ export const VIM_CONFIG_KEY = "zmd-vim-config";
 export const DEFAULT_VIM_CONFIG: VimConfig = {
   enabled: false,
   leaderKey: " ",
-  tiptapLeaderKey: ";",
   menuTimeout: 3000,
 };
 

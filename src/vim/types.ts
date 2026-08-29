@@ -1,19 +1,17 @@
 // src/vim/types.ts
 // Vim 模块类型定义。仅模块内部使用，不对外导出（对外入口见 index.ts）。
 
-/** Vim 三态模式。TipTap 编辑器恒为 insert。 */
+/** Vim 三态模式。CodeMirror 与 TipTap 均由各自 vim 扩展驱动。 */
 export type VimMode = "normal" | "insert" | "visual";
 
 /** Vim 模块运行时状态 */
 export interface VimState {
   /** 是否启用 Vim 模式（默认 false，关闭时模块零开销） */
   enabled: boolean;
-  /** 当前模式（仅 CodeMirror 源码模式有效；TipTap 恒为 insert） */
+  /** 当前模式（CodeMirror 与 TipTap 均有效，由各自 vim 扩展驱动） */
   mode: VimMode;
-  /** Leader 键（默认 " " 空格，仅 normal 态触发） */
+  /** Leader 键（默认 " " 空格，仅 normal 态触发，源码/所见即所得统一） */
   leaderKey: string;
-  /** TipTap 下触发 Leader 菜单的键（默认 ";"，避免与空格冲突） */
-  tiptapLeaderKey: string;
   /** Leader 菜单超时自动关闭（ms） */
   menuTimeout: number;
 }
@@ -22,7 +20,6 @@ export interface VimState {
 export interface VimConfig {
   enabled: boolean;
   leaderKey: string;
-  tiptapLeaderKey: string;
   menuTimeout: number;
 }
 

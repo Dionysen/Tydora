@@ -13,7 +13,7 @@
 | 2 | 独立模块     | 所有代码集中在`src/vim/`，对外只暴露最小入口，内部实现不外泄                              |
 | 3 | 零侵入       | 不修改现有`shortcuts.json`、不删现有 `Ctrl+X` 快捷键、不开 Vim 模式时行为与现在 100% 一致 |
 | 4 | 可开关       | 设置面板一键开关，默认关闭；关闭时 Vim 模块完全不加载、不监听事件                         |
-| 5 | 双编辑器协调 | 源码模式（CodeMirror）享完整 Vim；所见即所得（TipTap）享 Leader 菜单层，不强制模态        |
+| 5 | 双编辑器协调 | 源码模式（CodeMirror）用 `@replit/codemirror-vim`；所见即所得（TipTap）用 `vim-prose`，双模式均享完整 Vim 三态 |
 
 ---
 
@@ -45,7 +45,7 @@
 
 ### 3.2 本期不做（Out of Scope）
 
-- TipTap 所见即所得的完整模态编辑（ProseMirror 无成熟 Vim 基础，自研成本过高）——TipTap 仅接入 Leader 菜单层
+- ~~TipTap 所见即所得的完整模态编辑~~（已实现：接入 `vim-prose` 库，支持 normal/insert/visual 模态）
 - 宏录制与回放（`q` 录制）
 - 命令行模式（`:` ex 命令）的完整实现，仅做几个高频命令（`:w` `:q` `:x`）
 - 多光标（`Ctrl-n` 选词）
@@ -73,8 +73,8 @@
 │      │  │FileTreeVim│◄┼────┼──┤ VimAdapter (注入)  │  │      │
 │      │  │  (聚焦时) │ │    │  │  - CM: codemirror- │  │      │
 │      │  └──────────┘ │    │  │    vim 扩展         │  │      │
-│      └───────┬───────┘    │  │  - TipTap: Leader   │  │      │
-│              │            │  │    菜单层           │  │      │
+│      └───────┬───────┘    │  │  - TipTap: vim-prose│  │      │
+│              │            │  │    扩展              │  │      │
 │              │            │  └─────────┬──────────┘  │      │
 │              │            └────────────┼─────────────┘      │
 │              │                         │                    │
@@ -135,6 +135,9 @@ src/vim/
 │   ├── vimExtension.ts         # 封装 @replit/codemirror-vim + 自定义 keymap 注入
 │   └── markdownActions.ts      # CodeMirror 源码模式下的 Markdown 格式化动作
 │
+├── tiptap/
+│   └── tiptapVimExtension.ts   # 封装 vim-prose 集成：条件注入 VimMode + mode 同步
+│
 ├── navigation/
 │   └── useWindowNavigation.ts  # Ctrl+h/j/k/l + Ctrl+H/J/K/L 窗口导航
 │
@@ -151,6 +154,7 @@ src/vim/
 export { VimProvider, useVim } from "./VimProvider";
 export { createVimExtension } from "./codemirror/vimExtension";
 export type { VimAdapterOptions } from "./codemirror/vimExtension";
+export { createTiptapVimExtensions, syncVimMode, mapVimMode } from "./tiptap/tiptapVimExtension";
 export { FileTreeVim } from "./filetree/FileTreeVim";
 export { useLeader } from "./leader/useLeader";
 export type { UseLeaderOptions, UseLeaderReturn } from "./leader/useLeader";
@@ -178,15 +182,21 @@ export type { VimConfig, VimMode, VimState } from "./types";
 
 CodeMirror 的 vim 扩展自带模式状态（`cm.state.vim.mode`），`VimProvider` 通过订阅 CM 的 `vim-mode-change` 事件同步到 React Context，供状态栏与 Leader 菜单消费。
 
-### 6.3 TipTap 的特殊处理
+TipTap 的 vim-prose 通过 `getVimMode(editor)` 暴露模式，在 `editor.on('transaction')` 中读取并调用 `setMode` 同步到 VimProvider。
 
-TipTap **不接入完整模态**（ProseMirror 无成熟 Vim 基础）。策略：
+### 6.3 TipTap 的 Vim 模态（vim-prose）
 
-- TipTap 始终是 insert 态
-- Leader 菜单在 TipTap 下用 **组合键** `;` 触发（可配置），而非 Space（避免与空格冲突）
-- 这是「Leader 菜单层」在双编辑器的统一出口，动作一致，只是触发键不同
+TipTap 通过 `vim-prose` 库接入完整 Vim 模态（normal/insert/visual/replace/visual-line）。策略：
 
-> 这样既保证 Vim 模式开启时双编辑器都能用 Leader 快捷操作，又避免在 TipTap 上硬造模态导致的体验割裂。
+- `vim-prose` 的 `VimMode` extension 通过 `useEditor` 的 `deps: [vimEnabled]` 条件注入
+- Vim 关闭时 `createTiptapVimExtensions(false)` 返回空数组，零侵入
+- Vim 开启时 `VimMode` 注入 ProseMirror plugin，接管按键
+- Leader 键统一为 **Space**（与 CodeMirror 一致），`useLeader` 在 capture 阶段拦截，vim-prose 收不到
+- g/z 前缀用 passive 模式，which-key 仅作视觉引导，按键由 vim-prose 原生执行
+- insert 模式只拦截 `Esc`/`Ctrl-c`，其余按键透传给 ProseMirror 原生处理
+- 设计理念：**Paragraph = line**（段落节点 = Vim 行，`j/k` 在段落间跳转）
+
+> 两种编辑器模式体验完全一致：Space 弹 Leader 菜单、`m` 弹 Markdown 菜单、`g`/`z` 前缀有 which-key 引导、`i/a/o/Esc` 切换模式。
 
 ---
 
@@ -271,7 +281,7 @@ Leader 键是用户自定义的特殊键，用于触发个人或插件定义的�
 | `ml` → `c` | 任务列表 |
 | `ml` → `t` | 切换任务状态 |
 
-> `m` 前缀仅 CodeMirror 源码模式 normal 态可用。TipTap 所见即所得模式用 `;` Leader 菜单。
+> `m` 前缀在 CodeMirror 源码模式与 TipTap 所见即所得模式 normal 态下均可用。
 
 ### 7.4 动作命名空间
 
@@ -376,8 +386,7 @@ Leader 键是用户自定义的特殊键，用于触发个人或插件定义的�
 | 项                   | 类型           | 默认            |
 | ---------------------- | ---------------- | ----------------- |
 | 启用 Vim 模式        | 开关           | 关              |
-| Leader 键            | 文本（单字符） | `Space`         |
-| TipTap Leader 触发键 | 文本           | `;`             |
+| Leader 键            | 文本（单字符） | `Space`（源码/所见即所得统一） |
 | 菜单超时             | 数字(ms)       | 3000            |
 
 ---
@@ -411,11 +420,14 @@ Leader 键是用户自定义的特殊键，用于触发个人或插件定义的�
 - `action` 分发器：`editor.*` 接 `executeCodeMirrorAction`/`executeCommand`，`app.*` 接 App handler
 - 验收：Leader 菜单覆盖所有快捷键能力
 
-### Phase 4 · TipTap Leader 适配 ✅ 已完成
+### Phase 4 · TipTap Vim 模态接入 ✅ 已完成
 
-- TipTap 编辑器加 `;` 触发分支
-- 复用同一份 LeaderMenu 与 leader.ts
-- 验收：所见即所得模式 `;` 弹菜单，动作生效
+- 引入 `vim-prose` 库，TipTap 接入完整 Vim 模态（normal/insert/visual）
+- `useEditor` deps `[vimEnabled]` 条件注入 `VimMode` 扩展
+- mode 同步：`editor.on('transaction')` → `getVimMode` → `setMode`
+- Leader 键统一为 Space（移除 `tiptapLeaderKey` 配置）
+- g/z/m 前缀 which-key 接入（与 CodeMirror 模式一致）
+- 验收：所见即所得模式 `Space` 弹 Leader 菜单、`i/a/o/Esc` 切换模式、`hjkl` 移动
 
 ### Phase 5 · 文件树 Vim 快捷键 ✅ 已完成
 
@@ -455,7 +467,7 @@ Leader 键是用户自定义的特殊键，用于触发个人或插件定义的�
 | 风险                                        | 影响 | 缓解                                                         |
 | --------------------------------------------- | ------ | -------------------------------------------------------------- |
 | `@replit/codemirror-vim` 与现有 CM 扩展冲突 | 中   | 用 Compartment 隔离扩展，已验证共存                            |
-| TipTap 无模态，双编辑器体验不一致           | 中   | 明确范围：TipTap 仅 Leader 层；文档说明权衡                  |
+| TipTap vim-prose 切换时丢失撤销历史           | 低   | `useEditor` deps 重建 Editor；文档内容不丢失，撤销历史可接受  |
 | Space 作 Leader 覆盖 cm-vim 默认右移        | 低   | cm-vim 支持自定义 keymap，Space 映射到 Leader 而非默认       |
 | `m` 前缀覆盖 cm-vim 默认 set mark           | 低   | 设计如此；set mark 在 Markdown 编辑器中非高频操作            |
 | 文件树 HOC 包裹影响现有 ContextMenu         | 低   | HOC 只加 keydown 监听，不改 ContextMenu 逻辑                 |
@@ -483,7 +495,7 @@ Leader 键是用户自定义的特殊键，用于触发个人或插件定义的�
 - [x] `m` 前缀：`mb` 加粗，`mi` 斜体，`mh1` H1 标题等
 - [x] `g` / `z` 前缀：gg/G/zz/zt/zb 等（cm-vim 内置）
 - [x] 文件树聚焦：j/k/h/l/a/A/r/d/y/q 全可用
-- [x] TipTap 模式 `;` 弹 Leader 菜单
+- [x] TipTap 模式 `Space` 弹 Leader 菜单（vim-prose 完整模态）
 - [x] 状态栏显示 `-- NORMAL/INSERT/VISUAL --`
 
 ### 14.3 模块化验收
