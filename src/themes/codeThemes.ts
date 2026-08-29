@@ -13,6 +13,8 @@ export interface CustomCodeTheme {
   fileName: string;
   importedAt: string;
   isDark: boolean;
+  /** Swatch colors for settings cards: keyword, string, comment, number, built_in */
+  previewColors?: string[];
 }
 
 export const CODE_THEMES: CodeTheme[] = [

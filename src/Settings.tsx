@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, type MouseEvent as ReactMouseEvent } from "react";
+import { useState, useCallback, useEffect, useRef, type MouseEvent as ReactMouseEvent, type CSSProperties } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { PhysicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import { availableMonitors } from "@tauri-apps/api/window";
@@ -13,17 +13,23 @@ import { PublishSettings } from "./publish";
 import { loadCanvasSettings, saveCanvasSettings, type CanvasSettings } from "./Canvas/canvas-settings";
 import { TerminalSettingsContent } from "./Terminal/TerminalSettingsContent";
 import { loadTerminalSettings, type TerminalSettings } from "./Terminal/terminal-settings";
-import { parseCssVariables, getCustomThemeCss, type ThemeVariable, type ThemeManifest } from "./themes/CustomThemeManager";
 import {
   mergeWithSchema,
   buildThemeEditorSections,
   getBuiltinColorMap,
   type ThemeEditorSectionView,
 } from "./themes/themeTokens";
+import {
+  CODE_THEME_COLOR_SCHEMA,
+  CODE_THEME_SAMPLE_SNIPPETS,
+  mergeCodeThemeWithSchema,
+  codeThemeVarsToPreviewStyle,
+} from "./themes/codeThemeTokens";
 import { ThemeColorField } from "./themes/ThemeColorField";
 import { ThemeSizeField } from "./themes/ThemeSizeField";
 import { syncAccentRgb } from "./themes/colorUtils";
 import { CODE_THEMES, type CustomCodeTheme } from "./themes";
+import { getCodeThemeCss, type ThemeVariable, type ThemeManifest, parseCssVariables, getCustomThemeCss } from "./themes/CustomThemeManager";
 import appIcon from "./assets/icon.png";
 import { useLanguage } from "./i18n/LanguageContext";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "./i18n";
@@ -786,6 +792,9 @@ function ThemeSettingsContent({
     customCodeThemes,
     importCodeTheme,
     deleteCodeTheme,
+    createCodeThemeFromBuiltin,
+    updateCodeThemeVariables,
+    previewCodeThemeVariables,
   } = useTheme();
   const [importing, setImporting] = useState(false);
   const [editingTheme, setEditingTheme] = useState<ThemeManifest | null>(null);
@@ -821,26 +830,37 @@ function ThemeSettingsContent({
 
   const [codeThemeName, setCodeThemeName] = useState("");
   const [codeThemeDialog, setCodeThemeDialog] = useState<{ open: boolean; filePath: string }>({ open: false, filePath: "" });
+  const [editingCodeTheme, setEditingCodeTheme] = useState<CustomCodeTheme | null>(null);
+  const [editCodeVariables, setEditCodeVariables] = useState<ThemeVariable[]>([]);
+  const [editCodeIsDark, setEditCodeIsDark] = useState(false);
+  const [codeSampleLang, setCodeSampleLang] = useState(CODE_THEME_SAMPLE_SNIPPETS[0].id);
+  const [forkingCode, setForkingCode] = useState(false);
+  const codePreviewTimerRef = useRef<number | null>(null);
 
   const [codeSampleHtml, setCodeSampleHtml] = useState("");
   useEffect(() => {
     let cancelled = false;
+    const snippet =
+      CODE_THEME_SAMPLE_SNIPPETS.find((s) => s.id === codeSampleLang) ?? CODE_THEME_SAMPLE_SNIPPETS[0];
     import("highlight.js")
       .then(({ default: hljs }) => {
         if (cancelled) return;
-        setCodeSampleHtml(
-          hljs.highlight(`function greet(name) {\n  return 42;\n}`, { language: "javascript" }).value,
-        );
+        try {
+          setCodeSampleHtml(hljs.highlight(snippet.code, { language: snippet.language }).value);
+        } catch {
+          setCodeSampleHtml(hljs.highlightAuto(snippet.code).value);
+        }
       })
       .catch(() => { });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [codeSampleLang]);
 
   useEffect(() => {
     return () => {
       if (previewTimerRef.current) window.clearTimeout(previewTimerRef.current);
+      if (codePreviewTimerRef.current) window.clearTimeout(codePreviewTimerRef.current);
     };
   }, []);
 
@@ -1036,9 +1056,157 @@ function ThemeSettingsContent({
     }
   }, [deleteCodeTheme, t]);
 
+  const scheduleCodePreview = useCallback((id: string, vars: ThemeVariable[]) => {
+    if (codePreviewTimerRef.current) window.clearTimeout(codePreviewTimerRef.current);
+    codePreviewTimerRef.current = window.setTimeout(() => {
+      previewCodeThemeVariables(id, vars);
+    }, 80);
+  }, [previewCodeThemeVariables]);
+
+  const openCodeEditor = useCallback((manifest: CustomCodeTheme, variables: ThemeVariable[]) => {
+    const merged = mergeCodeThemeWithSchema(variables);
+    setEditCodeVariables(merged);
+    setEditCodeIsDark(manifest.isDark);
+    setEditingCodeTheme(manifest);
+    setCodeTheme(manifest.id);
+    previewCodeThemeVariables(manifest.id, merged);
+  }, [previewCodeThemeVariables, setCodeTheme]);
+
+  const handleStartEditCodeTheme = useCallback(async (manifest: CustomCodeTheme) => {
+    try {
+      const css = await getCodeThemeCss(manifest.id);
+      openCodeEditor(manifest, parseCssVariables(css));
+    } catch (err) {
+      console.error(t("settings.theme.loadThemeFailed"), err);
+    }
+  }, [openCodeEditor, t]);
+
+  const handleForkCodeTheme = useCallback(async (builtinId: string, label: string) => {
+    try {
+      setForkingCode(true);
+      const name = t("settings.theme.forkedName", { name: label });
+      const manifest = await createCodeThemeFromBuiltin(builtinId, name);
+      await handleStartEditCodeTheme(manifest);
+    } catch (err) {
+      console.error(t("settings.theme.forkFailed"), err);
+    } finally {
+      setForkingCode(false);
+    }
+  }, [createCodeThemeFromBuiltin, handleStartEditCodeTheme, t]);
+
+  const handleCodeVariableChange = useCallback((name: string, newValue: string) => {
+    setEditCodeVariables((prev) => {
+      const next = prev.map((v) => (v.name === name ? { ...v, value: newValue } : v));
+      if (editingCodeTheme) {
+        scheduleCodePreview(editingCodeTheme.id, next);
+      }
+      return next;
+    });
+  }, [editingCodeTheme, scheduleCodePreview]);
+
+  const handleSaveCodeEdit = useCallback(async () => {
+    if (!editingCodeTheme) return;
+    const isDark = editCodeIsDark;
+    await updateCodeThemeVariables(editingCodeTheme.id, editCodeVariables, isDark);
+    setEditingCodeTheme(null);
+  }, [editingCodeTheme, editCodeVariables, editCodeIsDark, updateCodeThemeVariables]);
+
+  const handleCancelCodeEdit = useCallback(async () => {
+    if (editingCodeTheme) {
+      try {
+        const css = await getCodeThemeCss(editingCodeTheme.id);
+        previewCodeThemeVariables(editingCodeTheme.id, parseCssVariables(css));
+      } catch {
+        /* ignore */
+      }
+    }
+    setEditingCodeTheme(null);
+  }, [editingCodeTheme, previewCodeThemeVariables]);
+
   const editorSections: ThemeEditorSectionView[] | null = editingTheme
     ? buildThemeEditorSections(editVariables)
     : null;
+
+  const codePreviewStyle = editingCodeTheme
+    ? (codeThemeVarsToPreviewStyle(editCodeVariables) as CSSProperties)
+    : undefined;
+
+  if (editingCodeTheme) {
+    return (
+      <div className="settings-section theme-editor code-theme-editor">
+        <div className="theme-editor-sticky">
+          <div className="theme-editor-header">
+            <button className="theme-editor-back" onClick={handleCancelCodeEdit}>
+              {t("settings.theme.back")}
+            </button>
+            <h3 className="settings-section-title" style={{ marginTop: 0 }}>
+              {t("settings.theme.editCodeTheme", { name: editingCodeTheme.name })}
+            </h3>
+            <div className="theme-editor-actions">
+              <button className="settings-button" onClick={handleSaveCodeEdit}>{t("settings.theme.save")}</button>
+              <button className="settings-button theme-editor-cancel" onClick={handleCancelCodeEdit}>{t("settings.theme.cancel")}</button>
+            </div>
+          </div>
+
+          <div className="settings-code-theme-preview code-theme-editor-preview">
+            <div className="settings-code-theme-preview-toolbar">
+              <div className="settings-code-theme-preview-title">{t("settings.theme.preview")}</div>
+              <div className="settings-code-sample-tabs">
+                {CODE_THEME_SAMPLE_SNIPPETS.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className={`settings-code-sample-tab${codeSampleLang === s.id ? " active" : ""}`}
+                    onClick={() => setCodeSampleLang(s.id)}
+                  >
+                    {t(`settings.theme.${s.labelKey}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <pre
+              className="settings-code-theme-preview-code"
+              style={codePreviewStyle}
+            >
+              <code dangerouslySetInnerHTML={{ __html: codeSampleHtml }} />
+            </pre>
+          </div>
+        </div>
+
+        <div className="theme-editor-variables">
+          <div className="theme-editor-group">
+            <h4 className="theme-editor-group-title">{t("settings.theme.groupCodeHighlight")}</h4>
+            {CODE_THEME_COLOR_SCHEMA.map((token) => {
+              const variable = editCodeVariables.find((v) => v.name === token.name);
+              if (!variable) return null;
+              return (
+                <ThemeColorField
+                  key={token.name}
+                  label={t(`settings.theme.token.${token.labelKey}`)}
+                  varName={token.name}
+                  value={variable.value}
+                  onChange={(val) => handleCodeVariableChange(token.name, val)}
+                />
+              );
+            })}
+            <label className="theme-editor-row code-theme-is-dark-row">
+              <div className="theme-editor-label-block">
+                <span className="theme-editor-label">{t("settings.theme.codeThemeIsDark")}</span>
+                <span className="theme-editor-var-name">{t("settings.theme.codeThemeIsDarkHint")}</span>
+              </div>
+              <div className="theme-editor-control">
+                <input
+                  type="checkbox"
+                  checked={editCodeIsDark}
+                  onChange={(e) => setEditCodeIsDark(e.target.checked)}
+                />
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (editingTheme && editorSections) {
     return (
@@ -1279,63 +1447,183 @@ function ThemeSettingsContent({
       )}
 
       <h3 className="settings-section-title">{t("settings.theme.codeTheme")}</h3>
-      <div className="settings-code-theme-row">
-        <label className="settings-item-label">{t("settings.theme.codeHighlightTheme")}</label>
-        <SettingsSelect
-          value={codeTheme}
-          onChange={setCodeTheme}
-          minWidth={200}
-          options={[
-            { value: "auto", label: t("settings.theme.followAppTheme") },
-            ...CODE_THEMES.filter((ct) => !ct.isDark).map((ct) => ({
-              value: ct.id,
-              label: ct.name,
-              group: t("settings.theme.lightTheme"),
-            })),
-            ...CODE_THEMES.filter((ct) => ct.isDark).map((ct) => ({
-              value: ct.id,
-              label: ct.name,
-              group: t("settings.theme.darkTheme"),
-            })),
-            ...customCodeThemes.map((m) => ({
-              value: m.id,
-              label: m.name,
-              group: t("settings.theme.customCodeTheme"),
-            })),
-          ]}
-        />
-      </div>
-      <div className="settings-code-theme-preview">
-        <div className="settings-code-theme-preview-title">{t("settings.theme.preview")}</div>
-        <pre className="settings-code-theme-preview-code">
-          <code dangerouslySetInnerHTML={{ __html: codeSampleHtml }} />
-        </pre>
+      <p className="settings-hint" style={{ marginTop: -8, marginBottom: 12 }}>
+        {t("settings.theme.codeThemeCardHint")}
+      </p>
+
+      <div className="settings-theme-grid">
+        <div
+          className={`settings-theme-card${codeTheme === "auto" ? " active" : ""}`}
+          onClick={() => setCodeTheme("auto")}
+        >
+          <div
+            className="settings-theme-preview code-theme-card-preview"
+            style={{ background: "linear-gradient(135deg, #f6f8fa 50%, #0d1117 50%)" }}
+          >
+            <div className="code-theme-card-mock" aria-hidden>
+              <span className="code-theme-card-line" style={{ background: "#d73a49", width: "70%" }} />
+              <span className="code-theme-card-line" style={{ background: "#ff7b72", width: "55%" }} />
+              <span className="code-theme-card-line" style={{ background: "#6a737d", width: "40%" }} />
+            </div>
+            {codeTheme === "auto" && (
+              <div className="settings-theme-check">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </div>
+            )}
+          </div>
+          <span className="settings-theme-name">{t("settings.theme.followAppTheme")}</span>
+        </div>
+
+        {CODE_THEMES.map((ct) => {
+          const colors = [
+            ct.variables["--hljs-keyword"],
+            ct.variables["--hljs-string"],
+            ct.variables["--hljs-comment"],
+            ct.variables["--hljs-number"],
+            ct.variables["--hljs-built_in"],
+          ];
+          const active = codeTheme === ct.id;
+          return (
+            <div
+              key={ct.id}
+              className={`settings-theme-card${active ? " active" : ""}`}
+              onClick={() => setCodeTheme(ct.id)}
+            >
+              <div
+                className="settings-theme-preview code-theme-card-preview"
+                style={{ background: ct.isDark ? "#0d1117" : "#f6f8fa" }}
+              >
+                <div className="code-theme-card-mock" aria-hidden>
+                  <span className="code-theme-card-line" style={{ background: colors[0], width: "72%" }} />
+                  <span className="code-theme-card-line" style={{ background: colors[1], width: "58%" }} />
+                  <span className="code-theme-card-line" style={{ background: colors[2], width: "45%" }} />
+                  <span className="code-theme-card-line" style={{ background: colors[3], width: "38%" }} />
+                  <span className="code-theme-card-line" style={{ background: colors[4], width: "50%" }} />
+                </div>
+                {active && (
+                  <div className="settings-theme-check">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </div>
+                )}
+                <div className="custom-theme-actions">
+                  <button
+                    className="custom-theme-edit-btn"
+                    title={t("settings.theme.forkAndEdit")}
+                    disabled={forkingCode}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleForkCodeTheme(ct.id, ct.name);
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <span className="settings-theme-name">{ct.name}</span>
+            </div>
+          );
+        })}
       </div>
 
       <h3 className="settings-section-title">{t("settings.theme.customCodeTheme")}</h3>
-      <div className="settings-custom-code-themes">
-        {customCodeThemes.map((m) => (
-          <div
-            key={m.id}
-            className={`settings-custom-code-theme-card${codeTheme === m.id ? " active" : ""}`}
-            onClick={() => setCodeTheme(m.id)}
-          >
-            <span className="settings-custom-code-theme-name">{m.name}</span>
-            <button
-              className="settings-custom-code-theme-delete"
-              title={t("settings.theme.deleteBtn")}
-              onClick={(e) => { e.stopPropagation(); handleDeleteCodeTheme(m); }}
+      <div className="settings-theme-grid">
+        {customCodeThemes.map((m) => {
+          const colors = m.previewColors ?? ["#d73a49", "#032f62", "#6a737d", "#005cc5", "#e36209"];
+          const active = codeTheme === m.id;
+          return (
+            <div
+              key={m.id}
+              className={`settings-theme-card custom-theme-card${active ? " active" : ""}`}
+              onClick={() => setCodeTheme(m.id)}
             >
-              ×
-            </button>
-          </div>
-        ))}
+              <div
+                className="settings-theme-preview code-theme-card-preview"
+                style={{ background: m.isDark ? "#0d1117" : "#f6f8fa" }}
+              >
+                <div className="code-theme-card-mock" aria-hidden>
+                  {colors.slice(0, 5).map((c, i) => (
+                    <span
+                      key={i}
+                      className="code-theme-card-line"
+                      style={{ background: c, width: `${72 - i * 8}%` }}
+                    />
+                  ))}
+                </div>
+                {active && (
+                  <div className="settings-theme-check">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </div>
+                )}
+                <div className="custom-theme-actions">
+                  <button
+                    className="custom-theme-edit-btn"
+                    title={t("settings.theme.edit")}
+                    onClick={(e) => { e.stopPropagation(); handleStartEditCodeTheme(m); }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
+                  </button>
+                  <button
+                    className="custom-theme-delete-btn"
+                    title={t("settings.theme.deleteBtn")}
+                    onClick={(e) => { e.stopPropagation(); handleDeleteCodeTheme(m); }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <span className="settings-theme-name">{m.name}</span>
+            </div>
+          );
+        })}
         <div
-          className="settings-custom-code-theme-card settings-custom-code-theme-add"
+          className="settings-theme-card settings-theme-import-card"
           onClick={handleImportCodeTheme}
         >
-          {`+ ${t("settings.theme.importCodeTheme")}`}
+          <div className="settings-theme-preview settings-theme-import-preview">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </div>
+          <span className="settings-theme-name">{t("settings.theme.importCodeTheme")}</span>
         </div>
+      </div>
+
+      <div className="settings-code-theme-preview" style={{ marginTop: 16 }}>
+        <div className="settings-code-theme-preview-toolbar">
+          <div className="settings-code-theme-preview-title">{t("settings.theme.preview")}</div>
+          <div className="settings-code-sample-tabs">
+            {CODE_THEME_SAMPLE_SNIPPETS.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={`settings-code-sample-tab${codeSampleLang === s.id ? " active" : ""}`}
+                onClick={() => setCodeSampleLang(s.id)}
+              >
+                {t(`settings.theme.${s.labelKey}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <pre className="settings-code-theme-preview-code">
+          <code dangerouslySetInnerHTML={{ __html: codeSampleHtml }} />
+        </pre>
       </div>
 
       {nameDialog.open && (
