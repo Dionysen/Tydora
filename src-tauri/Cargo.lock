@@ -2651,6 +2651,7 @@ dependencies = [
  "objc2-core-foundation",
  "objc2-core-graphics",
  "objc2-foundation",
+ "objc2-quartz-core",
 ]
 
 [[package]]
@@ -5129,6 +5130,9 @@ dependencies = [
  "base64 0.22.1",
  "fontdb",
  "notify",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-quartz-core",
  "portable-pty",
  "reqwest 0.12.28",
  "serde",

@@ -241,6 +241,30 @@
   margin: 0 auto;
   width: 100%;
   counter-reset: line;
+  /*
+   * 块间距用 flex gap，而不是子元素 margin。
+   * margin 间隙会被浏览器原生选区画成「段与段之间的细横条」；
+   * gap 不在任一块的盒模型外形成可画选区的空隙。
+   */
+  display: flex;
+  flex-direction: column;
+  gap: var(--editor-paragraph-spacing, 0.5em);
+}
+
+/* 顶层块：清掉纵向 margin，间距交给父级 gap（避免选区横条） */
+.tiptap-editor .tiptap > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* 标题仍需要比段落更大的上方呼吸感：用 padding，不进 margin 选区空隙 */
+.tiptap-editor .tiptap > :where(h1, h2, h3, h4, h5, h6) {
+  padding-top: 0.5em;
+}
+
+/* macOS WebKit：独立合成层，减轻 contenteditable 选区/光标鬼影 */
+html.platform-macos .tiptap-editor .tiptap {
+  transform: translateZ(0);
 }
 
 /* ── IR 模式右侧行号 ── */
@@ -276,46 +300,46 @@
   content: none;
 }
 
-/* 标题 */
+/* 标题 — 纵向间距由 .tiptap 的 flex gap / padding-top 负责，避免 margin 选区横条 */
 .tiptap-editor h1 {
   font-size: 2em;
-  margin: 1em 0 0.5em;
+  margin: 0;
   font-weight: 600;
 }
 
 .tiptap-editor h2 {
   font-size: 1.5em;
-  margin: 1em 0 0.5em;
+  margin: 0;
   font-weight: 600;
 }
 
 .tiptap-editor h3 {
   font-size: 1.25em;
-  margin: 1em 0 0.5em;
+  margin: 0;
   font-weight: 600;
 }
 
 .tiptap-editor h4 {
   font-size: 1.1em;
-  margin: 1em 0 0.5em;
+  margin: 0;
   font-weight: 600;
 }
 
 .tiptap-editor h5 {
   font-size: 1em;
-  margin: 1em 0 0.5em;
+  margin: 0;
   font-weight: 600;
 }
 
 .tiptap-editor h6 {
   font-size: 0.9em;
-  margin: 1em 0 0.5em;
+  margin: 0;
   font-weight: 600;
 }
 
 /* 段落 */
 .tiptap-editor p {
-  margin: var(--editor-paragraph-spacing, 0.5em) 0;
+  margin: 0;
 }
 
 /* TipTap Placeholder：空文档时显示"输入@插入"提示 */
@@ -425,7 +449,10 @@
   background: var(--blockquote-bg, transparent);
   color: var(--blockquote-text, var(--text-secondary, #666));
   padding: var(--padding-blockquote-y, 4px) var(--padding-blockquote-x, 16px);
-  margin: 1em 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--editor-paragraph-spacing, 0.5em);
 }
 
 /* ── Callouts (提示框 / Alerts) ── */
@@ -435,9 +462,12 @@
   border-left: 4px solid;
   border-radius: 0 6px 6px 0;
   padding: 12px 16px;
-  margin: 1em 0;
+  margin: 0;
   position: relative;
   color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: var(--editor-paragraph-spacing, 0.5em);
 }
 
 /* 隐藏原始 [!TYPE] 标记文本 — 彻底移出布局流 */
@@ -599,16 +629,17 @@
   color: #0969da;
 }
 
-/* 列表 */
+/* 列表 — 顶层间距靠 .tiptap flex gap；勿对 ul/ol 设 display:flex（会打乱 list marker） */
 .tiptap-editor ul,
 .tiptap-editor ol {
   padding-left: 2em;
-  margin: 0.5em 0;
+  margin: 0;
   position: relative;
 }
 
 .tiptap-editor li {
-  margin: 0.25em 0;
+  margin: 0;
+  padding-block: 0.125em;
 }
 
 .tiptap-editor li>p {
@@ -1152,7 +1183,7 @@
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
-  margin: 1em 0;
+  margin: 0;
   border-radius: var(--radius-table, 0);
   overflow: hidden;
 }
@@ -1186,14 +1217,14 @@
   max-width: 100%;
   height: auto;
   border-radius: 4px;
-  margin: 0.5em 0;
+  margin: 0;
   touch-action: manipulation;
   -webkit-touch-callout: none;
 }
 
 /* 图片节点视图：悬停/选中时右下角显示缩放手柄 */
 .tiptap-editor .image-node-view {
-  margin: 0.5em 0;
+  margin: 0;
 }
 
 .tiptap-editor .image-node-view img {
@@ -1412,15 +1443,24 @@
   text-decoration: underline;
 }
 
-/* Frontmatter 块 */
-.tiptap-editor [data-type="frontmatter"] {
+/* Frontmatter / metadata 块
+ * 勿用 overflow:hidden / clip-path + border-radius：macOS WKWebView 跨块选区后会留下幽灵高亮。
+ * 圆角只靠 border-radius（背景会随圆角绘制）；结构见 Frontmatter NodeView（扁平，无 pre）。 */
+.tiptap-editor [data-type="frontmatter"],
+.tiptap-editor .frontmatter-node {
   background: var(--metadata-bg, var(--bg-secondary, #f5f5f5));
   border: 1px solid var(--metadata-border, var(--border, #e0e0e0));
   border-radius: var(--radius-metadata, 8px);
-  margin: 0 0 1em 0;
+  margin: 0;
   font-size: 0.85em;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  clip-path: none;
+}
+
+html.platform-macos .tiptap-editor [data-type="frontmatter"],
+html.platform-macos .tiptap-editor .frontmatter-node {
+  transform: translateZ(0);
 }
 
 .frontmatter-label {
@@ -1432,13 +1472,20 @@
   letter-spacing: 0.5px;
   border-bottom: 1px solid var(--metadata-border, var(--border, #e0e0e0));
   user-select: none;
+  -webkit-user-select: none;
   font-family: var(--editor-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  pointer-events: none;
 }
 
-.tiptap-editor [data-type="frontmatter"] pre {
+.tiptap-editor [data-type="frontmatter"] .frontmatter-content,
+.tiptap-editor .frontmatter-node .frontmatter-content,
+.tiptap-editor [data-type="frontmatter"] > code,
+.tiptap-editor [data-type="frontmatter"] pre,
+.tiptap-editor [data-type="frontmatter"] pre code {
+  display: block;
   margin: 0;
   padding: 12px 16px;
-  overflow-x: auto;
+  overflow: visible;
   background: transparent;
   font-family: var(--font-mono, "JetBrains Mono", "Fira Code", "Consolas", monospace);
   font-size: inherit;
@@ -1446,21 +1493,22 @@
   border: none;
   border-radius: 0;
   tab-size: 2;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: inherit;
 }
 
-.tiptap-editor [data-type="frontmatter"] pre code {
-  background: none;
-  padding: 0;
-  font-size: inherit;
-  font-family: inherit;
-  border-radius: 0;
+/* metadata 标题条永不参与选区画色 */
+.frontmatter-label::selection {
+  background: transparent !important;
+  color: inherit !important;
 }
 
 /* 水平线 */
 .tiptap-editor hr {
   border: none;
   border-top: 1px solid var(--border, #d9ede5);
-  margin: 1.5em 0;
+  margin: 0;
 }
 
 /* Wiki 链接 */
@@ -1582,13 +1630,15 @@
 }
 
 .tiptap-editor ul[data-type="taskList"] li>div>p+p {
-  margin-top: 0.5em;
+  margin-top: 0;
+  padding-top: 0.5em;
 }
 
 /* 嵌套任务列表 - 缩进对齐复选框 */
 .tiptap-editor ul[data-type="taskList"] ul[data-type="taskList"] {
-  margin: 0.25em 0;
+  margin: 0;
   margin-left: 10px;
+  padding-block: 0.125em;
   position: relative;
 }
 
@@ -1622,10 +1672,10 @@
   -webkit-box-decoration-break: clone;
 }
 
-/* 代码块工具栏 */
+/* 代码块工具栏 — 纵向间距由编辑器 flex gap 负责 */
 .code-block-toolbar-wrapper {
   position: relative;
-  margin: 1em 0;
+  margin: 0;
   border-radius: var(--radius-code-block, 8px);
   background: var(--bg-code, #f6f8fa);
   border: 1px solid var(--border, #e0e0e0);
@@ -1868,7 +1918,7 @@ html[data-code-block-toolbar="classic"] .code-block-content {
 /* ── Mermaid 图表节点 ── */
 
 .mermaid-node {
-  margin: 1em 0;
+  margin: 0;
   border: 1px solid var(--border, #e0e0e0);
   border-radius: 8px;
   overflow: hidden;

@@ -1,6 +1,7 @@
 import { Node, findChildren } from "@tiptap/core";
 import type { Node as ProsemirrorNode } from "@tiptap/pm/model";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
+import type { NodeView, ViewMutationRecord } from "@tiptap/pm/view";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { common, createLowlight } from "lowlight";
 
@@ -29,7 +30,7 @@ function parseNodes(
     if (node.children) {
       return parseNodes(node.children, classes);
     }
-    return { text: node.value, classes };
+    return { text: node.value as string, classes };
   });
 }
 
@@ -124,6 +125,52 @@ function createHighlightPlugin() {
   });
 }
 
+
+/**
+ * Frontmatter NodeView：扁平 DOM（无 pre/code 嵌套），避免 WKWebView
+ * 跨块选区后在 nested pre 上留下幽灵高亮。标题条 contentEditable=false，
+ * 与代码块工具栏同策略。
+ *
+ * 注意：不要用 clip-path / overflow:hidden 裁圆角——会再次触发选区残影。
+ */
+class FrontmatterView implements NodeView {
+  dom: HTMLElement;
+  contentDOM: HTMLElement;
+
+  constructor() {
+    const wrap = document.createElement("div");
+    wrap.dataset.type = "frontmatter";
+    wrap.className = "frontmatter-node";
+
+    const label = document.createElement("div");
+    label.className = "frontmatter-label";
+    label.contentEditable = "false";
+    label.textContent = "METADATA";
+    label.setAttribute("aria-hidden", "true");
+
+    // 直接用 code 承载文本（white-space: pre-wrap），不要包一层 pre
+    const code = document.createElement("code");
+    code.className = "frontmatter-content";
+
+    wrap.appendChild(label);
+    wrap.appendChild(code);
+
+    this.dom = wrap;
+    this.contentDOM = code;
+  }
+
+  ignoreMutation(mutation: ViewMutationRecord) {
+    // 忽略标题条上的变更，避免与 PM 内容同步打架
+    const target = mutation.target;
+    if (!(target instanceof globalThis.Node)) return false;
+    const el =
+      target.nodeType === globalThis.Node.TEXT_NODE
+        ? target.parentElement
+        : (target as HTMLElement);
+    return !!el?.closest?.(".frontmatter-label");
+  }
+}
+
 // ── Frontmatter Node 扩展 ──
 
 export const Frontmatter = Node.create({
@@ -134,24 +181,29 @@ export const Frontmatter = Node.create({
   marks: "", // 禁止行内格式标记
   code: true, // 内容作为纯文本，不解析行内 markdown
   defining: true,
-  isolating: true,
+  // 不用 isolating：跨块选区时 isolating 边界会让 WKWebView 更容易留下幽灵高亮
 
   parseHTML() {
     return [{ tag: "div[data-type='frontmatter']" }];
   },
 
   renderHTML({ HTMLAttributes }) {
+    // 导出/SSR：扁平结构，与 NodeView 一致
     return [
       "div",
-      { "data-type": "frontmatter", ...HTMLAttributes },
-      ["pre", ["code", 0]],
+      { "data-type": "frontmatter", class: "frontmatter-node", ...HTMLAttributes },
+      0,
     ];
+  },
+
+  addNodeView() {
+    return () => new FrontmatterView();
   },
 
   addProseMirrorPlugins() {
     return [createHighlightPlugin()];
   },
-}).extend({
+
   addStorage() {
     return {
       markdown: {

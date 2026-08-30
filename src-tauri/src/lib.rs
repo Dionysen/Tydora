@@ -28,6 +28,17 @@ fn emit_boot_timing<R: tauri::Runtime, M: tauri::Manager<R> + tauri::Emitter<R>>
 }
 
 mod commands;
+
+#[cfg(target_os = "macos")]
+mod macos_chrome;
+
+/// macOS：应用原生 CALayer 圆角。其他平台无操作。
+fn finish_macos_window(window: &tauri::WebviewWindow) {
+    #[cfg(target_os = "macos")]
+    macos_chrome::finish_macos_window(window);
+    #[cfg(not(target_os = "macos"))]
+    let _ = window;
+}
 use commands::watcher_commands::{watch_vault, unwatch_vault, WatcherState};
 use commands::remote_image::{fetch_remote_image, HttpClientState};
 use commands::proxy::{start_proxy_server, fetch_page_title};
@@ -218,7 +229,10 @@ async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
     let settings_window = builder.build();
 
     match settings_window {
-        Ok(_) => Ok(()),
+        Ok(win) => {
+            finish_macos_window(&win);
+            Ok(())
+        }
         Err(e) => Err(e.to_string()),
     }
 }
@@ -278,7 +292,8 @@ fn spawn_editor_window(
     let window = builder.build();
 
     match window {
-        Ok(_) => {
+        Ok(win) => {
+            finish_macos_window(&win);
             let app_handle = app.clone();
             let fp = file_path.to_string();
             let lbl = label.clone();
@@ -341,7 +356,10 @@ async fn open_mindmap_window(
     .build();
 
     match window {
-        Ok(_win) => Ok(()),
+        Ok(win) => {
+            finish_macos_window(&win);
+            Ok(())
+        }
         Err(e) => Err(e.to_string()),
     }
 }
@@ -377,7 +395,10 @@ async fn open_graph_window(
     .build();
 
     match window {
-        Ok(_win) => Ok(()),
+        Ok(win) => {
+            finish_macos_window(&win);
+            Ok(())
+        }
         Err(e) => Err(e.to_string()),
     }
 }
@@ -419,7 +440,10 @@ async fn open_canvas_window(
     .build();
 
     match window {
-        Ok(_win) => Ok(()),
+        Ok(win) => {
+            finish_macos_window(&win);
+            Ok(())
+        }
         Err(e) => Err(e.to_string()),
     }
 }
@@ -468,7 +492,8 @@ async fn open_canvas_in_new_window(
     .build();
 
     match window {
-        Ok(_) => {
+        Ok(win) => {
+            finish_macos_window(&win);
             let app_handle = app.clone();
             let cp = canvas_path.clone();
             let lbl = label.clone();
@@ -515,7 +540,10 @@ async fn open_vault_manager_window(app: tauri::AppHandle) -> Result<(), String> 
     .build();
 
     match window {
-        Ok(_) => Ok(()),
+        Ok(win) => {
+            finish_macos_window(&win);
+            Ok(())
+        }
         Err(e) => Err(e.to_string()),
     }
 }
@@ -582,7 +610,10 @@ async fn open_vault_in_new_window(app: tauri::AppHandle, vault_path: String, wid
     .build();
 
     match window {
-        Ok(_) => Ok(()),
+        Ok(win) => {
+            finish_macos_window(&win);
+            Ok(())
+        }
         Err(e) => Err(e.to_string()),
     }
 }
@@ -1879,6 +1910,7 @@ pub fn run() {
                         let _ = window.set_decorations(true);
                         let _ = window.set_title_bar_style(tauri::TitleBarStyle::Overlay);
                     }
+                    finish_macos_window(&window);
                     let _ = window.show();
                 }
                 emit_boot_timing(app, "main_window_shown");

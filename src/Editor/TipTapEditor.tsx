@@ -1,6 +1,7 @@
 import { useRef, useEffect, forwardRef, useImperativeHandle, useCallback, useState } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import { markInputRule } from "@tiptap/core";
+import type { EditorView } from "@tiptap/pm/view";
 import StarterKit from "@tiptap/starter-kit";
 import Paragraph from "@tiptap/extension-paragraph";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -63,6 +64,50 @@ import type { EditorHandle, EditorMode } from "./types";
 import "./theme.css";
 import "katex/dist/katex.min.css";
 import "../tags/Tag.css";
+
+/** macOS WKWebView：折叠选区后清掉原生 Selection 残留（尤其跨块选区后点击）。 */
+function syncCollapsedDomSelection(view: EditorView, force = false) {
+  const { empty, from } = view.state.selection;
+  if (!empty) return;
+  const domSel = window.getSelection();
+  if (!domSel) return;
+  // WebKit 跨块选区后可能 rangeCount>1，或 isCollapsed 但仍有视觉残留
+  if (!force && domSel.isCollapsed && domSel.rangeCount <= 1) return;
+  domSel.removeAllRanges();
+  // WebKit 专有 empty()：比 removeAllRanges 更能打掉合成层上的幽灵高亮
+  try {
+    (domSel as Selection & { empty?: () => void }).empty?.();
+  } catch {
+    /* ignore */
+  }
+  try {
+    const start = view.domAtPos(from);
+    const range = document.createRange();
+    if (start.node.nodeType === Node.TEXT_NODE) {
+      range.setStart(start.node, start.offset);
+    } else if (start.node.childNodes[start.offset]) {
+      range.setStart(start.node.childNodes[start.offset], 0);
+    } else {
+      range.setStart(start.node, Math.min(start.offset, start.node.childNodes.length));
+    }
+    range.collapse(true);
+    domSel.addRange(range);
+  } catch {
+    // ignore: pos 可能落在 atom/node boundary
+  }
+  // 强制一次布局，促使 WebKit 丢掉旧选区合成层（不改 decoration / user-select，避免闪烁）
+  void view.dom.offsetHeight;
+}
+
+function isPlatformMacos(): boolean {
+  return (
+    typeof document !== "undefined" &&
+    document.documentElement.classList.contains("platform-macos")
+  );
+}
+
+/** 跨块选区后点击：记录 mousedown 时是否已有非折叠选区 */
+let macPointerHadDomRange = false;
 
 const lowlight = createLowlight(common);
 // 额外语言（vim/dockerfile/haskell 等 14 种）在首帧渲染后动态 import 注册，
@@ -935,6 +980,11 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         }
       },
       onSelectionUpdate: ({ editor: ed }) => {
+        // macOS WebKit：折叠后清原生残留（跨块选区后尤其明显）
+        if (isPlatformMacos() && ed.state.selection.empty) {
+          requestAnimationFrame(() => syncCollapsedDomSelection(ed.view, macPointerHadDomRange));
+        }
+
         if (!typewriterModeRef.current) return;
         if (typewriterRafRef.current) return; // 已排帧，跳过
         typewriterRafRef.current = requestAnimationFrame(() => {
@@ -955,22 +1005,33 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
       },
       editorProps: {
         handleDOMEvents: {
-          // WKWebView：祖先若有 overflow 裁剪 + border-radius，点击后可能留下「幽灵选区」
-          // （ProseMirror 选区已更新，但原生 Selection 高亮未清）。在非扩展选区的
-          // mousedown 上先清掉 DOM Selection，交给后续 PM 逻辑设置新光标/选区。
-          mousedown: (_view: any, event: MouseEvent) => {
-            if (event.button !== 0 || event.shiftKey) return false;
-            const target = event.target as HTMLElement | null;
-            // 工具栏等 contentEditable=false 区域会自行 preventDefault 以保留焦点，勿抢先清空
-            if (target?.closest?.(
-              ".code-block-toolbar, .code-block-lang-dropdown-portal, .mermaid-toolbar, .image-hover-toolbar, .image-resize-handle"
-            )) {
+          // 记录左键按下时是否已有跨块选区，供 mouseup / selectionUpdate 强制清幽灵高亮
+          mousedown: (_view: EditorView, event: MouseEvent) => {
+            if (!isPlatformMacos() || event.button !== 0 || event.shiftKey) {
+              macPointerHadDomRange = false;
               return false;
             }
             const domSel = window.getSelection();
-            if (domSel && !domSel.isCollapsed) {
-              domSel.removeAllRanges();
+            macPointerHadDomRange = !!(domSel && (!domSel.isCollapsed || domSel.rangeCount > 1));
+            // 跨块选区后立刻清原生 Selection，减轻 WebKit 在 heading/code 上留下的合成层残影
+            if (macPointerHadDomRange) {
+              domSel!.removeAllRanges();
+              try {
+                (domSel as Selection & { empty?: () => void }).empty?.();
+              } catch {
+                /* ignore */
+              }
             }
+            return false;
+          },
+          // macOS：左键抬起后再对齐一次（勿连清两轮，避免 metadata 闪烁）
+          mouseup: (view: EditorView, event: MouseEvent) => {
+            if (event.button !== 0 || !isPlatformMacos()) return false;
+            const hadRange = macPointerHadDomRange;
+            macPointerHadDomRange = false;
+            requestAnimationFrame(() => {
+              syncCollapsedDomSelection(view, hadRange);
+            });
             return false;
           },
           keydown: (_view: any, event: KeyboardEvent) => {
@@ -1834,6 +1895,33 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
       return () => endSpaceObserver.disconnect();
     }, [editor, mode]);
 
+    const openContextMenuAt = useCallback((x: number, y: number) => {
+      setContextMenuPos({ x, y });
+    }, []);
+
+    // WebKit 在右键 mousedown（捕获阶段）就会选中单词。
+    // 必须在捕获阶段 preventDefault；部分环境下还会抑制 contextmenu，故一并打开菜单。
+    useEffect(() => {
+      if (mode === "sv") return;
+      const el = containerRef.current;
+      if (!el) return;
+      const onMouseDownCapture = (e: MouseEvent) => {
+        if (e.button !== 2) return;
+        e.preventDefault();
+        openContextMenuAt(e.clientX, e.clientY);
+      };
+      const onContextMenuCapture = (e: MouseEvent) => {
+        e.preventDefault();
+        openContextMenuAt(e.clientX, e.clientY);
+      };
+      el.addEventListener("mousedown", onMouseDownCapture, true);
+      el.addEventListener("contextmenu", onContextMenuCapture, true);
+      return () => {
+        el.removeEventListener("mousedown", onMouseDownCapture, true);
+        el.removeEventListener("contextmenu", onContextMenuCapture, true);
+      };
+    }, [openContextMenuAt, mode, editor]);
+
     if (mode === "sv") {
       return (
         <CodeMirrorEditor
@@ -1846,11 +1934,6 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         />
       );
     }
-
-    const handleContextMenu = (e: React.MouseEvent) => {
-      e.preventDefault();
-      setContextMenuPos({ x: e.clientX, y: e.clientY });
-    };
 
     return (
       <div
@@ -1865,7 +1948,6 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         <div
           ref={containerRef}
           className="editor-container"
-          onContextMenu={handleContextMenu}
         >
           <EditorContent editor={editor} className="tiptap-editor" />
           {tableToolbar && editor && (

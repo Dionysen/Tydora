@@ -886,21 +886,25 @@
   color: var(--text-secondary);
 }
 
-/* Frontmatter 块 */
-.canvas-note-editor [data-type="frontmatter"] {
+/* Frontmatter 块 — 与编辑器主题一致：避免 overflow:hidden / clip-path 触发 WebKit 幽灵选区 */
+.canvas-note-editor [data-type="frontmatter"],
+.canvas-note-editor .frontmatter-node {
   background: var(--metadata-bg, var(--bg-secondary, #f5f5f5));
   border: 1px solid var(--metadata-border, var(--border, #e0e0e0));
   border-radius: var(--radius-metadata, 8px);
-  margin: 0 0 1em 0;
+  margin: 0;
   font-size: 0.85em;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  clip-path: none;
 }
 
+.canvas-note-editor [data-type="frontmatter"] .frontmatter-content,
+.canvas-note-editor .frontmatter-node .frontmatter-content,
 .canvas-note-editor [data-type="frontmatter"] pre {
   margin: 0;
   padding: 12px 16px;
-  overflow-x: auto;
+  overflow: visible;
   background: transparent;
   font-family: var(--font-mono, "JetBrains Mono", "Fira Code", "Consolas", monospace);
   font-size: inherit;
@@ -908,6 +912,7 @@
   border: none;
   border-radius: 0;
   tab-size: 2;
+  white-space: pre-wrap;
 }
 
 .canvas-note-editor [data-type="frontmatter"] pre code {

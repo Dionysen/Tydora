@@ -4,7 +4,9 @@
  * 因此 html/body/#root 的全局样式必须放在这里，保证所有窗口
  * 在任何 chunk 加载完成前就有正确的背景色与重置样式。
  *
- * 窗口使用 transparent + 无边框；圆角由 #root 裁剪实现（macOS 需 macOSPrivateApi）。
+ * 窗口使用 transparent；非 macOS 由 #root 的 border-radius + overflow 裁剪圆角。
+ * macOS：用 clip-path 做视觉圆角（不用 overflow，也不用原生 masksToBounds），
+ * 禁止在 contenteditable 祖先上使用 overflow + border-radius（会触发 WKWebView 幽灵选区）。
  */
 
 *,
@@ -30,11 +32,18 @@ body {
 #root {
   height: 100%;
   border-radius: 12px;
-  /* 优先 clip：hidden + border-radius 会在 WKWebView 里形成特殊合成层，
-     导致原生选区高亮在点击后无法失效（残留蓝块）。不支持 clip 时回退 hidden。 */
+  /* Windows/Linux：用 overflow 裁剪圆角。勿在 macOS 对编辑器祖先恢复此组合。 */
   overflow: hidden;
   overflow: clip;
   background: var(--bg-primary);
+}
+
+/* macOS：不用 overflow 裁剪（会幽灵选区）；用 clip-path 做视觉圆角。
+ * 原生 CALayer.masksToBounds 同样会干扰选区，故不在 contentView 上裁剪。 */
+html.platform-macos #root {
+  border-radius: 12px;
+  overflow: visible;
+  clip-path: inset(0 round 12px);
 }
 
 /* macOS 原生红绿灯占位（与 trafficLightPosition y=11、约 36px 顶栏对齐） */

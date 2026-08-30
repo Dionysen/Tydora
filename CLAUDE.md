@@ -381,6 +381,10 @@ editor.commands.setContent(htmlOrMarkdown);
 
 `WikiLinkAutocomplete` 组件监听 `wiki-link-trigger` 自定义事件，显示自动补全列表。选中后通过 Selection API 直接替换文本，避免 `setValue` 滚动到顶部。
 
+### 6. macOS 窗口圆角与选区
+
+macOS 透明窗口圆角用 CSS `clip-path: inset(0 round 12px)`（见 `src/global.css`），**不要**再用 `#root` 的 `overflow` + `border-radius`，也**不要**对承载 WKWebView 的 contentView 设 `CALayer.masksToBounds`——二者都会留下幽灵选区高亮。非 macOS 仍可用 `#root` 的 CSS overflow 裁剪。编辑器内右键需在捕获阶段 `preventDefault(mousedown button=2)`，否则 WebKit 会先选中单词。
+
 ## 已知问题与经验教训
 
 ### 1. Tiptap v3 + React 19 兼容性问题
