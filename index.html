@@ -5,7 +5,7 @@
     <script>
       (function() {
         try {
-          var theme = localStorage.getItem('zmd-theme');
+          var theme = localStorage.getItem('inimark-theme');
           var builtins = ['white','mint','mint-dark','liquid-glass','claude-code','purple','hermes','next'];
           if (theme && builtins.indexOf(theme) !== -1) {
             document.documentElement.dataset.theme = theme;
@@ -16,24 +16,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/icon.png" />
-    <title>zmd - Markdown Editor</title>
+    <title>Inimark - Markdown Editor</title>
   </head>
   <body>
     <div id="root"></div>
     <script>
-      window.__ZMD_ERRORS__ = [];
+      window.__INIMARK_ERRORS__ = [];
       window.onerror = function(msg, src, line, col, err) {
         var info = String(msg) + ' @ ' + String(src) + ':' + line;
-        window.__ZMD_ERRORS__.push(info);
-        var el = document.getElementById('zmd-error');
+        window.__INIMARK_ERRORS__.push(info);
+        var el = document.getElementById('inimark-error');
         if (el) {
           el.innerHTML += '<div>' + info + '</div>';
           el.style.display = 'block';
         }
-        console.error('[zmd]', msg, err);
+        console.error('[inimark]', msg, err);
       };
     </script>
-    <div id="zmd-error" style="display:none;position:fixed;top:0;left:0;right:0;background:#e06c75;color:#fff;padding:12px;z-index:99999;font-family:monospace;font-size:12px;max-height:200px;overflow:auto;white-space:pre-wrap;"></div>
+    <div id="inimark-error" style="display:none;position:fixed;top:0;left:0;right:0;background:#e06c75;color:#fff;padding:12px;z-index:99999;font-family:monospace;font-size:12px;max-height:200px;overflow:auto;white-space:pre-wrap;"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -25,7 +25,7 @@ export interface CanvasSettings {
   defaultMediaCardSize: { width: number; height: number };
 }
 
-export const CANVAS_SETTINGS_KEY = 'zmd-canvas-settings';
+export const CANVAS_SETTINGS_KEY = 'inimark-canvas-settings';
 
 export const DEFAULT_CANVAS_SETTINGS: CanvasSettings = {
   storageLocation: 'vault-root',

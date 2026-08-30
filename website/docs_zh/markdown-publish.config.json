@@ -1,11 +1,11 @@
 {
-  "siteName": "Tydora",
+  "siteName": "Inimark",
   "siteDescription": "一个现代的 Markdown 编辑器",
   "siteLang": "zh",
   "siteUrl": "",
   "vaultDir": "website/docs_zh",
   "buildMode": "full",
-  "baseHref": "/Tydora/",
+  "baseHref": "/Inimark/",
   "out": "website/site",
   "home": "index"
 }

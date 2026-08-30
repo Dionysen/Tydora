@@ -12,8 +12,8 @@ import shortcutsConfig from "../config/shortcuts.json";
 import { track, trackPageview, ANALYTICS_EVENTS } from "../analytics";
 import "./MindmapWindow.css";
 
-const MINDMAP_CONTENT_KEY = "zmd-mindmap-content";
-const MINDMAP_WINDOW_STATE_KEY = "zmd-mindmap-window-state";
+const MINDMAP_CONTENT_KEY = "inimark-mindmap-content";
+const MINDMAP_WINDOW_STATE_KEY = "inimark-mindmap-window-state";
 
 function getInitialExpandLevel(): number {
   try {
@@ -59,7 +59,7 @@ export default function MindmapWindow() {
     const interval = setInterval(() => {
       try {
         // 列表模式下不轮询，避免覆盖列表内容
-        const mode = localStorage.getItem("zmd-mindmap-mode");
+        const mode = localStorage.getItem("inimark-mindmap-mode");
         if (mode === "list") return;
         const stored = localStorage.getItem(MINDMAP_CONTENT_KEY);
         if (stored && stored !== content) {

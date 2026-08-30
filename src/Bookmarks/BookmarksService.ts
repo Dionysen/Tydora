@@ -1,6 +1,6 @@
 import i18n from "../i18n";
 
-const BOOKMARKS_KEY = "zmd-bookmarks";
+const BOOKMARKS_KEY = "inimark-bookmarks";
 
 export interface Bookmark {
   id: string;

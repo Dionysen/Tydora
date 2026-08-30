@@ -1,11 +1,11 @@
 {
-  "siteName": "Tydora",
+  "siteName": "Inimark",
   "siteDescription": "A modern Markdown editor",
   "siteLang": "en",
   "siteUrl": "",
   "vaultDir": "website/docs_en",
   "buildMode": "full",
-  "baseHref": "/Tydora/en/",
+  "baseHref": "/Inimark/en/",
   "out": "website/site/en",
   "home": "index"
 }

@@ -14,7 +14,7 @@ import { getBuiltinThemeVariables } from "./themeTokens";
 import { getBuiltinCodeThemeVariables } from "./codeThemeTokens";
 import type { ThemePair } from "./appearance";
 
-export const THEME_PACK_FORMAT = "tydora-theme-pack" as const;
+export const THEME_PACK_FORMAT = "inimark-theme-pack" as const;
 export const THEME_PACK_VERSION = 1 as const;
 
 export interface ThemePackSlot {
@@ -129,7 +129,7 @@ export async function buildThemePack(options: {
   return {
     format: THEME_PACK_FORMAT,
     version: THEME_PACK_VERSION,
-    name: name.trim() || "Tydora Theme",
+    name: name.trim() || "Inimark Theme",
     exportedAt: new Date().toISOString(),
     app: { light: appLight, dark: appDark },
     code: { light: codeLight, dark: codeDark },
@@ -146,7 +146,7 @@ export function parseThemePack(raw: string): ThemePack {
   if (!data || typeof data !== "object") throw new Error("Invalid theme pack");
   const pack = data as Partial<ThemePack>;
   if (pack.format !== THEME_PACK_FORMAT) {
-    throw new Error("Not a Tydora theme pack");
+    throw new Error("Not a Inimark theme pack");
   }
   if (pack.version !== THEME_PACK_VERSION) {
     throw new Error(`Unsupported theme pack version: ${String(pack.version)}`);
@@ -196,10 +196,10 @@ export async function importThemePackData(pack: ThemePack): Promise<ThemePackImp
 }
 
 export async function exportThemePackToFile(pack: ThemePack): Promise<string | null> {
-  const safeName = pack.name.replace(/[\\/:*?"<>|]+/g, "-").trim() || "tydora-theme";
+  const safeName = pack.name.replace(/[\\/:*?"<>|]+/g, "-").trim() || "inimark-theme";
   const filePath = await save({
-    defaultPath: `${safeName}.tydora-theme.json`,
-    filters: [{ name: "Tydora Theme Pack", extensions: ["json", "tydora-theme.json"] }],
+    defaultPath: `${safeName}.inimark-theme.json`,
+    filters: [{ name: "Inimark Theme Pack", extensions: ["json", "inimark-theme.json"] }],
   });
   if (!filePath) return null;
   await writeTextFile(filePath, JSON.stringify(pack, null, 2));
@@ -209,7 +209,7 @@ export async function exportThemePackToFile(pack: ThemePack): Promise<string | n
 export async function pickAndReadThemePackFile(): Promise<{ filePath: string; pack: ThemePack } | null> {
   const selected = await open({
     multiple: false,
-    filters: [{ name: "Tydora Theme Pack", extensions: ["json"] }],
+    filters: [{ name: "Inimark Theme Pack", extensions: ["json"] }],
     title: "Import Theme Pack",
   });
   if (!selected || typeof selected !== "string") return null;

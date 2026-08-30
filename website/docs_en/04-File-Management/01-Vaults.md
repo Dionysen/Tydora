@@ -5,7 +5,7 @@ tags: [files]
 
 # Vaults
 
-Tydora uses the "Vault" concept to manage note files. **Each vault is a local folder**, and all Markdown files, subfolders, images, and media within the vault are incorporated into the file tree, link index, and knowledge graph.
+Inimark uses the "Vault" concept to manage note files. **Each vault is a local folder**, and all Markdown files, subfolders, images, and media within the vault are incorporated into the file tree, link index, and knowledge graph.
 
 > [!NOTE]
 > A vault only records the **path** of the folder; it does not move, copy, or modify any of your files. You can safely add an existing Markdown folder as a vault.
@@ -33,7 +33,7 @@ Tydora uses the "Vault" concept to manage note files. **Each vault is a local fo
 3. Confirm removal.
 
 > [!WARNING]
-> Removing a vault **only removes Tydora's reference to it**; it does not delete the folder and files on disk. To completely delete them, operate in your file manager.
+> Removing a vault **only removes Inimark's reference to it**; it does not delete the folder and files on disk. To completely delete them, operate in your file manager.
 
 ## Multi-Vault Management
 
@@ -47,7 +47,7 @@ Each vault records the files it has recently opened separately, making it conven
 
 ## Filesystem Monitoring
 
-Tydora monitors external changes in vault folders: when you add, rename, or delete files in your file manager, the file tree and link index **update automatically**, with no need to refresh manually.
+Inimark monitors external changes in vault folders: when you add, rename, or delete files in your file manager, the file tree and link index **update automatically**, with no need to refresh manually.
 
 > [!NOTE]
 > Index updates triggered by external modifications are incremental, processing only the changed parts without stuttering the editor. See [[03-Knowledge-Management/05-Link-Index]] for details.

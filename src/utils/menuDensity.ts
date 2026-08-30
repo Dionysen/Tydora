@@ -45,7 +45,7 @@ function clearLegacySidebarChromeInlineStyles(): void {
 export function applyMenuDensityFromStorage(): void {
   clearLegacySidebarChromeInlineStyles();
   try {
-    const raw = localStorage.getItem("zmd-general-settings");
+    const raw = localStorage.getItem("inimark-general-settings");
     const settings = raw ? JSON.parse(raw) : {};
     applyMenuDensity(normalizeMenuDensity(settings.menuDensity));
     applyEditorSpacingFromSettings(settings);

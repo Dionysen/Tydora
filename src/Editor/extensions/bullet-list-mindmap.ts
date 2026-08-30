@@ -154,8 +154,8 @@ function installGlobalHandler() {
         ? `# ${headingText}\n\n${listMd}`
         : listMd;
 
-      localStorage.setItem("zmd-mindmap-mode", "list");
-      localStorage.setItem("zmd-mindmap-content", markdown);
+      localStorage.setItem("inimark-mindmap-mode", "list");
+      localStorage.setItem("inimark-mindmap-content", markdown);
       emit("mindmap-content-update", { content: markdown }).catch(() => {});
       invoke("open_mindmap_window").catch(() => {});
     },

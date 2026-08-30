@@ -20,7 +20,7 @@ export interface ImageSettings {
   fixedDirectory: FixedDirectorySettings;
 }
 
-export const IMAGE_SETTINGS_KEY = "zmd-image-settings";
+export const IMAGE_SETTINGS_KEY = "inimark-image-settings";
 
 export const DEFAULT_IMAGE_SETTINGS: ImageSettings = {
   storageMode: "vault-assets",

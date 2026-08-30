@@ -65,11 +65,11 @@
       "privacy": "View Privacy Policy",
       "privacyBack": "Back",
       "privacyPolicy": {
-        "title": "Tydora Privacy Policy",
+        "title": "Inimark Privacy Policy",
         "updated": "Last updated: August 13, 2026",
-        "intro": "This policy explains what data Tydora collects, why we collect it, and how you can manage it.",
+        "intro": "This policy explains what data Inimark collects, why we collect it, and how you can manage it.",
         "collectTitle": "1. What We Collect",
-        "collectBody": "After you opt in, Tydora anonymously collects the following usage data:\n• Feature usage events: app launch/exit, theme switches, editor modes, exports and publishing, opening mind maps/graphs/canvas, bookmark and tag operations, etc.\n• Device technical info: operating system, app version, and UI language.\n• A randomly generated installation instance ID: used to approximate unique visitor counts. It contains no personal information.",
+        "collectBody": "After you opt in, Inimark anonymously collects the following usage data:\n• Feature usage events: app launch/exit, theme switches, editor modes, exports and publishing, opening mind maps/graphs/canvas, bookmark and tag operations, etc.\n• Device technical info: operating system, app version, and UI language.\n• A randomly generated installation instance ID: used to approximate unique visitor counts. It contains no personal information.",
         "notCollectTitle": "2. What We Never Collect",
         "notCollectBody": "We never collect your note contents, file names, file paths, images or attachment contents, nor any personally identifiable information such as your name, email, account, location, or contacts.",
         "whyTitle": "3. Why We Collect",
@@ -79,7 +79,7 @@
         "controlTitle": "5. How to Disable",
         "controlBody": "You can turn off analytics anytime in Settings → About → Together, we'll go the distance. Once disabled, the app sends no further data; previously collected statistics are not retroactively deleted.",
         "contactTitle": "6. Contact Us",
-        "contactBody": "If you have any questions about this privacy policy, feel free to write to us at [zuorn@qq.com](mailto:zuorn@qq.com), or open an issue in the [GitHub repository zuorn/Tydora](https://github.com/zuorn/Tydora)."
+        "contactBody": "If you have any questions about this privacy policy, feel free to write to us at [zuorn@qq.com](mailto:zuorn@qq.com), or open an issue in the [GitHub repository zuorn/Inimark](https://github.com/zuorn/Inimark)."
       }
     },
     "tabs": {
@@ -1083,7 +1083,7 @@
     "cliMissingTitle": "markdown-publish CLI not found",
     "cliMissingDesc": "Publishing requires the markdown-publish CLI. Install Node.js first, then run the following command in your terminal:",
     "copyInstallCmd": "Copy command",
-    "cliMissingHint": "Restart Tydora after installation and try again.",
+    "cliMissingHint": "Restart Inimark after installation and try again.",
     "configTitle": "Publish Configuration",
     "configMissingHint": "markdown-publish.config.json not found. Please configure the site first.",
     "saveAndPublish": "Save & Publish"
@@ -1103,7 +1103,7 @@
     "close": "Close"
   },
   "vaultManager": {
-    "title": "Tydora",
+    "title": "Inimark",
     "subtitle": "A modern desktop Markdown editor, built for thinking and knowledge management.\nLightweight, fast, and beautiful.",
     "version": "v{{version}}",
     "selectLocation": "Select vault location",

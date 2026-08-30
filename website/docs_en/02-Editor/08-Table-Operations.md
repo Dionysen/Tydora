@@ -5,7 +5,7 @@ tags: [Editor]
 
 # Table Operations
 
-Tydora provides convenient table editing capabilities: you can write tables using standard Markdown syntax, or use the floating toolbar in Instant Rendering mode to visually add/delete rows and columns and adjust alignment.
+Inimark provides convenient table editing capabilities: you can write tables using standard Markdown syntax, or use the floating toolbar in Instant Rendering mode to visually add/delete rows and columns and adjust alignment.
 
 > [!NOTE]
 > Insert table shortcut: `Ctrl+T`. In Instant Rendering mode, placing the cursor inside a table will display a floating toolbar.
@@ -68,7 +68,7 @@ Shortcuts:
 
 ## Adjusting in Source View
 
-In Source View mode, directly edit the pipe table; Tydora will maintain column alignment as you type for easier reading.
+In Source View mode, directly edit the pipe table; Inimark will maintain column alignment as you type for easier reading.
 
 > [!TIP]
 > When dealing with many columns, it is recommended to first use the floating toolbar in Instant Rendering mode to add columns, then use shortcuts for batch alignment — this is more efficient.

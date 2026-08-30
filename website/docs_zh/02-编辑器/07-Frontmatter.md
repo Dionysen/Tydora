@@ -7,7 +7,7 @@ tags: [编辑器]
 
 Frontmatter 是写在 Markdown 文件**最开头**的一段 YAML 元数据，用 `---` 包裹。它不影响正文显示，却能为笔记添加标题、标签、日期、发布状态等结构化信息。
 
-> [!NOTE]Tydora 提供专用的 Frontmatter 属性面板，可在编辑器顶部查看与复制元数据，无需切换到源码也能管理。
+> [!NOTE]Inimark 提供专用的 Frontmatter 属性面板，可在编辑器顶部查看与复制元数据，无需切换到源码也能管理。
 
 ## 基本语法
 
@@ -34,11 +34,11 @@ date: 2024-01-01
 | `author` | string | 作者 |
 | `description` | string | 文档描述（用于发布站点的 SEO） |
 
-> [!TIP]标签会参与 Tydora 的标签索引，可在侧栏按标签筛选笔记。
+> [!TIP]标签会参与 Inimark 的标签索引，可在侧栏按标签筛选笔记。
 
 ## 属性面板
 
-Tydora 在编辑器顶部提供可折叠的 Frontmatter 属性面板：
+Inimark 在编辑器顶部提供可折叠的 Frontmatter 属性面板：
 
 - **可折叠**：点击展开 / 收起，平时不占用写作空间
 - **排序显示**：常用属性（`title`、`tags`、`date` 等）优先展示

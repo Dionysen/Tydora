@@ -1,11 +1,11 @@
-[![GitHub Stars](https://img.shields.io/github/stars/zuorn/Tydora?style=flat-square)](https://github.com/zuorn/Tydora)
-[![Release](https://img.shields.io/github/v/release/zuorn/Tydora?style=flat-square)](https://github.com/zuorn/Tydora/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/zuorn/Inimark?style=flat-square)](https://github.com/zuorn/Inimark)
+[![Release](https://img.shields.io/github/v/release/zuorn/Inimark?style=flat-square)](https://github.com/zuorn/Inimark/releases)
 [![License](<https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square>)](LICENSE)
 [![Platform](<https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square>)]()
 [![Tauri](https://img.shields.io/badge/Tauri-v2-blue?style=flat-square)](https://v2.tauri.app/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square)](https://react.dev/)
-[![dsh.so security](https://www.dsh.so/badge/tydora.svg)](https://www.dsh.so/artifact/tydora)
-[![dsh.so install](https://www.dsh.so/badge/install/tydora.svg)](https://www.dsh.so/artifact/tydora)
+[![dsh.so security](https://www.dsh.so/badge/inimark.svg)](https://www.dsh.so/artifact/inimark)
+[![dsh.so install](https://www.dsh.so/badge/install/inimark.svg)](https://www.dsh.so/artifact/inimark)
 
 [中文](README_ZH.md) | English
 
@@ -16,7 +16,7 @@
 I spent a long time settling into focused writing in **Typora**, organizing my thoughts before the graphs of **Obsidian**. Yet somewhere deep down, I always felt something was missing —
 a touch of <mark>absolute smoothness</mark> when your fingertips meet your thoughts, and the <mark>freedom</mark> to let knowledge unfold directly onto a canvas.
 
-So I decided to build one myself. Its name is **Tydora**.
+So I decided to build one myself. Its name is **Inimark**.
 
 It's a **Markdown editor** I crafted alone through countless quiet nights — confident enough to stand in for **Typora**, ambitious enough to challenge **Obsidian**. It's more than a tool; it's a <mark>desk for fellow travelers</mark> — **clean and quiet, yet holding a world within**.
 
@@ -57,21 +57,21 @@ Turn any document into a **mind map** with one click. Linear text instantly unfo
 ## **📚 A Desk Awaiting Fellow Travelers**
 
 It is the answer I offer — and an invitation to fellow travelers.
-If you're also looking for a <mark>writing companion</mark> that understands you better, come and sit with **Tydora**.
+If you're also looking for a <mark>writing companion</mark> that understands you better, come and sit with **Inimark**.
 
-🔗 [Tydora — Let Your Ideas Flow](https://zuorn.github.io/Tydora/)
+🔗 [Inimark — Let Your Ideas Flow](https://zuorn.github.io/Inimark/)
 
 If there's anything you'd like it to do, tell me — I'll keep refining it, until it becomes the <mark>ideal version in our hearts</mark>.
 
 ## Quick Start
 
-1. Download and install Tydora from the [Release](https://github.com/zuorn/Tydora/releases) page.
+1. Download and install Inimark from the [Release](https://github.com/zuorn/Inimark/releases) page.
 
 ## **Run from Source**
 
 ```bash
-git clone https://github.com/zuorn/Tydora.git
-cd Tydora
+git clone https://github.com/zuorn/Inimark.git
+cd Inimark
 npm install
 
 npm run tauri dev
@@ -99,10 +99,10 @@ This project is licensed under the [Apache License 2.0](LICENSE).
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=zuorn%2FTydora&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=zuorn%2FInimark&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=zuorn/Tydora&type=date&theme=dark&legend=top-left&sealed_token=UbjlpYMAKlj9YxE9TrI3oZEpbMArNY0oRBtXdZ4GlQe9lQG0bgKmhoGnECO6aR-BCg34sIpFHJLyux4trfCJQVTOG2DIOa2HKERx9cCUMNhsoboxUFNz8g" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=zuorn/Tydora&type=date&legend=top-left&sealed_token=UbjlpYMAKlj9YxE9TrI3oZEpbMArNY0oRBtXdZ4GlQe9lQG0bgKmhoGnECO6aR-BCg34sIpFHJLyux4trfCJQVTOG2DIOa2HKERx9cCUMNhsoboxUFNz8g" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=zuorn/Tydora&type=date&legend=top-left&sealed_token=UbjlpYMAKlj9YxE9TrI3oZEpbMArNY0oRBtXdZ4GlQe9lQG0bgKmhoGnECO6aR-BCg34sIpFHJLyux4trfCJQVTOG2DIOa2HKERx9cCUMNhsoboxUFNz8g" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=zuorn/Inimark&type=date&theme=dark&legend=top-left&sealed_token=UbjlpYMAKlj9YxE9TrI3oZEpbMArNY0oRBtXdZ4GlQe9lQG0bgKmhoGnECO6aR-BCg34sIpFHJLyux4trfCJQVTOG2DIOa2HKERx9cCUMNhsoboxUFNz8g" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=zuorn/Inimark&type=date&legend=top-left&sealed_token=UbjlpYMAKlj9YxE9TrI3oZEpbMArNY0oRBtXdZ4GlQe9lQG0bgKmhoGnECO6aR-BCg34sIpFHJLyux4trfCJQVTOG2DIOa2HKERx9cCUMNhsoboxUFNz8g" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=zuorn/Inimark&type=date&legend=top-left&sealed_token=UbjlpYMAKlj9YxE9TrI3oZEpbMArNY0oRBtXdZ4GlQe9lQG0bgKmhoGnECO6aR-BCg34sIpFHJLyux4trfCJQVTOG2DIOa2HKERx9cCUMNhsoboxUFNz8g" />
  </picture>
 </a>

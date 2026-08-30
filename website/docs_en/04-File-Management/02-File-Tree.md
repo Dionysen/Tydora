@@ -39,7 +39,7 @@ Right-click on a file or directory to perform:
 3. Release the mouse to complete the move.
 
 > [!NOTE]
-> After moving a file, Tydora updates the link index to keep `[[03-Knowledge-Management/01-Wiki-Links]]` resolving correctly whenever possible. See [[03-Knowledge-Management/05-Link-Index]].
+> After moving a file, Inimark updates the link index to keep `[[03-Knowledge-Management/01-Wiki-Links]]` resolving correctly whenever possible. See [[03-Knowledge-Management/05-Link-Index]].
 
 ## Inline Rename
 

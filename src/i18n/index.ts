@@ -7,10 +7,10 @@ import enUS from "./locales/en-US.json";
 // 必须在"副作用发生前"检查 window 是否存在，避免 SSR / 测试环境 undefined
 const bootStamp = (label: string) => {
   try {
-    const w = globalThis as unknown as { __TYDORA_BOOT__?: Record<string, number>; performance?: Performance };
-    if (!w.__TYDORA_BOOT__) w.__TYDORA_BOOT__ = {};
+    const w = globalThis as unknown as { __INIMARK_BOOT__?: Record<string, number>; performance?: Performance };
+    if (!w.__INIMARK_BOOT__) w.__INIMARK_BOOT__ = {};
     const now = w.performance?.now?.() ?? Date.now();
-    w.__TYDORA_BOOT__[label] = now;
+    w.__INIMARK_BOOT__[label] = now;
     w.performance?.mark?.(`boot:${label}`);
   } catch { /* ignore */ }
 };
@@ -26,7 +26,7 @@ const bootEnd = (label: string) => {
 bootStart("i18n_full_init_sync");
 bootStamp("i18n_before_getStoredLanguage");
 
-const STORAGE_KEY = "zmd-language";
+const STORAGE_KEY = "inimark-language";
 
 export const SUPPORTED_LANGUAGES = [
   { code: "zh-CN", label: "简体中文" },

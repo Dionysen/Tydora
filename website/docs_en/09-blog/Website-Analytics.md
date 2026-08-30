@@ -5,7 +5,7 @@ tags: [website, analytics]
 
 # Website Analytics
 
-Tydora's documentation site and landing page are static sites hosted on GitHub Pages (`zuorn.github.io/Tydora`) — there is no backend or database, so server logs cannot be used for traffic statistics. This article explains how to add visitor tracking to the site using client-side analytics, measuring PV (page views) and UV (unique visitors).
+Inimark's documentation site and landing page are static sites hosted on GitHub Pages (`zuorn.github.io/Inimark`) — there is no backend or database, so server logs cannot be used for traffic statistics. This article explains how to add visitor tracking to the site using client-side analytics, measuring PV (page views) and UV (unique visitors).
 
 ## Why Track Visitors
 
@@ -33,8 +33,8 @@ This project uses **Umami** (Umami Cloud free tier): open source, no lock-in, co
 
 1. Visit [umami.is](https://umami.is) and sign in with your GitHub account (the Umami Cloud free tier includes 10k events/month, enough for a personal documentation site)
 2. Click **Add website**:
-   - **Name**: any name, e.g. `Tydora`
-   - **Domain**: enter `zuorn.github.io` — **do not include the `/Tydora` path** (see FAQ below)
+   - **Name**: any name, e.g. `Inimark`
+   - **Domain**: enter `zuorn.github.io` — **do not include the `/Inimark` path** (see FAQ below)
 3. After saving, open the website details and copy the **Website ID** (a UUID like `56c781b4-...`)
 
 ### 2. Save the Tracking Script
@@ -42,7 +42,7 @@ This project uses **Umami** (Umami Cloud free tier): open source, no lock-in, co
 Create `website/analytics/snippet.html` and paste the script provided by Umami, adding an `id="t-analytics"` attribute (used by the injector for idempotent de-duplication):
 
 ```html
-<!-- Tydora Analytics · Umami Cloud（https://umami.is） -->
+<!-- Inimark Analytics · Umami Cloud（https://umami.is） -->
 <script id="t-analytics" defer src="https://cloud.umami.is/script.js" data-website-id="YOUR_WEBSITE_ID"></script>
 ```
 
@@ -153,18 +153,18 @@ Open `website/site/index.html` and confirm there is a `<script id="t-analytics" 
 ### After Deployment
 
 1. Push the code and wait for GitHub Actions to finish (about 2-5 minutes); confirm the deployment status is Active
-2. Open `https://zuorn.github.io/Tydora/` and press `F12` to open Developer Tools
+2. Open `https://zuorn.github.io/Inimark/` and press `F12` to open Developer Tools
 3. Switch to the **Network** panel, refresh the page, and search for `umami` — seeing requests to `cloud.umami.is` (e.g. `/api/send`) means tracking is active
 4. After a few visits, the Umami dashboard will show PV/UV, referrers, top pages, and more
 
 ## FAQ
 
-### Q: Why can't I enter `zuorn.github.io/Tydora` in the Umami Domain field?
+### Q: Why can't I enter `zuorn.github.io/Inimark` in the Umami Domain field?
 
-The Domain field only matches the host, not paths. Enter `zuorn.github.io` — the `/Tydora` part is ignored and does not affect tracking ownership:
+The Domain field only matches the host, not paths. Enter `zuorn.github.io` — the `/Inimark` part is ignored and does not affect tracking ownership:
 
 - Umami only receives reports from pages that actually load the tracking script. Other GitHub Pages projects without the script never report, so data stays clean
-- Page URLs in reports still include the full path (e.g. `/Tydora/en/...`), so you can filter by path
+- Page URLs in reports still include the full path (e.g. `/Inimark/en/...`), so you can filter by path
 
 ### Q: When does tracking start counting?
 

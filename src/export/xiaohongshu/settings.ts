@@ -2,7 +2,7 @@
 import type { XhsSettings, XhsFontSize } from "./types";
 import { XHS_FONT_OPTIONS } from "./fonts";
 
-export const XHS_SETTINGS_KEY = "zmd-xhs-settings";
+export const XHS_SETTINGS_KEY = "inimark-xhs-settings";
 
 /** 合法的字体 id 集合，用于兼容旧版本保存的字体值（default/serif/mono） */
 const FONT_FAMILY_IDS = new Set(XHS_FONT_OPTIONS.map((o) => o.id));

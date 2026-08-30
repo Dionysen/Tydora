@@ -307,8 +307,8 @@ function createExportHeader(): HTMLElement {
     borderBottom: "1px solid var(--border, #d9ede5)",
   } as CSSStyleDeclaration);
   header.innerHTML = `
-    <img src="${appIconUrl}" alt="Tydora" style="width:32px;height:32px;flex-shrink:0;" />
-    <span style="font-size:20px;font-weight:700;color:var(--text-primary, #1f2330);letter-spacing:0.5px;">Tydora</span>
+    <img src="${appIconUrl}" alt="Inimark" style="width:32px;height:32px;flex-shrink:0;" />
+    <span style="font-size:20px;font-weight:700;color:var(--text-primary, #1f2330);letter-spacing:0.5px;">Inimark</span>
   `;
   return header;
 }

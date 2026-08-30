@@ -35,7 +35,7 @@ The backlinks panel shows **which notes link to the current note**. It reverses 
 
 ## Link Index
 
-Backlinks are powered by the [[03-Knowledge-Management/05-Link-Index]] service. Tydora automatically builds and maintains link relationships in the background, with no need to refresh manually.
+Backlinks are powered by the [[03-Knowledge-Management/05-Link-Index]] service. Inimark automatically builds and maintains link relationships in the background, with no need to refresh manually.
 
 ## Related Documents
 

@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-  构建 Tydora 的 MSIX 包。
+  构建 Inimark 的 MSIX 包。
 
 .DESCRIPTION
   1. 读取 VERSION 文件得到 4 段版本号
@@ -12,7 +12,7 @@
   两种模式：
   - 商店模式：提供了 PackageIdentityName + Publisher（参数或环境变量），生成未签名 MSIX
     （商店会在认证时签名，因此提交的包不需要签名）。
-  - 本地模式：未提供身份标识，使用默认（Name=Tydora, Publisher=CN=Tydora），
+  - 本地模式：未提供身份标识，使用默认（Name=Inimark, Publisher=CN=Inimark），
     自动创建自签名证书并签名，产物可用 Add-AppxPackage 本地安装测试。
     此包不能提交到微软商店。
 
@@ -35,7 +35,7 @@
 
 .EXAMPLE
   ./scripts/build-msix.ps1
-  ./scripts/build-msix.ps1 -PackageIdentityName "1234567890.Tydora" -Publisher "CN=ABCD-1234"
+  ./scripts/build-msix.ps1 -PackageIdentityName "1234567890.Inimark" -Publisher "CN=ABCD-1234"
 #>
 [CmdletBinding()]
 param(
@@ -55,10 +55,10 @@ Set-Location $repoRoot
 # ── 0. 模式判定 ───────────────────────────────────────────────────────────
 $storeMode = [bool]$PackageIdentityName -and [bool]$Publisher
 if (-not $storeMode) {
-    $PackageIdentityName = "Tydora"
-    $Publisher = "CN=Tydora"
-    if (-not $PublisherDisplayName) { $PublisherDisplayName = "Tydora" }
-    Write-Warning "未提供 MSSTORE_PACKAGE_IDENTITY_NAME / MSSTORE_PUBLISHER → 本地测试模式（Name=Tydora, Publisher=CN=Tydora）。"
+    $PackageIdentityName = "Inimark"
+    $Publisher = "CN=Inimark"
+    if (-not $PublisherDisplayName) { $PublisherDisplayName = "Inimark" }
+    Write-Warning "未提供 MSSTORE_PACKAGE_IDENTITY_NAME / MSSTORE_PUBLISHER → 本地测试模式（Name=Inimark, Publisher=CN=Inimark）。"
     Write-Warning "此 MSIX 仅可用于本地安装测试，不能提交到微软商店。"
 }
 elseif (-not $PublisherDisplayName) {
@@ -103,7 +103,7 @@ if (-not $SkipBuild) {
 
 # ── 3. 定位构建产物 exe ───────────────────────────────────────────────────
 $releaseDir = "$repoRoot/src-tauri/target/release"
-$appExe = Join-Path $releaseDir "tydora.exe"
+$appExe = Join-Path $releaseDir "inimark.exe"
 if (-not (Test-Path $appExe)) {
     # 兜底：取 release 目录下最大的 exe（排除构建工具）
     $candidates = Get-ChildItem -Path "$releaseDir/*.exe" -ErrorAction SilentlyContinue |
@@ -111,7 +111,7 @@ if (-not (Test-Path $appExe)) {
         Sort-Object Length -Descending
     if (-not $candidates) { throw "在 $releaseDir 找不到 app exe" }
     $appExe = $candidates[0].FullName
-    Write-Host "exe 名称不是 tydora.exe，使用：$appExe"
+    Write-Host "exe 名称不是 inimark.exe，使用：$appExe"
 }
 $exeName = Split-Path $appExe -Leaf
 Write-Host "App exe: $appExe ($([math]::Round((Get-Item $appExe).Length / 1MB, 2)) MB)"
@@ -138,9 +138,9 @@ $manifest = $manifest.Replace('{{PUBLISHER}}', $Publisher)
 $manifest = $manifest.Replace('{{PUBLISHER_DISPLAY_NAME}}', $PublisherDisplayName)
 $manifest = $manifest.Replace('{{VERSION}}', $Version)
 
-# 若 exe 名不是 tydora.exe，同步修改 manifest 里的 Executable
-if ($exeName -ne "tydora.exe") {
-    $manifest = $manifest.Replace('Executable="tydora.exe"', "Executable=`"$exeName`"")
+# 若 exe 名不是 inimark.exe，同步修改 manifest 里的 Executable
+if ($exeName -ne "inimark.exe") {
+    $manifest = $manifest.Replace('Executable="inimark.exe"', "Executable=`"$exeName`"")
 }
 
 $manifestPath = "$staging/AppxManifest.xml"
@@ -189,7 +189,7 @@ Write-Host "MakeAppx: $makeAppx"
 # ── 8. 打包 ───────────────────────────────────────────────────────────────
 $outDir = "$repoRoot/src-tauri/target/msix"
 if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir -Force | Out-Null }
-$msixName = "Tydora_$($Version)_x64.msix"
+$msixName = "Inimark_$($Version)_x64.msix"
 $msixPath = Join-Path $outDir $msixName
 if (Test-Path $msixPath) { Remove-Item $msixPath -Force }
 
@@ -210,7 +210,7 @@ if (-not $storeMode -and -not $NoSign) {
         if (-not $cert) {
             Write-Host "创建自签名证书: $Publisher"
             $cert = New-SelfSignedCertificate -Type Custom -Subject $Publisher `
-                -KeyUsage DigitalSignature -FriendlyName "Tydora Local MSIX" `
+                -KeyUsage DigitalSignature -FriendlyName "Inimark Local MSIX" `
                 -CertStoreLocation "Cert:\CurrentUser\My" `
                 -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
         }
@@ -220,7 +220,7 @@ if (-not $storeMode -and -not $NoSign) {
             Where-Object { $_.Thumbprint -eq $cert.Thumbprint }
         if (-not $trusted) {
             Write-Host "将证书导入 Trusted Root（CurrentUser）以便本地信任..."
-            $cerPath = Join-Path $env:TEMP "tydora_local.cer"
+            $cerPath = Join-Path $env:TEMP "inimark_local.cer"
             [System.IO.File]::WriteAllBytes($cerPath, $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
             Import-Certificate -FilePath $cerPath -CertStoreLocation "Cert:\CurrentUser\Root" | Out-Null
             Remove-Item $cerPath -Force

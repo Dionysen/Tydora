@@ -5,7 +5,7 @@ tags: [Editor]
 
 # Markdown Syntax Support
 
-Built on the TipTap 3.x + CodeMirror 6 engine, Tydora supports full CommonMark and GitHub Flavored Markdown (GFM) syntax, and extends capabilities with WikiLinks, Callouts, math formulas, Mermaid, footnotes, and more. This page summarizes the most commonly used syntax for writing.
+Built on the TipTap 3.x + CodeMirror 6 engine, Inimark supports full CommonMark and GitHub Flavored Markdown (GFM) syntax, and extends capabilities with WikiLinks, Callouts, math formulas, Mermaid, footnotes, and more. This page summarizes the most commonly used syntax for writing.
 
 > [!NOTE]
 > The following examples can be typed directly in **Instant Rendering** mode (where they will auto-render) or written as plain text in **Source View** mode. See [[02-Editor/01-Editing-Modes]] for switching instructions.
@@ -69,7 +69,7 @@ Use three backticks to wrap code, and specify the language for highlighting:
 ````markdown
 ```javascript
 function hello() {
-  console.log("Hello, Tydora!");
+  console.log("Hello, Inimark!");
 }
 ```
 ````

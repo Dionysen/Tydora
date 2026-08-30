@@ -5,7 +5,7 @@ tags: [Editor]
 
 # Code Blocks
 
-Tydora provides full syntax highlighting support for code, covering **36 programming languages** by default, with line numbers and one-click copy.
+Inimark provides full syntax highlighting support for code, covering **36 programming languages** by default, with line numbers and one-click copy.
 
 ## Creating Code Blocks
 
@@ -16,7 +16,7 @@ Use three backticks to wrap code, and specify the language name for correspondin
 ````markdown
 ```javascript
 function hello() {
-  console.log("Hello, Tydora!");
+  console.log("Hello, Inimark!");
 }
 ```
 ````

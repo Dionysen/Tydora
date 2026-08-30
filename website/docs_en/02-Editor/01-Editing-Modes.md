@@ -5,7 +5,7 @@ tags: [Editor]
 
 # Editing Modes
 
-Tydora supports two editing modes, corresponding to two different needs: "writing smoothly" and "viewing precisely." You can switch between them at any time during writing without affecting each other.
+Inimark supports two editing modes, corresponding to two different needs: "writing smoothly" and "viewing precisely." You can switch between them at any time during writing without affecting each other.
 
 > [!NOTE]
 > Press `Ctrl+/` to toggle between the two modes with one key. You can also specify a default mode in settings (see [[07-Settings/02-Editor-Settings]]).

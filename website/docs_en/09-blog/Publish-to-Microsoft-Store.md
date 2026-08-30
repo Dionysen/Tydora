@@ -5,14 +5,14 @@ tags: [publish, MSIX, Microsoft Store]
 
 # What It's Like to Publish Your Own Software to the Microsoft Store
 
-This article documents the complete process of publishing Tydora (a desktop Markdown editor built on Tauri v2) to the Microsoft Store, including the full pipeline of MSIX packaging, Partner Center configuration, and GitHub Actions auto-publishing, along with every pitfall encountered along the way.
+This article documents the complete process of publishing Inimark (a desktop Markdown editor built on Tauri v2) to the Microsoft Store, including the full pipeline of MSIX packaging, Partner Center configuration, and GitHub Actions auto-publishing, along with every pitfall encountered along the way.
 
 > Applies to: Tauri v2 desktop apps, and individual/small-team developers who want to publish to the Microsoft Store.  
 > Last updated: August 8, 2026.
 
 ## Background: Why MSIX
 
-Tydora's default distribution method is NSIS (`.exe`) + MSI (`.msi`) + macOS/Linux packages, released via GitHub Releases. However, the Microsoft Store **only accepts the MSIX format**, and the `--bundles` option of Tauri CLI 2.11.2 does not support the `msix` target on Windows (only `msi`/`nsis`).
+Inimark's default distribution method is NSIS (`.exe`) + MSI (`.msi`) + macOS/Linux packages, released via GitHub Releases. However, the Microsoft Store **only accepts the MSIX format**, and the `--bundles` option of Tauri CLI 2.11.2 does not support the `msix` target on Windows (only `msi`/`nsis`).
 
 So our approach is:
 
@@ -81,7 +81,7 @@ Go to [Partner Center](https://partner.microsoft.com/) → **Apps and games** �
 
 > [!WARNING]The product type MUST be "MSIX or PWA app". If you select "EXE or MSI app", uploading MSIX will be rejected outright, and the product type cannot be changed after creation — you can only delete it and recreate it.
 
-Enter the product name "**Tydora**" and reserve it (after reserving, you must publish within 3 months or the reservation expires).
+Enter the product name "**Inimark**" and reserve it (after reserving, you must publish within 3 months or the reservation expires).
 
 ### 1.3 Obtain the Store Identity
 
@@ -89,7 +89,7 @@ After the reservation succeeds, enter the app page → **Product identity** tab 
 
 | Field | Example value | Purpose |
 | --- | --- | --- |
-| Package/Identity/Name | `<your Name>` (e.g., `1234567890.Tydora`) | The `Identity Name` of the MSIX manifest |
+| Package/Identity/Name | `<your Name>` (e.g., `1234567890.Inimark`) | The `Identity Name` of the MSIX manifest |
 | Package/Identity/Publisher | `<your Publisher>` (e.g., `CN=XXXX-XXXX-...`) | The `Identity Publisher` of the MSIX manifest |
 | PublisherDisplayName | `<your publisher display name>` | The `Properties/PublisherDisplayName` of the MSIX manifest |
 | Store product ID | `<your ProductID>` (e.g., `9WZDNCRFXXXX`) | Used for subsequent CI auto-publishing |
@@ -109,7 +109,7 @@ Tauri does not generate an `MSIX` manifest, so we write our own and place it at 
           ProcessorArchitecture="x64" />
 
 <Properties>
-  <DisplayName>Tydora</DisplayName>
+  <DisplayName>Inimark</DisplayName>
   <PublisherDisplayName>{{PUBLISHER_DISPLAY_NAME}}</PublisherDisplayName>
   <Logo>Assets\StoreLogo.png</Logo>
   <Description>A modern Markdown editor built with Tauri</Description>
@@ -157,9 +157,9 @@ Core workflow:
 1. **Determine the mode**: check whether `MSSTORE_PACKAGE_IDENTITY_NAME` and `MSSTORE_PUBLISHER` are both present
    - Both present → **Store mode** (unsigned, artifact for Partner Center)
    - Either missing → **Local test mode** (self-signed, installable locally)
-2. **Read the release exe**: `src-tauri/target/release/tydora.exe`
+2. **Read the release exe**: `src-tauri/target/release/inimark.exe`
 3. **Staging directory**: `src-tauri/target/msix-staging/`, put the exe + icons + generated manifest inside
-4. **MakeAppx pack**: package into `src-tauri/target/msix/Tydora_<version>_x64.msix`
+4. **MakeAppx pack**: package into `src-tauri/target/msix/Inimark_<version>_x64.msix`
 5. **Sign** (local mode only, or explicitly `-Sign`): create a self-signed certificate and sign using `Sign-AppxPackage`
 
 **Version number source**: read from the `VERSION` file, converted to the four-part form `0.1.4.0` (MSIX requires `Major.Minor.Build.Revision` with four segments; empty slots are padded with 0).
@@ -202,8 +202,8 @@ MSSTORE_PUBLISHER=<your Publisher>
 MSSTORE_PUBLISHER_DISPLAY_NAME=<your publisher display name>
 ```
 
-> [!WARNING]Do not add quotes to values in `.env`. Tydora's loadEnv parser only splits on the first `=` and trims both sides; it does not strip quotes. If you write `MSSTORE_PACKAGE_IDENTITY_NAME="your Name"`, the quotes are passed to MakeAppx as part of the value, causing Partner Center to fail validation of the Identity Name.
-> This is the second pitfall covered in this article — "invalid package identity name: Tydora (expected: your Name)" actually happened because `.env` was previously written as `= " your Name"` (with a leading space and quotes).
+> [!WARNING]Do not add quotes to values in `.env`. Inimark's loadEnv parser only splits on the first `=` and trims both sides; it does not strip quotes. If you write `MSSTORE_PACKAGE_IDENTITY_NAME="your Name"`, the quotes are passed to MakeAppx as part of the value, causing Partner Center to fail validation of the Identity Name.
+> This is the second pitfall covered in this article — "invalid package identity name: Inimark (expected: your Name)" actually happened because `.env` was previously written as `= " your Name"` (with a leading space and quotes).
 
 ### 3.2 Run the Packaging
 
@@ -229,7 +229,7 @@ PublisherDisplayName: <your publisher display name>
 Mode:                 Store (unsigned)
 Package creation succeeded.
 
-✓ MSIX generated: D:\code\Tydora\src-tauri\target\msix\Tydora_0.1.4.0_x64.msix
+✓ MSIX generated: D:\code\Inimark\src-tauri\target\msix\Inimark_0.1.4.0_x64.msix
   Size: 6.09 MB
 ```
 
@@ -240,7 +240,7 @@ Package creation succeeded.
 
 ### 4.1 Start a New Submission
 
-Enter the Tydora app page → **Start a submission**. The blocks that need to be filled in:
+Enter the Inimark app page → **Start a submission**. The blocks that need to be filled in:
 
 | Block | Contents |
 | --- | --- |
@@ -252,7 +252,7 @@ Enter the Tydora app page → **Start a submission**. The blocks that need to be
 
 ### 4.2 Upload Packages
 
-In the **Packages** block, drag the locally generated `Tydora_0.1.4.0_x64.msix` in.
+In the **Packages** block, drag the locally generated `Inimark_0.1.4.0_x64.msix` in.
 
 After the upload completes, Partner Center automatically parses the Identity information and validates it:
 
@@ -265,8 +265,8 @@ Architecture:        x64
 If it matches the Name/Publisher you registered in Partner Center, a green ✓ is shown; otherwise it reports something like:
 
 ```
-Invalid package identity name: Tydora (expected: <your Name>)
-Invalid package publisher name: CN=Tydora (expected: <your Publisher>)
+Invalid package identity name: Inimark (expected: <your Name>)
+Invalid package publisher name: CN=Inimark (expected: <your Publisher>)
 ```
 
 In that case you need to:
@@ -281,7 +281,7 @@ Because the MSIX manifest declares `rescap:Capability Name="runFullTrust"`, Part
 
 **What I filled in**:
 
-> Tydora is a desktop Markdown editor built with the Tauri v2 framework, whose core working mode is "local-first" — all notes, files, and configuration are stored on the user's own device and never pass through any cloud server.
+> Inimark is a desktop Markdown editor built with the Tauri v2 framework, whose core working mode is "local-first" — all notes, files, and configuration are stored on the user's own device and never pass through any cloud server.
 >
 > `runFullTrust` is a standard requirement for Tauri desktop apps and is specifically used for:
 >
@@ -295,7 +295,7 @@ Because the MSIX manifest declares `rescap:Capability Name="runFullTrust"`, Part
 
 ### 4.4 Privacy Policy URL
 
-The Microsoft Store **mandates** that all apps provide a privacy policy URL. I added a dedicated page to the docs site: [Privacy Policy · Tydora](https://zuorn.github.io/Tydora/01-%E5%BC%80%E5%A7%8B%E4%BD%BF%E7%94%A8/%E9%9A%90%E7%A7%81%E7%AD%96%E7%95%A5)
+The Microsoft Store **mandates** that all apps provide a privacy policy URL. I added a dedicated page to the docs site: [Privacy Policy · Inimark](https://zuorn.github.io/Inimark/01-%E5%BC%80%E5%A7%8B%E4%BD%BF%E7%94%A8/%E9%9A%90%E7%A7%81%E7%AD%96%E7%95%A5)
 
 Key points of the privacy policy content (per the Microsoft Store review checklist):
 
@@ -366,7 +366,7 @@ Go to the repository **Settings → Secrets and variables → Actions**:
 
 | Name | Value |
 | --- | --- |
-| `MSSTORE_PACKAGE_IDENTITY_NAME` | `<your Name>` (e.g., `1234567890.Tydora`) |
+| `MSSTORE_PACKAGE_IDENTITY_NAME` | `<your Name>` (e.g., `1234567890.Inimark`) |
 | `MSSTORE_PUBLISHER` | `<your Publisher>` (e.g., `CN=XXXX-XXXX-...`) |
 | `MSSTORE_PUBLISHER_DISPLAY_NAME` | `<your publisher display name>` |
 | `MSSTORE_PRODUCT_ID` | The Store product ID on the Partner Center overview page (e.g., `9WZDNCRFXXXX`) |
@@ -406,7 +406,7 @@ jobs:
       - name: Upload MSIX artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tydora-msix
+          name: inimark-msix
           path: src-tauri/target/msix/*.msix
       - name: Attach MSIX to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -475,8 +475,8 @@ The app manifest XML must be valid: Line 28, Column 15, Reason: ????????????????
 **Symptom**:
 
 ```
-Invalid package identity name: Tydora (expected: <your Name>)
-Invalid package publisher name: CN=Tydora (expected: <your Publisher>)
+Invalid package identity name: Inimark (expected: <your Name>)
+Invalid package publisher name: CN=Inimark (expected: <your Publisher>)
 ```
 
 **Root cause**: The values in `.env` had quotes and a leading space:
@@ -485,7 +485,7 @@ Invalid package publisher name: CN=Tydora (expected: <your Publisher>)
 MSSTORE_PACKAGE_IDENTITY_NAME = " <your Name>"
 ```
 
-Tydora's `loadEnv` parser does not strip quotes, so the Name actually passed to MakeAppx was a string with quotes and spaces, triggering the Partner Center validation failure.
+Inimark's `loadEnv` parser does not strip quotes, so the Name actually passed to MakeAppx was a string with quotes and spaces, triggering the Partner Center validation failure.
 
 **Fix**: Remove the quotes and the spaces around `=` in `.env`:
 
@@ -498,10 +498,10 @@ MSSTORE_PACKAGE_IDENTITY_NAME=<your Name>
 **Symptom**:
 
 ```
-The PublisherDisplayName element in the app manifest is Tydora, which does not match the publisher display name: <your publisher display name>
+The PublisherDisplayName element in the app manifest is Inimark, which does not match the publisher display name: <your publisher display name>
 ```
 
-**Root cause**: The publisher display name filled in at Partner Center registration (individual accounts default to the real name), but the manifest template hardcoded "Tydora".
+**Root cause**: The publisher display name filled in at Partner Center registration (individual accounts default to the real name), but the manifest template hardcoded "Inimark".
 
 **Fix**: Change `PublisherDisplayName` to the placeholder `{{PUBLISHER_DISPLAY_NAME}}`, injected from `.env` by the script.
 
@@ -536,9 +536,9 @@ npm run tauri build:msix -- -SkipBuild
 ## Related Documents
 
 - [[01-Getting-Started/Privacy-Policy]] — the privacy policy page required by the Microsoft Store
-- [[08-Advanced-Features/01-Publish-Website]] — Tydora's built-in static website publishing feature
+- [[08-Advanced-Features/01-Publish-Website]] — Inimark's built-in static website publishing feature
 - [[08-Advanced-Features/04-Auto-Update-Configuration]] — GitHub Releases auto-update signing configuration
-- [[01-Getting-Started/02-About]] — Tydora version information and tech stack
+- [[01-Getting-Started/02-About]] — Inimark version information and tech stack
 
 ## References
 

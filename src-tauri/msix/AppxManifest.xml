@@ -21,7 +21,7 @@
             ProcessorArchitecture="x64" />
 
   <Properties>
-    <DisplayName>Tydora</DisplayName>
+    <DisplayName>Inimark</DisplayName>
     <PublisherDisplayName>左瑞宁</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
     <Description>一个现代的桌面 Markdown 编辑器，为思考与知识管理而生。基于 Tauri v2 + React 19 构建，轻量、快速、美观。</Description>
@@ -36,11 +36,11 @@
   </Dependencies>
 
   <Applications>
-    <Application Id="Tydora"
-                 Executable="tydora.exe"
+    <Application Id="Inimark"
+                 Executable="inimark.exe"
                  EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="Tydora"
+        DisplayName="Inimark"
         Description="一个现代的桌面 Markdown 编辑器，为思考与知识管理而生。基于 Tauri v2 + React 19 构建，轻量、快速、美观。"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"

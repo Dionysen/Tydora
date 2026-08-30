@@ -5,7 +5,7 @@ tags: [Navigation & Search]
 
 # Command Palette
 
-The Command Palette lets you search for and execute virtually any command in Tydora using the keyboard — from formatting text to opening the graph view, switching modes, and more — without digging through menus.
+The Command Palette lets you search for and execute virtually any command in Inimark using the keyboard — from formatting text to opening the graph view, switching modes, and more — without digging through menus.
 
 > [!NOTE]
 > Shortcut: `Ctrl+P`.

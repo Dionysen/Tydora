@@ -50,7 +50,7 @@ interface FileSortSettings {
 }
 
 const DEFAULT_SORT: FileSortSettings = { sortBy: "name", sortOrder: "asc" };
-const SORT_KEY = "zmd-file-sort-settings";
+const SORT_KEY = "inimark-file-sort-settings";
 
 function loadSortSettings(): FileSortSettings {
   try {
@@ -222,7 +222,7 @@ const fileCache = new Map<string, FileEntry[]>();
 
 // ── Expanded state persistence ──
 function getExpandedStorageKey(vaultPath: string): string {
-  return `zmd-expanded-dirs-${vaultPath}`;
+  return `inimark-expanded-dirs-${vaultPath}`;
 }
 
 function loadExpandedPaths(vaultPath: string): Set<string> {

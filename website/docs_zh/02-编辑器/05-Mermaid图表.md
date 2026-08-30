@@ -5,7 +5,7 @@ tags: [编辑器]
 
 # Mermaid 图表
 
-Tydora 集成了 Mermaid 图表引擎，让你直接在 Markdown 中用文本绘制流程图、时序图、甘特图、类图、状态图等，并实时渲染预览。
+Inimark 集成了 Mermaid 图表引擎，让你直接在 Markdown 中用文本绘制流程图、时序图、甘特图、类图、状态图等，并实时渲染预览。
 
 > [!NOTE]使用 mermaid 代码块编写。图表渲染默认开启，可在 中关闭。
 

@@ -5,7 +5,7 @@ tags: [files]
 
 # File Operations
 
-Tydora provides complete file management capabilities in the file tree and editor: create, rename, delete, move, copy path, and more.
+Inimark provides complete file management capabilities in the file tree and editor: create, rename, delete, move, copy path, and more.
 
 > [!NOTE]
 > The vast majority of operations can be performed via the file tree's right-click menu; common operations also have keyboard shortcuts.
@@ -14,7 +14,7 @@ Tydora provides complete file management capabilities in the file tree and edito
 
 1. Right-click a target directory (or the root directory) in the file tree.
 2. Select "New file".
-3. Enter a filename, for example `note.md` (the `.md` can be omitted; Tydora appends it automatically).
+3. Enter a filename, for example `note.md` (the `.md` can be omitted; Inimark appends it automatically).
 4. Press `Enter` to confirm, and the editor immediately opens the new file.
 
 ## Creating a Folder
@@ -38,7 +38,7 @@ Tydora provides complete file management capabilities in the file tree and edito
 3. Enter the new name and press `Enter` to confirm (`Esc` to cancel).
 
 > [!TIP]
-> After renaming a note file, Tydora attempts to update the `[[03-Knowledge-Management/01-Wiki-Links]]` pointing to it so that the links do not break. See [[03-Knowledge-Management/05-Link-Index]].
+> After renaming a note file, Inimark attempts to update the `[[03-Knowledge-Management/01-Wiki-Links]]` pointing to it so that the links do not break. See [[03-Knowledge-Management/05-Link-Index]].
 
 ## Deleting
 

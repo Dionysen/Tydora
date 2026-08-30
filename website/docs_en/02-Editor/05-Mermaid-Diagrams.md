@@ -5,7 +5,7 @@ tags: [Editor]
 
 # Mermaid Diagrams
 
-Tydora integrates the Mermaid diagram engine, allowing you to draw flowcharts, sequence diagrams, Gantt charts, class diagrams, state diagrams, and more directly in Markdown using text, with real-time rendered previews.
+Inimark integrates the Mermaid diagram engine, allowing you to draw flowcharts, sequence diagrams, Gantt charts, class diagrams, state diagrams, and more directly in Markdown using text, with real-time rendered previews.
 
 > [!NOTE]
 > Write using mermaid code blocks. Diagram rendering is enabled by default and can be disabled in settings.

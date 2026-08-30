@@ -1,12 +1,12 @@
 [package]
-name = "tydora"
+name = "inimark"
 version = "0.2.2"
 description = "A modern Markdown editor built with Tauri"
 authors = ["you"]
 edition = "2021"
 
 [lib]
-name = "tydora_lib"
+name = "inimark_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

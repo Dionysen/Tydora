@@ -5,7 +5,7 @@ tags: [Themes]
 
 # Built-in Themes
 
-Tydora provides **9** carefully designed built-in themes covering a range of styles — fresh, understated, vibrant, futuristic, and more — all supporting both light and dark appearances. You can switch themes with a single click in settings, or import your own CSS themes (see [[06-Themes-Appearance/02-Typora-Themes]]).
+Inimark provides **9** carefully designed built-in themes covering a range of styles — fresh, understated, vibrant, futuristic, and more — all supporting both light and dark appearances. You can switch themes with a single click in settings, or import your own CSS themes (see [[06-Themes-Appearance/02-Typora-Themes]]).
 
 > [!NOTE]
 > The default theme is **Mint**. Code block color schemes can be set independently from the app theme; see [[06-Themes-Appearance/03-Code-Highlight-Themes]] for details.
@@ -18,7 +18,7 @@ A clean and pure white background, a versatile light theme suitable for extended
 
 ### Mint *(default)*
 
-A refreshing mint green theme with a white base and mint green accent color, natural and soothing. **This is Tydora's default theme.**
+A refreshing mint green theme with a white base and mint green accent color, natural and soothing. **This is Inimark's default theme.**
 
 ### Mint Dark
 

@@ -1,4 +1,4 @@
-# Tydora 导出功能实现方案
+# Inimark 导出功能实现方案
 
 > 适用范围：顶部栏「更多」按钮 → 新增「导出」菜单项，将**当前 Markdown 笔记**导出为 PDF / HTML / Word(.docx) / 图片(PNG)。
 > 本文档为方案与计划，**不含任何代码改动**。
@@ -7,7 +7,7 @@
 
 ## 1. 背景与目标
 
-Tydora 是一个基于 Tauri v2 + React 19 的桌面 Markdown 编辑器（项目内代号 `zmd`），使用 TipTap 3 作为 WYSIWYG 编辑器、CodeMirror 6 作为源码编辑器，并支持 Mermaid 图表、markmap 思维导图、Callout、Wiki-Link、代码高亮、本地图片等富内容。
+Inimark 是一个基于 Tauri v2 + React 19 的桌面 Markdown 编辑器（项目内代号 `inimark`），使用 TipTap 3 作为 WYSIWYG 编辑器、CodeMirror 6 作为源码编辑器，并支持 Mermaid 图表、markmap 思维导图、Callout、Wiki-Link、代码高亮、本地图片等富内容。
 
 当前顶部栏「更多」菜单（`src/App.tsx:1636`）仅含「后退 / 前进」。目标是在该菜单中新增「导出」入口，支持四种格式：
 

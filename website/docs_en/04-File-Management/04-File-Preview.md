@@ -5,7 +5,7 @@ tags: [files]
 
 # File Preview
 
-In addition to Markdown, Tydora supports directly previewing a variety of image, video, audio, and document files, so you can view assets without leaving the app.
+In addition to Markdown, Inimark supports directly previewing a variety of image, video, audio, and document files, so you can view assets without leaving the app.
 
 ## Supported Formats
 

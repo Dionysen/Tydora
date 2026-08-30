@@ -16,7 +16,7 @@ export interface VimState {
   menuTimeout: number;
 }
 
-/** Vim 设置（持久化在 localStorage["zmd-vim-config"]） */
+/** Vim 设置（持久化在 localStorage["inimark-vim-config"]） */
 export interface VimConfig {
   enabled: boolean;
   leaderKey: string;

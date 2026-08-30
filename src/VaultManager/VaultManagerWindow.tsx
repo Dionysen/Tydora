@@ -19,9 +19,9 @@ interface VaultInfo {
   path: string;
 }
 
-const VAULTS_KEY = "zmd-vaults";
-const ACTIVE_VAULT_KEY = "zmd-active-vault";
-const VAULT_MANAGER_WINDOW_STATE_KEY = "zmd-vault-manager-window-state";
+const VAULTS_KEY = "inimark-vaults";
+const ACTIVE_VAULT_KEY = "inimark-active-vault";
+const VAULT_MANAGER_WINDOW_STATE_KEY = "inimark-vault-manager-window-state";
 
 function loadVaults(): VaultInfo[] {
   try {
@@ -393,8 +393,8 @@ export default function VaultManagerWindow() {
     // Home view
     return (
       <div className="vault-manager-content">
-        <img src={appIcon} alt="Tydora" className="vault-manager-icon" />
-        <h1 className="vault-manager-title">Tydora</h1>
+        <img src={appIcon} alt="Inimark" className="vault-manager-icon" />
+        <h1 className="vault-manager-title">Inimark</h1>
         <p className="vault-manager-version">{version ? t("vaultManager.version", { version }) : ""}</p>
         <p className="vault-manager-subtitle">
           {t("vaultManager.subtitle").split("\n").map((line, i) => (

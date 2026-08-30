@@ -17,7 +17,7 @@ interface CommandPaletteProps {
   commands: Command[];
 }
 
-const RECENT_COMMANDS_KEY = "zmd-recent-commands";
+const RECENT_COMMANDS_KEY = "inimark-recent-commands";
 const MAX_RECENT_COMMANDS = 5;
 
 // 从 localStorage 加载最近使用的命令

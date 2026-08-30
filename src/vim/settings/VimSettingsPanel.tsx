@@ -15,7 +15,7 @@ export function VimSettingsPanel() {
   // 跨窗口同步：外部改动 → 刷新本面板
   useEffect(() => {
     const handler = (e: StorageEvent) => {
-      if (e.key === "zmd-vim-config") setConfig(loadVimConfig());
+      if (e.key === "inimark-vim-config") setConfig(loadVimConfig());
     };
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);

@@ -10,7 +10,7 @@ import { useCanvasStore } from './canvas-store';
 import { ConfirmDialog } from '../components';
 import { track, trackPageview, ANALYTICS_EVENTS } from '../analytics';
 
-const CANVAS_STORAGE_KEY = 'zmd-canvas-file-path';
+const CANVAS_STORAGE_KEY = 'inimark-canvas-file-path';
 
 export default function CanvasWindow() {
   const { t } = useTranslation();

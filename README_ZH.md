@@ -1,11 +1,11 @@
-[![GitHub Stars](https://img.shields.io/github/stars/zuorn/Tydora?style=flat-square)](https://github.com/zuorn/Tydora)
-[![Release](https://img.shields.io/github/v/release/zuorn/Tydora?style=flat-square)](https://github.com/zuorn/Tydora/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/zuorn/Inimark?style=flat-square)](https://github.com/zuorn/Inimark)
+[![Release](https://img.shields.io/github/v/release/zuorn/Inimark?style=flat-square)](https://github.com/zuorn/Inimark/releases)
 [![License](<https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square>)](LICENSE)
 [![Platform](<https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square>)]()
 [![Tauri](https://img.shields.io/badge/Tauri-v2-blue?style=flat-square)](https://v2.tauri.app/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square)](https://react.dev/)
-[![dsh.so security](https://www.dsh.so/badge/tydora.svg)](https://www.dsh.so/artifact/tydora)
-[![dsh.so install](https://www.dsh.so/badge/install/tydora.svg)](https://www.dsh.so/artifact/tydora)
+[![dsh.so security](https://www.dsh.so/badge/inimark.svg)](https://www.dsh.so/artifact/inimark)
+[![dsh.so install](https://www.dsh.so/badge/install/inimark.svg)](https://www.dsh.so/artifact/inimark)
 
 [中文](README_ZH.md) | English
 
@@ -16,7 +16,7 @@
 我曾长久地在 **Typora** 里安放专注，在 **Obsidian** 的图谱前整理思绪。但心底始终觉得，还缺少些什么——
 少一些指尖触及思想时的<mark>绝对顺滑</mark>，少一些让知识直接铺展成画布的<mark>自由</mark>。
 
-于是，我决定自己写一个。它的名字叫 **Tydora**。
+于是，我决定自己写一个。它的名字叫 **Inimark**。
 
 这是我用无数个安静的深夜独自打磨出的 **Markdown 编辑器**，有平替 **Typora** 的底气，也有叫板 **Obsidian** 的野心。它不只是工具，更像是一张递给<mark>同路人的书桌</mark>——**干净、安静，却暗藏山河**。
 
@@ -57,9 +57,9 @@
 ## **📚一张书桌，静候同路人**
 
 它是我交出的答案，也是递给同路人的一份邀请。
-如果你也在寻找更懂你的<mark>书写伴侣</mark>，不妨来 **Tydora** 坐坐。
+如果你也在寻找更懂你的<mark>书写伴侣</mark>，不妨来 **Inimark** 坐坐。
 
-🔗 [https://zuorn.github.io/Tydora](https://zuorn.github.io/Tydora)
+🔗 [https://zuorn.github.io/Inimark](https://zuorn.github.io/Inimark)
 
 有任何想让它做到的事，请告诉我——我继续打磨，直到它成为我们<mark>心中理想的样子</mark>。
 
@@ -67,13 +67,13 @@
 
 ## 快速开始
 
-1. 请从 [Release ](https://github.com/zuorn/Tydora/releases)下载并安装Tydora
+1. 请从 [Release ](https://github.com/zuorn/Inimark/releases)下载并安装Inimark
 
 ## **从源码运行**
 
 ```bash
-git clone https://github.com/zuorn/Tydora.git
-cd Tydora
+git clone https://github.com/zuorn/Inimark.git
+cd Inimark
 npm install
 
 npm run tauri dev
@@ -101,10 +101,10 @@ npm run tauri build
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=zuorn%2FTydora&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=zuorn%2FInimark&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=zuorn/Tydora&type=date&theme=dark&legend=top-left&sealed_token=UbjlpYMAKlj9YxE9TrI3oZEpbMArNY0oRBtXdZ4GlQe9lQG0bgKmhoGnECO6aR-BCg34sIpFHJLyux4trfCJQVTOG2DIOa2HKERx9cCUMNhsoboxUFNz8g" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=zuorn/Tydora&type=date&legend=top-left&sealed_token=UbjlpYMAKlj9YxE9TrI3oZEpbMArNY0oRBtXdZ4GlQe9lQG0bgKmhoGnECO6aR-BCg34sIpFHJLyux4trfCJQVTOG2DIOa2HKERx9cCUMNhsoboxUFNz8g" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=zuorn/Tydora&type=date&legend=top-left&sealed_token=UbjlpYMAKlj9YxE9TrI3oZEpbMArNY0oRBtXdZ4GlQe9lQG0bgKmhoGnECO6aR-BCg34sIpFHJLyux4trfCJQVTOG2DIOa2HKERx9cCUMNhsoboxUFNz8g" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=zuorn/Inimark&type=date&theme=dark&legend=top-left&sealed_token=UbjlpYMAKlj9YxE9TrI3oZEpbMArNY0oRBtXdZ4GlQe9lQG0bgKmhoGnECO6aR-BCg34sIpFHJLyux4trfCJQVTOG2DIOa2HKERx9cCUMNhsoboxUFNz8g" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=zuorn/Inimark&type=date&legend=top-left&sealed_token=UbjlpYMAKlj9YxE9TrI3oZEpbMArNY0oRBtXdZ4GlQe9lQG0bgKmhoGnECO6aR-BCg34sIpFHJLyux4trfCJQVTOG2DIOa2HKERx9cCUMNhsoboxUFNz8g" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=zuorn/Inimark&type=date&legend=top-left&sealed_token=UbjlpYMAKlj9YxE9TrI3oZEpbMArNY0oRBtXdZ4GlQe9lQG0bgKmhoGnECO6aR-BCg34sIpFHJLyux4trfCJQVTOG2DIOa2HKERx9cCUMNhsoboxUFNz8g" />
  </picture>
 </a>

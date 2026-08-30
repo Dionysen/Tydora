@@ -46,7 +46,7 @@ jobs:
       - name: Upload MSIX artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tydora-msix
+          name: inimark-msix
           path: src-tauri/target/msix/*.msix
           if-no-files-found: error
 

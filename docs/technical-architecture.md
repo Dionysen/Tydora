@@ -1,4 +1,4 @@
-# Tydora 技术架构文档
+# Inimark 技术架构文档
 
 ## 目录
 
@@ -18,7 +18,7 @@
 
 ## 项目概述
 
-Tydora 是一款基于 Tauri v2 + React 19 构建的桌面 Markdown 编辑器，支持 WYSIWYG（所见即所得）和源码两种编辑模式，以及基于"仓库（Vault）"概念的文件管理。
+Inimark 是一款基于 Tauri v2 + React 19 构建的桌面 Markdown 编辑器，支持 WYSIWYG（所见即所得）和源码两种编辑模式，以及基于"仓库（Vault）"概念的文件管理。
 
 ### 核心特性
 
@@ -532,11 +532,11 @@ graph LR
     end
     
     subgraph Storage["localStorage"]
-        VAULTS_KEY[zmd-vaults]
-        ACTIVE_KEY[zmd-active-vault]
-        WIDTH_KEY[zmd-sidebar-width]
-        THEME_KEY[zmd-theme]
-        WINDOW_KEY[zmd-window-state]
+        VAULTS_KEY[inimark-vaults]
+        ACTIVE_KEY[inimark-active-vault]
+        WIDTH_KEY[inimark-sidebar-width]
+        THEME_KEY[inimark-theme]
+        WINDOW_KEY[inimark-window-state]
     end
     
     Vaults --> VAULTS_KEY
@@ -555,7 +555,7 @@ sequenceDiagram
     participant Storage as localStorage
     
     Note over App,Storage: 启动时恢复
-    App->>Storage: 读取 zmd-window-state
+    App->>Storage: 读取 inimark-window-state
     Storage-->>App: {x, y, width, height}
     App->>Window: setSize(size)
     App->>Window: setPosition(pos)
@@ -565,7 +565,7 @@ sequenceDiagram
     App->>App: 防抖处理 (500ms)
     App->>Window: outerPosition/outerSize
     Window-->>App: 当前位置/大小
-    App->>Storage: 保存 zmd-window-state
+    App->>Storage: 保存 inimark-window-state
 ```
 
 ---
@@ -649,8 +649,8 @@ flowchart LR
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/zuorn/Tydora.git
-cd Tydora
+git clone https://github.com/zuorn/Inimark.git
+cd Inimark
 
 # 2. 安装依赖
 npm install
@@ -676,7 +676,7 @@ npm run tauri
 ### 项目结构
 
 ```
-Tydora/
+Inimark/
 ├── src/                          # 前端源码
 │   ├── App.tsx                   # 应用主组件
 │   ├── main.tsx                  # 入口

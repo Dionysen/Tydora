@@ -2,7 +2,7 @@
 // Vim 模块状态 Provider。默认关闭；关闭时不注入任何编辑器扩展、不监听键盘。
 //
 // 设计要点：
-// - 配置存 localStorage["zmd-vim-config"]，跨窗口经 storage 事件同步（与 zmd-general-settings 同模式）
+// - 配置存 localStorage["inimark-vim-config"]，跨窗口经 storage 事件同步（与 inimark-general-settings 同模式）
 // - 模式（normal/insert/visual）由 CodeMirror vim 扩展驱动，通过 setMode 更新
 // - 对外只通过 useVim() 消费，内部细节不外泄
 

@@ -23,8 +23,8 @@ interface VaultInfo {
 
 function getActiveVaultPath(): string | null {
   try {
-    const vaultsRaw = localStorage.getItem("zmd-vaults");
-    const activeIndexRaw = localStorage.getItem("zmd-active-vault");
+    const vaultsRaw = localStorage.getItem("inimark-vaults");
+    const activeIndexRaw = localStorage.getItem("inimark-active-vault");
     if (!vaultsRaw || activeIndexRaw === null) return null;
     const vaults: VaultInfo[] = JSON.parse(vaultsRaw);
     const idx = parseInt(activeIndexRaw, 10);

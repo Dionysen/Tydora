@@ -1,11 +1,11 @@
 // src/vim/config/configLoader.ts
-// Vim 配置加载与持久化。独立 localStorage 键，绝不读写 zmd-shortcuts。
+// Vim 配置加载与持久化。独立 localStorage 键，绝不读写 inimark-shortcuts。
 
 import type { VimConfig } from "../types";
 export type { VimConfig };
 
-/** Vim 配置的 localStorage 键（独立于 zmd-shortcuts） */
-export const VIM_CONFIG_KEY = "zmd-vim-config";
+/** Vim 配置的 localStorage 键（独立于 inimark-shortcuts） */
+export const VIM_CONFIG_KEY = "inimark-vim-config";
 
 /** 默认配置：默认关闭，零侵入 */
 export const DEFAULT_VIM_CONFIG: VimConfig = {

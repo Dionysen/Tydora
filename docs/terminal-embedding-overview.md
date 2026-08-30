@@ -1,6 +1,6 @@
 # 内嵌终端（Embedded Terminal）功能实现总览
 
-> 项目：Tydora（Tauri v2 + Vite + React 19 + TypeScript）
+> 项目：Inimark（Tauri v2 + Vite + React 19 + TypeScript）
 > 目标：让"终端"面板像"编辑器"面板一样，支持左右/上下分屏与混排，并接入现有分屏树。
 
 ## 一、架构决策

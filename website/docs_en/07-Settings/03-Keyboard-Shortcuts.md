@@ -5,7 +5,7 @@ tags: [Settings]
 
 # Keyboard Shortcut Settings
 
-Tydora comes with **40+ customizable** keyboard shortcuts. You can view all bindings in Settings, modify them to your preferred combinations, or reset them to defaults with one click.
+Inimark comes with **40+ customizable** keyboard shortcuts. You can view all bindings in Settings, modify them to your preferred combinations, or reset them to defaults with one click.
 
 > [!NOTE]
 > Press `Ctrl+,` to open Settings, then switch to the "Shortcuts" tab. For the complete default list, see [[07-Settings/04-Shortcut-Reference]].

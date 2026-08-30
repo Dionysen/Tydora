@@ -180,7 +180,7 @@ function buildFooter(settings: XhsSettings, index: number, total: number): HTMLE
   icon.style.borderRadius = "5px";
   icon.style.flexShrink = "0";
   left.appendChild(icon);
-  left.appendChild(document.createTextNode("Tydora"));
+  left.appendChild(document.createTextNode("Inimark"));
 
   const right = document.createElement("span");
   right.style.cssText = "display:flex;align-items:center;";

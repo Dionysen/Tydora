@@ -5,7 +5,7 @@ tags: [feature]
 
 # Mind Map
 
-Tydora has a built-in mind map feature that uses **Markmap** to automatically convert the heading hierarchy of your Markdown into an interactive mind map, helping you shift from "linear text" to a "tree structure" when reviewing content.
+Inimark has a built-in mind map feature that uses **Markmap** to automatically convert the heading hierarchy of your Markdown into an interactive mind map, helping you shift from "linear text" to a "tree structure" when reviewing content.
 
 > [!NOTE]
 > Shortcut: `Ctrl+M`. The mind map opens in a separate Tauri window and supports multiple monitors.

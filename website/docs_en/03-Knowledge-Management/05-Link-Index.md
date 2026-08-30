@@ -5,7 +5,7 @@ tags: [knowledge]
 
 # Link Index
 
-The link index is Tydora's **background service**, responsible for scanning the vault and building and maintaining the link relationships between all notes. It is the data foundation for [[03-Knowledge-Management/01-Wiki-Links]] autocomplete, the [[03-Knowledge-Management/03-Backlinks]] panel, the [[03-Knowledge-Management/04-Knowledge-Graph]], and [[05-Navigation-Search/01-Quick-Open]].
+The link index is Inimark's **background service**, responsible for scanning the vault and building and maintaining the link relationships between all notes. It is the data foundation for [[03-Knowledge-Management/01-Wiki-Links]] autocomplete, the [[03-Knowledge-Management/03-Backlinks]] panel, the [[03-Knowledge-Management/04-Knowledge-Graph]], and [[05-Navigation-Search/01-Quick-Open]].
 
 > [!ABSTRACT]You normally don't need to interact with the link index directly — it works silently in the background. This page explains its mechanism so you can understand why links "always resolve correctly".
 

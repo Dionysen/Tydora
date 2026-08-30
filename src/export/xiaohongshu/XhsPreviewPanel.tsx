@@ -18,7 +18,7 @@ import type { EditorMode } from "../../Editor";
 import "./XhsPreviewPanel.css";
 
 /** 图片位置持久化键：用户拖拽调整后的图片偏移（key = cyrb53(图片 data URL)） */
-const IMAGE_POSITIONS_KEY = "zmd-xhs-image-positions";
+const IMAGE_POSITIONS_KEY = "inimark-xhs-image-positions";
 
 /** 卡片比例 → 逻辑尺寸（与导出 render.ts 的 RATIO_SIZES 保持一致） */
 const RATIO_SIZES: Record<XhsRatio, { width: number; height: number }> = {

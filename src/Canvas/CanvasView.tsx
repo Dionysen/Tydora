@@ -563,8 +563,8 @@ export default function CanvasView({ onNodeClick }: CanvasViewProps) {
       let currentVaultPath = vaultPath;
       if (!currentVaultPath) {
         try {
-          const raw = localStorage.getItem('zmd-vaults');
-          const activeIndex = parseInt(localStorage.getItem('zmd-active-vault') || '-1');
+          const raw = localStorage.getItem('inimark-vaults');
+          const activeIndex = parseInt(localStorage.getItem('inimark-active-vault') || '-1');
           if (raw && activeIndex >= 0) {
             const vaults = JSON.parse(raw);
             currentVaultPath = vaults[activeIndex]?.path || '';

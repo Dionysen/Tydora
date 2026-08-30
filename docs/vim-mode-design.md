@@ -1,6 +1,6 @@
-# Tydora Vim 模式设计文档（LazyVim 风格）
+# Inimark Vim 模式设计文档（LazyVim 风格）
 
-> 目标：为 Tydora 增加一个贴近 LazyVim 体验的 Vim 模式，作为**独立模块**存在，默认关闭，开启时不破坏任何现有功能与快捷键体系。
+> 目标：为 Inimark 增加一个贴近 LazyVim 体验的 Vim 模式，作为**独立模块**存在，默认关闭，开启时不破坏任何现有功能与快捷键体系。
 
 ---
 
@@ -20,11 +20,11 @@
 ## 二、现状盘点（勘探结论）
 
 1. **编辑器**：双编辑器并存
-   - 源码模式：[CodeMirrorEditor.tsx](file:///d:/code/Tydora/src/Editor/CodeMirrorEditor.tsx)，CodeMirror 6
-   - 所见即所得：[TipTapEditor.tsx](file:///d:/code/Tydora/src/Editor/TipTapEditor.tsx)，TipTap/ProseMirror
-2. **快捷键体系**：[shortcuts.json](file:///d:/code/Tydora/src/config/shortcuts.json) + [shortcuts.ts](file:///d:/code/Tydora/src/Editor/shortcuts.ts)，全 `Ctrl+X` 风格，存 `localStorage["zmd-shortcuts"]`，可在设置面板自定义
-3. **文件树**：自研 [Sidebar.tsx](file:///d:/code/Tydora/src/Sidebar.tsx)，有右键 ContextMenu、`FileActions` 接口（新建/重命名/删除/复制/移动/打开），**无键盘快捷键**
-4. **命令面板**：已有 [CommandPalette.tsx](file:///d:/code/Tydora/src/components/CommandPalette.tsx)，`Ctrl+P` 唤起，模糊搜索 + 键盘导航
+   - 源码模式：[CodeMirrorEditor.tsx](file:///d:/code/Inimark/src/Editor/CodeMirrorEditor.tsx)，CodeMirror 6
+   - 所见即所得：[TipTapEditor.tsx](file:///d:/code/Inimark/src/Editor/TipTapEditor.tsx)，TipTap/ProseMirror
+2. **快捷键体系**：[shortcuts.json](file:///d:/code/Inimark/src/config/shortcuts.json) + [shortcuts.ts](file:///d:/code/Inimark/src/Editor/shortcuts.ts)，全 `Ctrl+X` 风格，存 `localStorage["inimark-shortcuts"]`，可在设置面板自定义
+3. **文件树**：自研 [Sidebar.tsx](file:///d:/code/Inimark/src/Sidebar.tsx)，有右键 ContextMenu、`FileActions` 接口（新建/重命名/删除/复制/移动/打开），**无键盘快捷键**
+4. **命令面板**：已有 [CommandPalette.tsx](file:///d:/code/Inimark/src/components/CommandPalette.tsx)，`Ctrl+P` 唤起，模糊搜索 + 键盘导航
 5. **Vim 基础设施**：**完全没有**，`package.json` 无任何 vim 依赖
 
 ---
@@ -124,7 +124,7 @@ src/vim/
 │   ├── leader.ts               # Leader 菜单结构配置（TS 导出，避免 esbuild JSON 问题）
 │   ├── leader.json             # Leader 配置备份（与 leader.ts 同步）
 │   ├── prefixM.ts              # m 前缀键配置（Markdown 格式化动作）
-│   └── configLoader.ts         # 加载 + 合并用户自定义（存 localStorage["zmd-vim-config"]）
+│   └── configLoader.ts         # 加载 + 合并用户自定义（存 localStorage["inimark-vim-config"]）
 │
 ├── leader/
 │   ├── LeaderMenu.tsx          # which-key 风格菜单组件（右下角 · 透明背景）
@@ -233,7 +233,7 @@ Leader 键是用户自定义的特殊键，用于触发个人或插件定义的�
 
 ### 7.3 前缀键
 
-前缀键是 Vim 本身定义的一类键，它们后面通常需要再按一个或多个键来构成完整命令。`g` 和 `z` 是 Vim 标准前缀，`m` 是 Tydora 自定义的 Markdown 前缀。
+前缀键是 Vim 本身定义的一类键，它们后面通常需要再按一个或多个键来构成完整命令。`g` 和 `z` 是 Vim 标准前缀，`m` 是 Inimark 自定义的 Markdown 前缀。
 
 #### `g` — Vim 原生常用（由 `@replit/codemirror-vim` 内置支持）
 
@@ -259,7 +259,7 @@ Leader 键是用户自定义的特殊键，用于触发个人或插件定义的�
 | `z.` | 将当前行置于屏幕中央并移动光标到首个非空字符 |
 | `z-` | 将当前行置于屏幕底部并移动光标 |
 
-#### `m` — Markdown 格式化前缀（Tydora 自定义）
+#### `m` — Markdown 格式化前缀（Inimark 自定义）
 
 在 normal 模式下按 `m` 弹出 which-key 菜单，再按对应键执行格式化：
 
@@ -350,7 +350,7 @@ Leader 键是用户自定义的特殊键，用于触发个人或插件定义的�
 
 ### 10.2 配置隔离
 
-- Vim 键位存 **独立** localStorage 键 `zmd-vim-config`，不碰 `zmd-shortcuts`
+- Vim 键位存 **独立** localStorage 键 `inimark-vim-config`，不碰 `inimark-shortcuts`
 - 现有 `shortcuts.json` 一字不改
 - Vim 的 `editor.*` action 通过 **运行时查表** 复用现有 shortcuts 的 id，而非复制键位
 
@@ -380,7 +380,7 @@ Leader 键是用户自定义的特殊键，用于触发个人或插件定义的�
 
 ### 11.2 设置面板入口
 
-在 [Settings.tsx](file:///d:/code/Tydora/src/Settings.tsx) 新增「Vim 模式」分组：
+在 [Settings.tsx](file:///d:/code/Inimark/src/Settings.tsx) 新增「Vim 模式」分组：
 
 
 | 项                   | 类型           | 默认            |
@@ -482,7 +482,7 @@ Leader 键是用户自定义的特殊键，用于触发个人或插件定义的�
 
 - [x] Vim 开关关闭时，仅 `src/vim/` 新增 + 设置面板入口 + App 条件注入
 - [x] 关闭 Vim 后，所有现有快捷键、右键菜单、命令面板行为与开启前一致
-- [x] `localStorage["zmd-shortcuts"]` 不被 Vim 模块读写
+- [x] `localStorage["inimark-shortcuts"]` 不被 Vim 模块读写
 
 ### 14.2 功能验收
 

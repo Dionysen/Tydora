@@ -5,7 +5,7 @@ tags: [Shortcuts]
 
 # Shortcut Quick Reference
 
-Tydora comes with 40+ keyboard shortcuts. The table below shows the **default configuration**. All shortcuts can be viewed, modified, or reset to defaults in [[07-Settings/03-Keyboard-Shortcuts]].
+Inimark comes with 40+ keyboard shortcuts. The table below shows the **default configuration**. All shortcuts can be viewed, modified, or reset to defaults in [[07-Settings/03-Keyboard-Shortcuts]].
 
 > [!NOTE]
 > In the tables, `Ctrl` corresponds to `Cmd` (⌘) on macOS. Some combinations use `Ctrl+Alt+Number` — use the main keyboard number row directly; a numeric keypad is not required.

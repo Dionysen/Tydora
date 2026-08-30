@@ -91,7 +91,7 @@ export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
   tableToolbar: true,
 };
 
-export const EDITOR_SETTINGS_KEY = "zmd-editor-settings";
+export const EDITOR_SETTINGS_KEY = "inimark-editor-settings";
 
 export function loadEditorSettings(): EditorSettings {
   try {
@@ -203,10 +203,10 @@ const DEFAULT_SHORTCUTS: ShortcutItem[] = shortcutsConfig.editor as ShortcutItem
 
 // ── Storage keys ────────────────────────────────────────────────────
 
-const GENERAL_SETTINGS_KEY = "zmd-general-settings";
-export const SHORTCUTS_KEY = "zmd-shortcuts";
-export const MINDMAP_SETTINGS_KEY = "zmd-mindmap-settings";
-export const GRAPH_SETTINGS_KEY = "zmd-graph-settings";
+const GENERAL_SETTINGS_KEY = "inimark-general-settings";
+export const SHORTCUTS_KEY = "inimark-shortcuts";
+export const MINDMAP_SETTINGS_KEY = "inimark-mindmap-settings";
+export const GRAPH_SETTINGS_KEY = "inimark-graph-settings";
 export type { MindmapSettings, GraphSettings };
 
 export { DEFAULT_SHORTCUTS, DEFAULT_MINDMAP, DEFAULT_GRAPH };
@@ -2667,7 +2667,7 @@ function AboutSettingsContent() {
     if (!updateResult?.info) return;
     // 商店版切换到 GitHub 版会先卸载商店包（不可逆，之后改由 GitHub 更新），需确认
     if (storeVersion) {
-      const ok = await ask(t("settings.about.switchConfirm"), { title: "Tydora", kind: "warning" });
+      const ok = await ask(t("settings.about.switchConfirm"), { title: "Inimark", kind: "warning" });
       if (!ok) return;
     }
     setDownloading(true);
@@ -2694,8 +2694,8 @@ function AboutSettingsContent() {
   return (
     <div className="settings-section">
       <div className="settings-about-header">
-        <img src={appIcon} alt="Tydora" className="settings-about-icon" />
-        <h2 className="settings-about-title">Tydora</h2>
+        <img src={appIcon} alt="Inimark" className="settings-about-icon" />
+        <h2 className="settings-about-title">Inimark</h2>
         <p className="settings-about-subtitle">{t("settings.about.description")}<br />{t("settings.about.lightweight")}</p>
       </div>
 
@@ -2756,7 +2756,7 @@ function AboutSettingsContent() {
         <span
           className="settings-link"
           style={{ cursor: "pointer" }}
-          onClick={() => invoke("open_url", { url: "https://github.com/zuorn/Tydora" })}
+          onClick={() => invoke("open_url", { url: "https://github.com/zuorn/Inimark" })}
         >
           {t("settings.about.visitRepo")}
         </span>
@@ -2767,7 +2767,7 @@ function AboutSettingsContent() {
         <span
           className="settings-link"
           style={{ cursor: "pointer" }}
-          onClick={() => invoke("open_url", { url: "https://github.com/zuorn/Tydora/issues" })}
+          onClick={() => invoke("open_url", { url: "https://github.com/zuorn/Inimark/issues" })}
         >
           Report an Issue
         </span>
@@ -2778,8 +2778,8 @@ function AboutSettingsContent() {
 
 // ── Main Settings Component ─────────────────────────────────────────
 
-const SETTINGS_WINDOW_STATE_KEY = "zmd-settings-window-state";
-const SETTINGS_NAV_WIDTH_KEY = "zmd-settings-nav-width";
+const SETTINGS_WINDOW_STATE_KEY = "inimark-settings-window-state";
+const SETTINGS_NAV_WIDTH_KEY = "inimark-settings-nav-width";
 const SETTINGS_NAV_WIDTH_DEFAULT = 260;
 const SETTINGS_NAV_WIDTH_MIN = 180;
 const SETTINGS_NAV_WIDTH_MAX = 420;
@@ -2788,9 +2788,9 @@ export default function Settings() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
     try {
-      const saved = localStorage.getItem("zmd-settings-initial-tab") as SettingsTab | null;
+      const saved = localStorage.getItem("inimark-settings-initial-tab") as SettingsTab | null;
       if (saved && ["general", "theme", "shortcuts", "mindmap", "graph", "image", "canvas", "publish", "vim", "about"].includes(saved)) {
-        localStorage.removeItem("zmd-settings-initial-tab");
+        localStorage.removeItem("inimark-settings-initial-tab");
         return saved;
       }
     } catch { }

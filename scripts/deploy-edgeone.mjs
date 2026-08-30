@@ -5,7 +5,7 @@
  *   npm run deploy:edgeone -- --name=<项目名> [--token=<API Token>] [--env=production|preview] [--area=global|overseas]
  *
  * 说明：
- * - 以根路径 baseHref（/）构建文档站 + 落地页（与 GitHub Pages 的 /Tydora/ 构建互不影响）
+ * - 以根路径 baseHref（/）构建文档站 + 落地页（与 GitHub Pages 的 /Inimark/ 构建互不影响）
  * - 将 website/site 产物直接部署到 EdgeOne Makers
  * - --area 区域：
  *     global   = 全球含中国大陆节点，国内加速好，但绑定自定义域名需工信部备案

@@ -5,7 +5,7 @@ tags: [knowledge]
 
 # Wiki Links
 
-Wiki links are the core of Tydora's knowledge management: using `[[Note Name]]` you can establish **bidirectional links** between notes, weaving scattered notes into a network. The syntax is consistent with Obsidian.
+Wiki links are the core of Inimark's knowledge management: using `[[Note Name]]` you can establish **bidirectional links** between notes, weaving scattered notes into a network. The syntax is consistent with Obsidian.
 
 > [!NOTE]
 > Typing `[[` triggers autocomplete, and you can filter target notes by entering keywords. Link resolution relies on [[03-Knowledge-Management/05-Link-Index]].
@@ -48,7 +48,7 @@ Jumps directly to the specified heading position in the target note.
 
 ## Autocomplete
 
-After typing `[[`, Tydora displays a list of matching notes:
+After typing `[[`, Inimark displays a list of matching notes:
 
 - **Fuzzy search** supported: type a partial keyword to filter
 - Real-time updates: filters as you type

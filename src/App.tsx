@@ -103,16 +103,16 @@ class EditorErrorBoundary extends Component<
   }
 }
 
-const VAULTS_KEY = "zmd-vaults";
-const ACTIVE_VAULT_KEY = "zmd-active-vault";
-const SIDEBAR_WIDTH_KEY = "zmd-sidebar-width";
-const XHS_PREVIEW_WIDTH_KEY = "zmd-xhs-preview-width";
-const WINDOW_STATE_KEY = "zmd-window-state";
+const VAULTS_KEY = "inimark-vaults";
+const ACTIVE_VAULT_KEY = "inimark-active-vault";
+const SIDEBAR_WIDTH_KEY = "inimark-sidebar-width";
+const XHS_PREVIEW_WIDTH_KEY = "inimark-xhs-preview-width";
+const WINDOW_STATE_KEY = "inimark-window-state";
 // 编辑窗口（顶部栏"在新窗口打开"、新窗口打开仓库）使用独立状态 key，
 // 避免与主窗口互相覆盖位置/尺寸
-const EDITOR_WINDOW_STATE_KEY = "zmd-editor-window-state";
-const RECENT_FILES_KEY = "zmd-recent-files";
-const PINNED_ITEMS_KEY = "zmd-pinned-toolbar-items";
+const EDITOR_WINDOW_STATE_KEY = "inimark-editor-window-state";
+const RECENT_FILES_KEY = "inimark-recent-files";
+const PINNED_ITEMS_KEY = "inimark-pinned-toolbar-items";
 
 // 最近访问文件的最大数量
 const MAX_RECENT_FILES = 20;
@@ -390,7 +390,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   if (!generalSettingsRead.current) {
     generalSettingsRead.current = true;
     try {
-      const raw = localStorage.getItem("zmd-general-settings");
+      const raw = localStorage.getItem("inimark-general-settings");
       generalSettingsRef.current = raw ? JSON.parse(raw) : {};
     } catch { /* ignore */ }
   }
@@ -462,7 +462,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   useEffect(() => {
     const applySettings = () => {
       try {
-        const raw = localStorage.getItem("zmd-general-settings");
+        const raw = localStorage.getItem("inimark-general-settings");
         const settings = raw ? JSON.parse(raw) : {};
         applyFontSettings({
           editorFont: settings.editorFont ?? "system",
@@ -508,7 +508,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     };
     applySettings();
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === "zmd-general-settings") applySettings();
+      if (e.key === "inimark-general-settings") applySettings();
     };
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
@@ -522,7 +522,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     fontSizeToastTimerRef.current = setTimeout(() => setFontSizeToast(null), 1500);
   };
 
-  // Ctrl + 滚轮：在编辑区调整字号（范围与设置面板一致 10-24px，持久化到 zmd-general-settings）
+  // Ctrl + 滚轮：在编辑区调整字号（范围与设置面板一致 10-24px，持久化到 inimark-general-settings）
   useEffect(() => {
     // 收集事件目标到 .editor-container 之间所有可滚动祖先的当前位置
     const collectScrollLocks = (target: HTMLElement | null) => {
@@ -580,7 +580,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       const dir = e.deltaY < 0 ? 1 : -1; // 向上滚动放大，向下滚动缩小
       let changed = false;
       try {
-        const raw = localStorage.getItem("zmd-general-settings");
+        const raw = localStorage.getItem("inimark-general-settings");
         const settings = raw ? JSON.parse(raw) : {};
         const current = typeof settings.fontSize === "number" ? settings.fontSize : 16;
         const currentMono =
@@ -590,7 +590,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         if (next !== current || nextMono !== currentMono) {
           settings.fontSize = next;
           settings.codeFontSize = nextMono;
-          localStorage.setItem("zmd-general-settings", JSON.stringify(settings));
+          localStorage.setItem("inimark-general-settings", JSON.stringify(settings));
           document.documentElement.style.setProperty("--editor-font-size", next + "px");
           document.documentElement.style.setProperty("--font-mono-size", nextMono + "px");
           showFontSizeToast(next);
@@ -1212,9 +1212,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     if (mindmapSyncTimerRef.current) clearTimeout(mindmapSyncTimerRef.current);
     mindmapSyncTimerRef.current = setTimeout(() => {
       // 列表模式下不覆盖内容
-      const mode = localStorage.getItem("zmd-mindmap-mode");
+      const mode = localStorage.getItem("inimark-mindmap-mode");
       if (mode === "list") return;
-      localStorage.setItem("zmd-mindmap-content", value);
+      localStorage.setItem("inimark-mindmap-content", value);
       emit("mindmap-content-update", { content: value }).catch(() => {});
     }, 500);
   }, []);
@@ -1298,7 +1298,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       if (activeVault) {
         LinkIndexService.updateFileLinks(path, activeVault.path);
         TagIndexService.updateFileTags(path, contentToWrite);
-        try { localStorage.setItem("zmd-link-index", LinkIndexService.serialize()); } catch {}
+        try { localStorage.setItem("inimark-link-index", LinkIndexService.serialize()); } catch {}
       }
       return true;
     } catch (e) {
@@ -1335,7 +1335,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     if (!buffers.some((b) => b.modified && b.fileName)) return;
     const timer = setTimeout(async () => {
       try {
-        const raw = localStorage.getItem("zmd-general-settings");
+        const raw = localStorage.getItem("inimark-general-settings");
         if (!raw) return;
         const settings = JSON.parse(raw);
         if (!settings.autoSave) return;
@@ -1351,7 +1351,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           }
         }
         if (activeVault) {
-          try { localStorage.setItem("zmd-link-index", LinkIndexService.serialize()); } catch {}
+          try { localStorage.setItem("inimark-link-index", LinkIndexService.serialize()); } catch {}
         }
       } catch (e) {
         console.error(t("app.error.autoSaveFailed"), e);
@@ -2550,8 +2550,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     const handler = (e: KeyboardEvent) => {
       if (matchShortcut(e, shortcutsConfig.app["open-mindmap"])) {
         e.preventDefault();
-        localStorage.setItem("zmd-mindmap-mode", "document");
-        localStorage.setItem("zmd-mindmap-content", contentRef.current);
+        localStorage.setItem("inimark-mindmap-mode", "document");
+        localStorage.setItem("inimark-mindmap-content", contentRef.current);
         invoke("open_mindmap_window");
       }
     };
@@ -2997,7 +2997,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const pendingQueryRef = useRef<string | null>(null);
   const pendingHeadingRef = useRef<string | null>(null);
   const openFileGenerationRef = useRef(0);
-  const title = fileName && typeof fileName === "string" ? fileName.split(/[/\\]/).pop() || "untitled.md" : "Tydora";
+  const title = fileName && typeof fileName === "string" ? fileName.split(/[/\\]/).pop() || "untitled.md" : "Inimark";
   // 标题栏始终反映激活窗格缓冲的文件与保存状态（N 窗格模型下不再区分 A/B）
   const displayedFileName = fileName;
   const displayedTitle = title;
@@ -3093,8 +3093,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "split-tb", label: t("app.menu.splitTopBottom"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("split-tb"), aliases: t("app.command.aliases.splitTopBottom").split(", "), action: () => { if (fileName && isCurrentFileMarkdown) handleSplit("tb"); else if (isActiveTerminal) handleSplit("tb"); } },
     { id: "new-terminal", label: t("app.command.labels.newTerminal"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("terminal-new"), aliases: t("app.command.aliases.newTerminal").split(", "), action: () => handleOpenTerminalPane("lr") },
     { id: "open-mindmap", label: t("app.command.labels.openMindmap"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("open-mindmap"), action: () => {
-      localStorage.setItem("zmd-mindmap-mode", "document");
-      localStorage.setItem("zmd-mindmap-content", content);
+      localStorage.setItem("inimark-mindmap-mode", "document");
+      localStorage.setItem("inimark-mindmap-content", content);
       invoke("open_mindmap_window");
     }},
     { id: "open-graph", label: t("app.command.labels.openGraph"), category: t("app.command.categories.view"), action: () => {
@@ -3178,14 +3178,14 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         invoke("open_settings_window");
       }
     } },
-    { id: "settings-general", label: t("app.command.labels.generalSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.generalSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "general"); invoke("open_settings_window"); } },
-    { id: "settings-theme", label: t("app.command.labels.themeSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.themeSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "theme"); invoke("open_settings_window"); } },
-    { id: "settings-shortcuts", label: t("app.command.labels.shortcutSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.shortcutSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "shortcuts"); invoke("open_settings_window"); } },
-    { id: "settings-mindmap", label: t("app.command.labels.mindmapSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.mindmapSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "mindmap"); invoke("open_settings_window"); } },
-    { id: "settings-graph", label: t("app.command.labels.graphSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.graphSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "graph"); invoke("open_settings_window"); } },
-    { id: "settings-image", label: t("app.command.labels.imageSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.imageSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "image"); invoke("open_settings_window"); } },
-    { id: "settings-canvas", label: t("app.command.labels.canvasSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.canvasSettings").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "canvas"); invoke("open_settings_window"); } },
-    { id: "settings-about", label: t("app.command.labels.about"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.about").split(", "), action: () => { localStorage.setItem("zmd-settings-initial-tab", "about"); invoke("open_settings_window"); } },
+    { id: "settings-general", label: t("app.command.labels.generalSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.generalSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "general"); invoke("open_settings_window"); } },
+    { id: "settings-theme", label: t("app.command.labels.themeSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.themeSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "theme"); invoke("open_settings_window"); } },
+    { id: "settings-shortcuts", label: t("app.command.labels.shortcutSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.shortcutSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "shortcuts"); invoke("open_settings_window"); } },
+    { id: "settings-mindmap", label: t("app.command.labels.mindmapSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.mindmapSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "mindmap"); invoke("open_settings_window"); } },
+    { id: "settings-graph", label: t("app.command.labels.graphSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.graphSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "graph"); invoke("open_settings_window"); } },
+    { id: "settings-image", label: t("app.command.labels.imageSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.imageSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "image"); invoke("open_settings_window"); } },
+    { id: "settings-canvas", label: t("app.command.labels.canvasSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.canvasSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "canvas"); invoke("open_settings_window"); } },
+    { id: "settings-about", label: t("app.command.labels.about"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.about").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "about"); invoke("open_settings_window"); } },
   ], [t, handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, setViewMode, setActiveMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings, handleOpenXhs, handlePublish]);
 
   return (
@@ -3259,15 +3259,15 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                 </div>
               )}
             </div>
-            <span className="editor-file-name" title={displayedFileName || "Tydora"}>
+            <span className="editor-file-name" title={displayedFileName || "Inimark"}>
               {displayedTitle}
               <span className={`traffic-light traffic-light--${displayedFileName ? displayedSaveStatus : "idle"}`} />
             </span>
             <div className="window-controls" data-tauri-drag-region="false">
               {pinnedItems.mindmap && (
                 <button className="window-control-btn" title={t("app.toolbar.mindmap")} onClick={() => {
-                  localStorage.setItem("zmd-mindmap-mode", "document");
-                  localStorage.setItem("zmd-mindmap-content", content);
+                  localStorage.setItem("inimark-mindmap-mode", "document");
+                  localStorage.setItem("inimark-mindmap-content", content);
                   invoke("open_mindmap_window");
                 }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -3530,8 +3530,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       className="editor-topbar-more-menu-item"
                       onClick={() => {
                         setMoreMenuOpen(false);
-                        localStorage.setItem("zmd-mindmap-mode", "document");
-                        localStorage.setItem("zmd-mindmap-content", content);
+                        localStorage.setItem("inimark-mindmap-mode", "document");
+                        localStorage.setItem("inimark-mindmap-content", content);
                         invoke("open_mindmap_window");
                       }}
                     >

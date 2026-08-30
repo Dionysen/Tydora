@@ -29,8 +29,8 @@ function NoteNode({ data, selected }: NodeProps) {
   // Get vault path from localStorage
   const getVaultPath = (): string => {
     try {
-      const raw = localStorage.getItem('zmd-vaults');
-      const activeIndex = parseInt(localStorage.getItem('zmd-active-vault') || '-1');
+      const raw = localStorage.getItem('inimark-vaults');
+      const activeIndex = parseInt(localStorage.getItem('inimark-active-vault') || '-1');
       if (raw && activeIndex >= 0) {
         const vaults = JSON.parse(raw);
         return vaults[activeIndex]?.path || '';

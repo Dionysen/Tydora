@@ -2079,6 +2079,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "inimark"
+version = "0.2.2"
+dependencies = [
+ "axum",
+ "base64 0.22.1",
+ "fontdb",
+ "notify",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-quartz-core",
+ "portable-pty",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-clipboard-manager",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-process",
+ "tauri-plugin-single-instance",
+ "tauri-plugin-updater",
+ "tauri-plugin-window-state",
+ "tokio",
+ "url",
+ "zip 2.4.2",
+]
+
+[[package]]
 name = "inotify"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5120,35 +5149,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
 dependencies = [
  "core_maths",
-]
-
-[[package]]
-name = "tydora"
-version = "0.2.2"
-dependencies = [
- "axum",
- "base64 0.22.1",
- "fontdb",
- "notify",
- "objc2",
- "objc2-app-kit",
- "objc2-quartz-core",
- "portable-pty",
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-clipboard-manager",
- "tauri-plugin-dialog",
- "tauri-plugin-fs",
- "tauri-plugin-process",
- "tauri-plugin-single-instance",
- "tauri-plugin-updater",
- "tauri-plugin-window-state",
- "tokio",
- "url",
- "zip 2.4.2",
 ]
 
 [[package]]

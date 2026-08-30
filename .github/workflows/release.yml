@@ -87,17 +87,21 @@ jobs:
         with:
           args: ${{ matrix.args }}
 
-      # Windows: 额外生成便携版（免安装）zip，内容为 release 构建出的 Tydora.exe
+      # Windows: 额外生成便携版（免安装）zip；Cargo 产物为 inimark.exe，打成 Inimark.exe 以匹配 productName / 更新脚本
       - name: Package Windows portable zip
         if: matrix.platform == 'windows-latest'
         shell: pwsh
         run: |
           $version = (Get-Content VERSION).Trim()
-          $exe = 'src-tauri/target/release/Tydora.exe'
+          $exe = 'src-tauri/target/release/inimark.exe'
           if (-not (Test-Path $exe)) { throw "Release exe not found: $exe" }
           New-Item -ItemType Directory -Force -Path 'release-assets' | Out-Null
-          $zip = Join-Path 'release-assets' "Tydora_${version}_x64_portable.zip"
-          Compress-Archive -Path $exe -DestinationPath $zip -Force
+          $staged = Join-Path 'release-assets' 'Inimark.exe'
+          Copy-Item -Force $exe $staged
+          $zip = Join-Path 'release-assets' "Inimark_${version}_x64_portable.zip"
+          if (Test-Path $zip) { Remove-Item -Force $zip }
+          Compress-Archive -Path $staged -DestinationPath $zip -Force
+          Remove-Item -Force $staged
           Get-Item $zip | Select-Object FullName, Length
 
       # 汇总所有 bundle 产物（含 .sig 签名）到 release-assets/
@@ -154,12 +158,12 @@ jobs:
           {
             echo "version=${VERSION}"
             echo "tag=${TAG}"
-            echo "name=Tydora v${VERSION}"
+            echo "name=Inimark v${VERSION}"
             echo "pub_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           } >> "$GITHUB_OUTPUT"
           {
             echo "RELEASE_BODY<<GITCLIFF_EOF"
-            echo "# Tydora v${VERSION}"
+            echo "# Inimark v${VERSION}"
             echo ""
             if [ -s RELEASE_NOTES.md ]; then
               cat RELEASE_NOTES.md
@@ -246,26 +250,26 @@ jobs:
               echo ""
             fi
           }
-          WIN_SIG=$(read_sig "01-Tydora_${VERSION}_x64-setup.exe.sig")
-          MAC_ARM_SIG=$(read_sig "02-Tydora_${VERSION}_aarch64.app.tar.gz.sig")
-          MAC_X64_SIG=$(read_sig "02-Tydora_${VERSION}_x64.app.tar.gz.sig")
-          LIN_X64_SIG=$(read_sig "03-Tydora_${VERSION}_amd64.AppImage.sig")
-          LIN_ARM_SIG=$(read_sig "03-Tydora_${VERSION}_aarch64.AppImage.sig")
+          WIN_SIG=$(read_sig "01-Inimark_${VERSION}_x64-setup.exe.sig")
+          MAC_ARM_SIG=$(read_sig "02-Inimark_${VERSION}_aarch64.app.tar.gz.sig")
+          MAC_X64_SIG=$(read_sig "02-Inimark_${VERSION}_x64.app.tar.gz.sig")
+          LIN_X64_SIG=$(read_sig "03-Inimark_${VERSION}_amd64.AppImage.sig")
+          LIN_ARM_SIG=$(read_sig "03-Inimark_${VERSION}_aarch64.AppImage.sig")
           NOTES=$(cat RELEASE_NOTES.md 2>/dev/null || echo "")
           jq -n \
             --arg version "$VERSION" \
             --arg notes "$NOTES" \
             --arg pub_date "$PUB_DATE" \
             --arg win_sig "$WIN_SIG" \
-            --arg win_url "${BASE}/01-Tydora_${VERSION}_x64-setup.exe" \
+            --arg win_url "${BASE}/01-Inimark_${VERSION}_x64-setup.exe" \
             --arg mac_arm_sig "$MAC_ARM_SIG" \
-            --arg mac_arm_url "${BASE}/02-Tydora_${VERSION}_aarch64.app.tar.gz" \
+            --arg mac_arm_url "${BASE}/02-Inimark_${VERSION}_aarch64.app.tar.gz" \
             --arg mac_x64_sig "$MAC_X64_SIG" \
-            --arg mac_x64_url "${BASE}/02-Tydora_${VERSION}_x64.app.tar.gz" \
+            --arg mac_x64_url "${BASE}/02-Inimark_${VERSION}_x64.app.tar.gz" \
             --arg lin_x64_sig "$LIN_X64_SIG" \
-            --arg lin_x64_url "${BASE}/03-Tydora_${VERSION}_amd64.AppImage" \
+            --arg lin_x64_url "${BASE}/03-Inimark_${VERSION}_amd64.AppImage" \
             --arg lin_arm_sig "$LIN_ARM_SIG" \
-            --arg lin_arm_url "${BASE}/03-Tydora_${VERSION}_aarch64.AppImage" \
+            --arg lin_arm_url "${BASE}/03-Inimark_${VERSION}_aarch64.AppImage" \
             '{
               version: $version,
               notes: $notes,

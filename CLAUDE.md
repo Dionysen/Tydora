@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-Tydora（代码内称为 "zmd"）是一个基于 Tauri v2 + React 19 的桌面 Markdown 编辑器。支持 WYSIWYG 和源码两种编辑模式，以及基于"仓库（Vault）"概念的文件管理。
+Inimark（代码内称为 "inimark"）是一个基于 Tauri v2 + React 19 的桌面 Markdown 编辑器。支持 WYSIWYG 和源码两种编辑模式，以及基于"仓库（Vault）"概念的文件管理。
 
 ## 技术栈
 
@@ -80,7 +80,7 @@ npm run sync-version       # 将 VERSION 中的版本号同步到以下文件：
 
 - 管理编辑器内容 (`content`)、当前文件路径 (`fileName`)、修改状态 (`modified`)、编辑模式 (`viewMode: "ir" | "sv"`)
 - 管理仓库列表 (`vaults`)、当前激活仓库索引 (`activeVaultIndex`)、侧栏状态 (`sidebarOpen`/`sidebarWidth`)
-- 所有状态持久化到 `localStorage`：`zmd-vaults`、`zmd-active-vault`、`zmd-sidebar-width`、`zmd-window-state`、`zmd-theme`
+- 所有状态持久化到 `localStorage`：`inimark-vaults`、`inimark-active-vault`、`inimark-sidebar-width`、`inimark-window-state`、`inimark-theme`
 - 窗口位置/大小通过 Tauri Window API 恢复和防抖保存
 - 自定义窗口控件（最小化/最大化/关闭），替代系统原生标题栏
 - Ctrl+S 全局快捷键保存
@@ -109,7 +109,7 @@ npm run sync-version       # 将 VERSION 中的版本号同步到以下文件：
 
 ### 后端 (src-tauri/)
 
-**入口**: `main.rs` → 调用 `tydora_lib::run()`
+**入口**: `main.rs` → 调用 `inimark_lib::run()`
 
 **源码结构**:
 
@@ -181,7 +181,7 @@ src-tauri/src/
 
 ### 多窗口架构
 
-Tydora 采用多窗口架构，主进程通过 Tauri Window API 管理多个独立窗口：
+Inimark 采用多窗口架构，主进程通过 Tauri Window API 管理多个独立窗口：
 
 | 窗口     | 触发方式                      | 默认大小     | 说明           |
 | ------ | ------------------------- | -------- | ------------ |
@@ -204,7 +204,7 @@ Tydora 采用多窗口架构，主进程通过 Tauri Window API 管理多个独�
 
 ### Tauri 配置 (tauri.conf.json)
 
-- **标识符**: `com.tydora.editor`，版本 `0.0.5`
+- **标识符**: `com.inimark.editor`，版本 `0.0.5`
 - **窗口**: 1200×800，居中，无装饰，可调整大小
 - **打包**: Windows (NSIS)、macOS (DMG)、Linux (AppImage)
 - **CSP**: 设为 `null`（允许加载本地资源）

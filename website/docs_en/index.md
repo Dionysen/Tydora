@@ -1,23 +1,23 @@
 ---
-title: Tydora Help Documentation
+title: Inimark Help Documentation
 tags: [navigation]
 ---
 
-# Tydora Help Documentation
+# Inimark Help Documentation
 
-Welcome to the **Tydora Help Documentation**.
+Welcome to the **Inimark Help Documentation**.
 
-Tydora is a modern desktop Markdown editor built with Tauri v2 + React 19. It integrates WYSIWYG & source dual-mode editing, WikiLink bidirectional links, a knowledge graph, mind maps, and a whiteboard canvas — helping you manage knowledge like tending a "digital garden."
+Inimark is a modern desktop Markdown editor built with Tauri v2 + React 19. It integrates WYSIWYG & source dual-mode editing, WikiLink bidirectional links, a knowledge graph, mind maps, and a whiteboard canvas — helping you manage knowledge like tending a "digital garden."
 
 > **Language:** [中文](../index.md) | **English**
 
 ## Getting Started
 
-If you're new to Tydora, we recommend reading in the following order — about 10 minutes to get productive:
+If you're new to Inimark, we recommend reading in the following order — about 10 minutes to get productive:
 
 1. [[01-Getting-Started/01-Quick-Start]] — Download, install, open a vault, and write your first note
 2. [[02-Editor/01-Editing-Modes]] — Understand WYSIWYG (IR) and Source (SV) modes, and how to switch
-3. [[02-Editor/02-Markdown-Syntax]] — Complete Markdown and extended syntax supported by Tydora
+3. [[02-Editor/02-Markdown-Syntax]] — Complete Markdown and extended syntax supported by Inimark
 4. [[03-Knowledge-Management/01-Wiki-Links]] — Use `<a data-note="03-Knowledge-Management/01-Wiki-Links">03-Knowledge-Management/01-Wiki-Links</a>` to connect scattered notes into a knowledge network
 5. [[03-Knowledge-Management/04-Knowledge-Graph]] — View your knowledge universe in a force-directed graph
 6. [[08-Advanced-Features/03-Whiteboard-Canvas]] — Organize ideas, notes, and media on an infinite canvas
@@ -38,7 +38,7 @@ Essential reading to get you up and running and solve common problems.
 
 ### 2. Editor (Editing & Formatting)
 
-Tydora's core writing capabilities, from basic syntax to advanced block elements.
+Inimark's core writing capabilities, from basic syntax to advanced block elements.
 
 - [[02-Editor/01-Editing-Modes]] — IR (WYSIWYG) vs. SV (Source) mode comparison and switching
 - [[02-Editor/02-Markdown-Syntax]] — Complete syntax with GFM and extensions
@@ -88,7 +88,7 @@ Tailor the editor to your aesthetic and reading preferences.
 
 ### 7. Settings
 
-Customize every aspect of Tydora, and check the keyboard shortcut reference.
+Customize every aspect of Inimark, and check the keyboard shortcut reference.
 
 - [[07-Settings/01-General-Settings]] — Appearance mode, fonts, auto-save
 - [[07-Settings/02-Editor-Settings]] — Editing behavior, rendering options, math engine
@@ -113,4 +113,4 @@ Creation and distribution tools for advanced users.
 
 - [[01-Getting-Started/01-Quick-Start]] — The first guide from scratch
 - [[01-Getting-Started/03-FAQ]] — Look here first when you encounter issues
-- [[01-Getting-Started/02-About]] — Learn about Tydora's version and tech stack
+- [[01-Getting-Started/02-About]] — Learn about Inimark's version and tech stack

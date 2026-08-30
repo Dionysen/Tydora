@@ -55,9 +55,9 @@ export const DEFAULT_TERMINAL_SETTINGS: TerminalSettings = {
 
 // ── 存储键 ─────────────────────────────────────────────────────────
 
-export const TERMINAL_SETTINGS_KEY = "tydora.terminal.settings";
+export const TERMINAL_SETTINGS_KEY = "inimark.terminal.settings";
 /** 跨窗口同步事件名（设置窗口 emit，所有窗口 listen）。 */
-const TERMINAL_SETTINGS_SYNC_EVENT = "tydora:terminal-settings-sync";
+const TERMINAL_SETTINGS_SYNC_EVENT = "inimark:terminal-settings-sync";
 
 // ── 配色预设（参考 Windows Terminal 内置 schemes） ────────────────
 

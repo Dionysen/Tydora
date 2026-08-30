@@ -1,6 +1,6 @@
-# Tydora 发布流程
+# Inimark 发布流程
 
-本文档详细描述了 Tydora 的版本管理、Conventional Commits 规范、以及从提交代码到自动发布的完整自动化流水线。
+本文档详细描述了 Inimark 的版本管理、Conventional Commits 规范、以及从提交代码到自动发布的完整自动化流水线。
 
 ---
 
@@ -37,7 +37,7 @@
 
 ## 整体架构
 
-Tydora 的发布系统由两条 GitHub Actions 工作流 + 本地工具链共同组成：
+Inimark 的发布系统由两条 GitHub Actions 工作流 + 本地工具链共同组成：
 
 ```
 ┌──────────────┐     ┌──────────────────┐     ┌───────────────────┐
@@ -415,7 +415,7 @@ push v0.2.0 tag（由 release-please 自动创建）
 **Release Notes 示例：**
 
 ```markdown
-# Tydora v0.2.0
+# Inimark v0.2.0
 
 ### 🚀 Features
 - Add split view support (a1b2c3d)

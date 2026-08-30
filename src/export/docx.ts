@@ -79,9 +79,9 @@ const CODE_BG = "F6F8FA";       // 代码背景
 const TABLE_HEADER_BG = "F3F4F6"; // 表头背景
 
 // docx 原生列表编号引用 ID（整个文档共享）
-const NUM_UL = "tydora-ul"; // 无序列表
-const NUM_OL = "tydora-ol"; // 有序列表
-const NUM_TASK = "tydora-task"; // 任务列表（无标记）
+const NUM_UL = "inimark-ul"; // 无序列表
+const NUM_OL = "inimark-ol"; // 有序列表
+const NUM_TASK = "inimark-task"; // 任务列表（无标记）
 
 /**
  * 将 data: URL 解码为二进制 Uint8Array

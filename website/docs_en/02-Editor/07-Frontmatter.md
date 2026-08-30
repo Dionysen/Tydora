@@ -8,7 +8,7 @@ tags: [Editor]
 Frontmatter is a YAML metadata block placed at the **very beginning** of a Markdown file, wrapped with `---`. It does not affect the display of the body text, but adds structured information such as title, tags, date, and publish status to your notes.
 
 > [!NOTE]
-> Tydora provides a dedicated Frontmatter property panel at the top of the editor for viewing and copying metadata, allowing management without switching to Source View.
+> Inimark provides a dedicated Frontmatter property panel at the top of the editor for viewing and copying metadata, allowing management without switching to Source View.
 
 ## Basic Syntax
 
@@ -36,11 +36,11 @@ The body content follows after.
 | `description` | string | Document description (used for SEO on published sites) |
 
 > [!TIP]
-> Tags participate in Tydora's tag indexing; you can filter notes by tag in the sidebar.
+> Tags participate in Inimark's tag indexing; you can filter notes by tag in the sidebar.
 
 ## Property Panel
 
-Tydora provides a collapsible Frontmatter property panel at the top of the editor:
+Inimark provides a collapsible Frontmatter property panel at the top of the editor:
 
 - **Collapsible**: Click to expand/collapse, taking no writing space when not in use
 - **Sorted Display**: Common properties (`title`, `tags`, `date`, etc.) are shown with priority

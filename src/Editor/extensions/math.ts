@@ -4,7 +4,7 @@ import type MarkdownIt from "markdown-it";
 
 // ============================================================================
 // markdown-it 数学插件
-// 解析行内 $...$ 与块级 $$...$$（支持跨行），渲染为 Tydora 数学节点 DOM
+// 解析行内 $...$ 与块级 $$...$$（支持跨行），渲染为 Inimark 数学节点 DOM
 // （span[data-type="inline-math"] / div[data-type="block-math"]），
 // 再由 ProseMirror DOMParser 还原为 inlineMath / blockMath 节点。
 // 分隔符校验规则借鉴 markdown-it-mathjax3，可避免误判货币、价格等场景。
@@ -141,7 +141,7 @@ export interface MathMarkdownItRenderer {
 
 /**
  * markdown-it 数学插件
- * 默认输出 Tydora 数学节点 DOM；传入 renderer 可自定义输出（如 KaTeX HTML）
+ * 默认输出 Inimark 数学节点 DOM；传入 renderer 可自定义输出（如 KaTeX HTML）
  */
 export function mathMarkdownItPlugin(md: MarkdownIt, renderer?: MathMarkdownItRenderer) {
   md.inline.ruler.after("escape", "math_inline", mathInline as any);

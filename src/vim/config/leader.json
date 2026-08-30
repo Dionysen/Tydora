@@ -1,5 +1,5 @@
 {
-  "_comment": "Tydora Vim Leader 菜单配置（which-key 风格）。action 命名空间：editor.* / app.* / vim.*。修改后需重启应用生效。",
+  "_comment": "Inimark Vim Leader 菜单配置（which-key 风格）。action 命名空间：editor.* / app.* / vim.*。修改后需重启应用生效。",
   "leader": " ",
   "timeout": 3000,
   "items": [

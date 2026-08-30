@@ -39,12 +39,12 @@ export const BUILTIN_THEME_IS_DARK: Record<BuiltinThemeName, boolean> = {
   ocean: false,
 };
 
-export const APPEARANCE_MODE_KEY = "zmd-appearance-mode";
-export const PREFERRED_APP_THEME_KEY = "zmd-preferred-app-theme";
-export const PREFERRED_CODE_THEME_KEY = "zmd-preferred-code-theme";
+export const APPEARANCE_MODE_KEY = "inimark-appearance-mode";
+export const PREFERRED_APP_THEME_KEY = "inimark-preferred-app-theme";
+export const PREFERRED_CODE_THEME_KEY = "inimark-preferred-code-theme";
 /** Legacy single-theme keys (still written as resolved active ids). */
-export const LEGACY_THEME_KEY = "zmd-theme";
-export const LEGACY_CODE_THEME_KEY = "zmd-code-theme";
+export const LEGACY_THEME_KEY = "inimark-theme";
+export const LEGACY_CODE_THEME_KEY = "inimark-code-theme";
 
 export const APPEARANCE_SYNC_EVENT = "appearance-state-changed";
 

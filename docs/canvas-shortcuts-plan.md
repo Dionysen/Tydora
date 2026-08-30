@@ -5,7 +5,7 @@
 ## 一、现状盘点
 
 1. 画布快捷键定义在 `src/config/shortcuts.json` 的 `canvas` 段，共 8 项（undo / redo / redo-alt / copy / paste / select-all / deselect / arrow-move），由 `CanvasView.tsx` 直接硬编码引用，**未进入设置-快捷键面板**，用户无法自定义。
-2. 设置-快捷键面板（`Settings.tsx` 的 `ShortcutsSettingsContent`）只管理 `editor` 数组，默认值来自 `shortcuts.json`，自定义结果存 `localStorage["zmd-shortcuts"]`，分组目前有：格式 / 列表 / 标题 / 插入 / 表格 / 编辑 / 视图 / 模式 / 系统等。
+2. 设置-快捷键面板（`Settings.tsx` 的 `ShortcutsSettingsContent`）只管理 `editor` 数组，默认值来自 `shortcuts.json`，自定义结果存 `localStorage["inimark-shortcuts"]`，分组目前有：格式 / 列表 / 标题 / 插入 / 表格 / 编辑 / 视图 / 模式 / 系统等。
 3. 另有 React Flow 内置、不经过配置的交互：Delete 删除、Shift 多选、Space 平移、滚轮缩放、Ctrl+滚轮缩放、双击创建文本卡片。
 
 ## 二、建议添加的快捷键清单
@@ -79,7 +79,7 @@
    - `shortcutGroupNames` 增加画布分组文案；
    - `shortcutLabelMap` 补充画布各项 ID 的 i18n 标签；
    - 注意：当前 `handleKeyDown` 中 `if (e.key === "Escape")` 分支会先于录制逻辑执行（录制态按 Escape 会退出编辑），导致 **Escape 无法被录入为快捷键**。若要支持「取消选择 Escape」可自定义，需调整该分支（例如录制态按 Escape 时只退出录制、通过点击 ✕ 按钮退出）。
-3. `src/Canvas/CanvasView.tsx`：从 `localStorage["zmd-shortcuts"]` 读取画布快捷键并 `matchShortcut`（保留 shortcuts.json 默认值兜底）；`deleteKeyCode` 改为读取配置后传给 ReactFlow；新增的插入/视图/对齐快捷键在此处注册 keydown 处理。
+3. `src/Canvas/CanvasView.tsx`：从 `localStorage["inimark-shortcuts"]` 读取画布快捷键并 `matchShortcut`（保留 shortcuts.json 默认值兜底）；`deleteKeyCode` 改为读取配置后传给 ReactFlow；新增的插入/视图/对齐快捷键在此处注册 keydown 处理。
 4. `src/i18n/locales/zh-CN.json` 与 `en.json`：补充 `settings.shortcuts.labels.*` 及画布分组名。
 5. 可选的「打开白板」全局快捷键不在本次范围内，需要时可另立条目。
 

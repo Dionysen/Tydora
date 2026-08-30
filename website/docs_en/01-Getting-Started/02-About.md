@@ -1,13 +1,13 @@
 ---
-title: About Tydora
+title: About Inimark
 tags: [getting-started]
 ---
 
-1. About Tydora
+1. About Inimark
 
-Tydora is a modern desktop Markdown editor built with Tauri v2 + React 19. It supports WYSIWYG & source dual-mode editing, WikiLink bidirectional links, knowledge graph, mind maps, and a whiteboard canvas. The name comes from *Type/Typography* and the Ancient Greek *δῶρον* (gift), meaning "gift at your fingertips."
+Inimark is a modern desktop Markdown editor built with Tauri v2 + React 19. It supports WYSIWYG & source dual-mode editing, WikiLink bidirectional links, knowledge graph, mind maps, and a whiteboard canvas. The name comes from *Type/Typography* and the Ancient Greek *δῶρον* (gift), meaning "gift at your fingertips."
 
-> [!NOTE]Tydora is open-source software licensed under the Apache License 2.0. Issues, discussions, and code contributions are welcome on GitHub.
+> [!NOTE]Inimark is open-source software licensed under the Apache License 2.0. Issues, discussions, and code contributions are welcome on GitHub.
 
 ## Version Info
 
@@ -21,7 +21,7 @@ Tydora is a modern desktop Markdown editor built with Tauri v2 + React 19. It su
 
 ## Check for Updates
 
-Tydora supports automatic updates: on startup, it checks for new versions in the background and prompts you to download if one is available.
+Inimark supports automatic updates: on startup, it checks for new versions in the background and prompts you to download if one is available.
 
 Manual check steps:
 
@@ -61,7 +61,7 @@ Manual check steps:
 
 ## Open Source License
 
-Tydora is licensed under the [Apache License 2.0](LICENSE). You are free to use, modify, and redistribute, subject to the license terms (preserving copyright and license notices).
+Inimark is licensed under the [Apache License 2.0](LICENSE). You are free to use, modify, and redistribute, subject to the license terms (preserving copyright and license notices).
 
 ## Feedback
 
@@ -70,7 +70,7 @@ Encountered an issue or have a suggestion? Reach out through:
 - **GitHub Issues**: Submit bug reports and feature requests
 - **GitHub Discussions**: Participate in usage discussions and experience sharing
 
-> [!TIP]When submitting an issue, include your OS version, Tydora version, and reproduction steps — it helps us locate the problem faster.
+> [!TIP]When submitting an issue, include your OS version, Inimark version, and reproduction steps — it helps us locate the problem faster.
 
 ## Related Documents
 

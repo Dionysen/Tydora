@@ -20,7 +20,7 @@ const CANVAS_SIZE = 1024;
 async function createDockSource(src) {
   const contentSize = Math.round(CANVAS_SIZE * DOCK_OPTICAL_SCALE);
   const offset = Math.round((CANVAS_SIZE - contentSize) / 2);
-  const outPath = path.join(tmpdir(), `tydora-icon-dock-${Date.now()}.png`);
+  const outPath = path.join(tmpdir(), `inimark-icon-dock-${Date.now()}.png`);
 
   const resized = await sharp(src)
     .ensureAlpha()

@@ -5,7 +5,7 @@ tags: [help]
 
 # Frequently Asked Questions (FAQ)
 
-This page summarizes common issues and troubleshooting tips for Tydora. If your question isn't covered here, feel free to report it on GitHub Issues (see [[01-Getting-Started/02-About]]).
+This page summarizes common issues and troubleshooting tips for Inimark. If your question isn't covered here, feel free to report it on GitHub Issues (see [[01-Getting-Started/02-About]]).
 
 ## Getting Started & Basics
 
@@ -15,7 +15,7 @@ A vault is simply "a local folder." We recommend creating separate folders for d
 
 ### Will my files be moved or modified?
 
-No. Tydora only reads and writes files you specify — it does **not** move, copy, or alter your vault structure. Removing a vault only removes the reference. See [[04-File-Management/01-Vaults]].
+No. Inimark only reads and writes files you specify — it does **not** move, copy, or alter your vault structure. Removing a vault only removes the reference. See [[04-File-Management/01-Vaults]].
 
 ### Can deleted notes be recovered?
 
@@ -41,7 +41,7 @@ In WYSIWYG mode, placing the cursor in a table reveals a floating toolbar. See t
 
 - Confirm the linked note name is spelled correctly and exists in the current vault
 - Link resolution depends on [[03-Knowledge-Management/05-Link-Index]]; the index may still be building in a large vault — wait briefly
-- When renaming files, Tydora attempts to fix old links; if still broken, check for cross-vault references (links resolve within the current vault by default)
+- When renaming files, Inimark attempts to fix old links; if still broken, check for cross-vault references (links resolve within the current vault by default)
 
 ### Backlinks panel is empty — is that normal?
 

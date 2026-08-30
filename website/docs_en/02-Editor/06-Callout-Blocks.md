@@ -5,7 +5,7 @@ tags: [Editor]
 
 # Callout Blocks
 
-Callouts (annotation blocks), originating from GitHub's alert syntax, are a powerful tool for structured note-taking. Tydora supports **15** built-in types, each with a dedicated icon and color scheme, helping you highlight important content and distinguish information hierarchies.
+Callouts (annotation blocks), originating from GitHub's alert syntax, are a powerful tool for structured note-taking. Inimark supports **15** built-in types, each with a dedicated icon and color scheme, helping you highlight important content and distinguish information hierarchies.
 
 > [!NOTE]
 > Callouts appear as colored cards in Instant Rendering mode; in Source View mode they appear as blockquotes with `[!TYPE]`. The content is identical in both modes.

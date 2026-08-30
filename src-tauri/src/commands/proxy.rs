@@ -292,7 +292,7 @@ fn filter_html(html: &str) -> String {
 
     // Inject ad-hiding CSS
     let ad_hide_css = r#"
-<style id="tydora-adblock">
+<style id="inimark-adblock">
   [id*="google_ads"], [class*="google_ads"],
   [id*="ad-"], [class*="ad-banner"], [class*="ad-container"],
   [class*="advertisement"], [id*="advertisement"],

@@ -5,7 +5,7 @@ tags: [settings]
 
 # Auto Update Configuration
 
-Tydora supports automatic updates: when a user launches the app, it automatically checks for and installs the latest version. This document explains how to configure the signing keys required for automatic updates.
+Inimark supports automatic updates: when a user launches the app, it automatically checks for and installs the latest version. This document explains how to configure the signing keys required for automatic updates.
 
 ## How It Works
 
@@ -32,37 +32,37 @@ sudo apt install minisign
 ### Generating a Key Pair
 
 ```bash
-minisign -G -s ~/.tauri/tydora.key -p ~/.tauri/tydora.key.pub
+minisign -G -s ~/.tauri/inimark.key -p ~/.tauri/inimark.key.pub
 ```
 
 You will be prompted to enter a password; this password becomes `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
 
 This generates two files:
-- `~/.tauri/tydora.key` — private key (keep secret)
-- `~/.tauri/tydora.key.pub` — public key (public)
+- `~/.tauri/inimark.key` — private key (keep secret)
+- `~/.tauri/inimark.key.pub` — public key (public)
 
 ## Configuring GitHub Secrets
 
 ### Steps
 
-1. Open the `zuorn/Tydora` repository
+1. Open the `zuorn/Inimark` repository
 2. Go to **Settings** → **Secrets and variables** → **Actions**
 3. Click **New repository secret**
 4. Add the following secrets:
 
 | Secret name | Value | Description |
 |------------|-----|------|
-| `TAURI_SIGNING_PRIVATE_KEY` | Private key file contents | The output of `cat ~/.tauri/tydora.key` |
+| `TAURI_SIGNING_PRIVATE_KEY` | Private key file contents | The output of `cat ~/.tauri/inimark.key` |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | The password set when generating the key | Optional; leave empty if no password was set |
 
 ### Copying the Private Key Contents
 
 ```bash
 # Windows
-type %USERPROFILE%\.tauri\tydora.key
+type %USERPROFILE%\.tauri\inimark.key
 
 # macOS / Linux
-cat ~/.tauri/tydora.key
+cat ~/.tauri/inimark.key
 ```
 
 Paste the complete output into the GitHub Secret.
@@ -77,7 +77,7 @@ Configure the public key in `src-tauri/tauri.conf.json`:
     "updater": {
       "pubkey": "<public key contents>",
       "endpoints": [
-        "https://github.com/zuorn/Tydora/releases/latest/download/latest.json"
+        "https://github.com/zuorn/Inimark/releases/latest/download/latest.json"
       ]
     }
   }
@@ -88,10 +88,10 @@ The public key contents can be obtained with the following command:
 
 ```bash
 # Windows
-type %USERPROFILE%\.tauri\tydora.key.pub
+type %USERPROFILE%\.tauri\inimark.key.pub
 
 # macOS / Linux
-cat ~/.tauri/tydora.key.pub
+cat ~/.tauri/inimark.key.pub
 ```
 
 ## Build Artifacts
@@ -100,12 +100,12 @@ Once configured, Release builds automatically generate the following files:
 
 | File | Description |
 |------|------|
-| `Tydora_x.x.x_x64-setup.exe` | Windows installer |
-| `Tydora_x.x.x_x64-setup.exe.sig` | Windows signature file |
-| `Tydora_aarch64.app.tar.gz` | macOS ARM installer |
-| `Tydora_aarch64.app.tar.gz.sig` | macOS ARM signature file |
-| `Tydora_amd64.AppImage` | Linux installer |
-| `Tydora_amd64.AppImage.sig` | Linux signature file |
+| `Inimark_x.x.x_x64-setup.exe` | Windows installer |
+| `Inimark_x.x.x_x64-setup.exe.sig` | Windows signature file |
+| `Inimark_aarch64.app.tar.gz` | macOS ARM installer |
+| `Inimark_aarch64.app.tar.gz.sig` | macOS ARM signature file |
+| `Inimark_amd64.AppImage` | Linux installer |
+| `Inimark_amd64.AppImage.sig` | Linux signature file |
 | `latest.json` | Version information (read automatically by Tauri) |
 
 ## Verifying the Configuration
@@ -136,7 +136,7 @@ Make sure the value of `TAURI_SIGNING_PRIVATE_KEY` contains the complete private
 
 Check whether `latest.json` is accessible:
 ```
-https://github.com/zuorn/Tydora/releases/latest/download/latest.json
+https://github.com/zuorn/Inimark/releases/latest/download/latest.json
 ```
 
 ### Q: How do I change the key

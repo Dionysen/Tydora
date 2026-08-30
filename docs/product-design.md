@@ -1,4 +1,4 @@
-# Tydora 产品设计文档
+# Inimark 产品设计文档
 
 > 版本：0.0.10 | 更新日期：2026-07-27
 
@@ -33,7 +33,7 @@
 
 ### 1.1 产品定位
 
-Tydora 是一款基于 Tauri v2 + React 19 的桌面 Markdown 编辑器，专为知识管理和笔记场景设计。产品融合了 WYSIWYG 与源码两种编辑模式，提供 Obsidian 风格的双向链接系统，并支持将笔记发布为静态网站。
+Inimark 是一款基于 Tauri v2 + React 19 的桌面 Markdown 编辑器，专为知识管理和笔记场景设计。产品融合了 WYSIWYG 与源码两种编辑模式，提供 Obsidian 风格的双向链接系统，并支持将笔记发布为静态网站。
 
 ### 1.2 核心理念
 
@@ -125,7 +125,7 @@ Tydora 是一款基于 Tauri v2 + React 19 的桌面 Markdown 编辑器，专为
 
 ### 3.1 双模式架构
 
-Tydora 提供两种编辑模式，通过 `Ctrl+/` 快捷键切换：
+Inimark 提供两种编辑模式，通过 `Ctrl+/` 快捷键切换：
 
 | 模式 | 标识 | 引擎 | 适用场景 |
 |------|------|------|----------|
@@ -396,7 +396,7 @@ editor.commands.setContent(htmlOrMarkdown);
 
 ### 5.1 语法规范
 
-Tydora 支持 Obsidian 风格的 WikiLink 语法：
+Inimark 支持 Obsidian 风格的 WikiLink 语法：
 
 | 语法 | 说明 | 示例 |
 |------|------|------|
@@ -496,7 +496,7 @@ Tydora 支持 Obsidian 风格的 WikiLink 语法：
 ### 6.3 跨窗口通信
 
 - **Tauri 事件**：`theme-changed`（主题同步）、`mindmap-content-update`（思维导图内容同步）、`open-file`（文件窗口打开文件）
-- **localStorage**：`zmd-mindmap-content`（思维导图内容缓存）
+- **localStorage**：`inimark-mindmap-content`（思维导图内容缓存）
 - **JSON 序列化**：LinkIndexService 的 `serialize()`/`deserialize()` 跨窗口传输链接索引
 
 ---
@@ -968,19 +968,19 @@ Tydora 支持 Obsidian 风格的 WikiLink 语法：
 
 | 键名 | 内容 |
 |------|------|
-| `zmd-vaults` | 仓库列表 |
-| `zmd-active-vault` | 当前活跃仓库索引 |
-| `zmd-sidebar-width` | 侧栏宽度 |
-| `zmd-window-state` | 窗口位置/大小/最大化状态 |
-| `zmd-theme` | 当前主题 |
-| `zmd-editor-settings` | 编辑器设置 |
-| `zmd-general-settings` | 通用设置 |
-| `zmd-shortcuts` | 快捷键配置 |
-| `zmd-mindmap-settings` | 思维导图设置 |
-| `zmd-graph-settings` | 图谱设置 |
-| `zmd-image-settings` | 图片设置 |
-| `zmd-recent-files` | 最近文件列表 |
-| `zmd-mindmap-content` | 思维导图内容缓存 |
+| `inimark-vaults` | 仓库列表 |
+| `inimark-active-vault` | 当前活跃仓库索引 |
+| `inimark-sidebar-width` | 侧栏宽度 |
+| `inimark-window-state` | 窗口位置/大小/最大化状态 |
+| `inimark-theme` | 当前主题 |
+| `inimark-editor-settings` | 编辑器设置 |
+| `inimark-general-settings` | 通用设置 |
+| `inimark-shortcuts` | 快捷键配置 |
+| `inimark-mindmap-settings` | 思维导图设置 |
+| `inimark-graph-settings` | 图谱设置 |
+| `inimark-image-settings` | 图片设置 |
+| `inimark-recent-files` | 最近文件列表 |
+| `inimark-mindmap-content` | 思维导图内容缓存 |
 
 ### 17.2 文件系统存储
 
@@ -1112,4 +1112,4 @@ Tydora 支持 Obsidian 风格的 WikiLink 语法：
 
 ---
 
-> 本文档基于 Tydora v0.0.10 代码库生成，反映当前已实现的功能。
+> 本文档基于 Inimark v0.0.10 代码库生成，反映当前已实现的功能。

@@ -5,7 +5,7 @@ tags: [Editor]
 
 # Math Formulas
 
-Tydora supports **KaTeX** and **MathJax**, two math formula rendering engines, allowing you to write LaTeX formulas in both inline and block positions.
+Inimark supports **KaTeX** and **MathJax**, two math formula rendering engines, allowing you to write LaTeX formulas in both inline and block positions.
 
 > [!NOTE]
 > Formula rendering is enabled by default. If not needed, you can disable it in [[07-Settings/02-Editor-Settings]], or switch between KaTeX and MathJax engines.

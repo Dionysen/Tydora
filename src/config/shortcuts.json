@@ -1,5 +1,5 @@
 {
-  "_comment": "Tydora 统一快捷键配置文件。所有快捷键定义都集中在此处，修改后需重启应用生效。editor 中的快捷键可在设置-快捷键面板中自定义（存储在 localStorage）。",
+  "_comment": "Inimark 统一快捷键配置文件。所有快捷键定义都集中在此处，修改后需重启应用生效。editor 中的快捷键可在设置-快捷键面板中自定义（存储在 localStorage）。",
   "editor": [
     { "id": "bold", "label": "加粗", "keys": ["Ctrl", "B"], "group": "格式" },
     { "id": "italic", "label": "斜体", "keys": ["Ctrl", "I"], "group": "格式" },

@@ -17,7 +17,7 @@ interface VaultInfo {
 export default function GraphWindow() {
   const [vaults] = useState<VaultInfo[]>(() => {
     try {
-      const raw = localStorage.getItem("zmd-vaults");
+      const raw = localStorage.getItem("inimark-vaults");
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
@@ -25,7 +25,7 @@ export default function GraphWindow() {
   });
   const [activeVaultIndex] = useState<number>(() => {
     try {
-      const saved = localStorage.getItem("zmd-active-vault");
+      const saved = localStorage.getItem("inimark-active-vault");
       return saved ? parseInt(saved) : -1;
     } catch {
       return -1;
@@ -50,7 +50,7 @@ export default function GraphWindow() {
   useEffect(() => {
     if (!vaultPath) return;
 
-    const cached = localStorage.getItem("zmd-link-index");
+    const cached = localStorage.getItem("inimark-link-index");
     if (cached) {
       LinkIndexService.deserialize(cached);
       setRefreshKey(n => n + 1);
@@ -60,7 +60,7 @@ export default function GraphWindow() {
     LinkIndexService.buildIndex(vaultPath).then(() => {
       setRefreshKey(n => n + 1);
       try {
-        localStorage.setItem("zmd-link-index", LinkIndexService.serialize());
+        localStorage.setItem("inimark-link-index", LinkIndexService.serialize());
       } catch {}
     });
   }, [vaultPath]);

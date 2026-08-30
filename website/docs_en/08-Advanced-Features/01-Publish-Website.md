@@ -5,7 +5,7 @@ tags: [feature]
 
 # Publish Website
 
-Tydora can turn your note repository (Vault) into a **static website with a single click**, letting you share your knowledge base, documentation, or digital garden with anyone without setting up a server.
+Inimark can turn your note repository (Vault) into a **static website with a single click**, letting you share your knowledge base, documentation, or digital garden with anyone without setting up a server.
 
 > [!NOTE]
 > The publish feature is operated from the "Publish" tab in Settings (or the publish panel). Under the hood, it builds a static site using `@abstractwebunit/markdown-publish`.

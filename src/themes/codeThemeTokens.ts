@@ -22,13 +22,13 @@ export const CODE_THEME_SAMPLE_SNIPPETS: { id: string; language: string; labelKe
     id: "javascript",
     language: "javascript",
     labelKey: "codeSampleJs",
-    code: `function greet(name) {\n  // say hello\n  return \`Hi, \${name}!\`;\n}\n\nconst answer = 42;\nconsole.log(greet("Tydora"));`,
+    code: `function greet(name) {\n  // say hello\n  return \`Hi, \${name}!\`;\n}\n\nconst answer = 42;\nconsole.log(greet("Inimark"));`,
   },
   {
     id: "python",
     language: "python",
     labelKey: "codeSamplePython",
-    code: `def greet(name: str) -> str:\n    # say hello\n    return f"Hi, {name}!"\n\nanswer = 42\nprint(greet("Tydora"))`,
+    code: `def greet(name: str) -> str:\n    # say hello\n    return f"Hi, {name}!"\n\nanswer = 42\nprint(greet("Inimark"))`,
   },
   {
     id: "css",
@@ -40,13 +40,13 @@ export const CODE_THEME_SAMPLE_SNIPPETS: { id: string; language: string; labelKe
     id: "cpp",
     language: "cpp",
     labelKey: "codeSampleCpp",
-    code: `#include <cstdio>\n\n// greet helper\nint main() {\n  const char* name = "Tydora";\n  int answer = 42;\n  printf("%s %d\\n", name, answer);\n  return sizeof(int);\n}`,
+    code: `#include <cstdio>\n\n// greet helper\nint main() {\n  const char* name = "Inimark";\n  int answer = 42;\n  printf("%s %d\\n", name, answer);\n  return sizeof(int);\n}`,
   },
   {
     id: "rust",
     language: "rust",
     labelKey: "codeSampleRust",
-    code: `fn greet(name: &str) -> String {\n    // say hello\n    format!("Hi, {}!", name)\n}\n\nfn main() {\n    let answer: i32 = 42;\n    println!("{} {}", greet("Tydora"), answer);\n}`,
+    code: `fn greet(name: &str) -> String {\n    // say hello\n    format!("Hi, {}!", name)\n}\n\nfn main() {\n    let answer: i32 = 42;\n    println!("{} {}", greet("Inimark"), answer);\n}`,
   },
 ];
 

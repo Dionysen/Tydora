@@ -5,7 +5,7 @@ tags: [编辑器]
 
 # Markdown 语法支持
 
-Tydora 基于 TipTap 3.x + CodeMirror 6 引擎，支持完整的 CommonMark 与 GitHub 风格（GFM）语法，并扩展了 WikiLink、Callout、数学公式、Mermaid、脚注等多种能力。本页汇总写作时最常用的语法。
+Inimark 基于 TipTap 3.x + CodeMirror 6 引擎，支持完整的 CommonMark 与 GitHub 风格（GFM）语法，并扩展了 WikiLink、Callout、数学公式、Mermaid、脚注等多种能力。本页汇总写作时最常用的语法。
 
 > [!NOTE]
 > 以下示例既可在**即时渲染**模式下直接输入（会自动渲染），也可在**源码模式**下以纯文本编写。切换方式见 [[02-编辑器/01-编辑模式]]。
@@ -69,7 +69,7 @@ Tydora 基于 TipTap 3.x + CodeMirror 6 引擎，支持完整的 CommonMark 与 
 ````markdown
 ```javascript
 function hello() {
-  console.log("Hello, Tydora!");
+  console.log("Hello, Inimark!");
 }
 ```
 ````

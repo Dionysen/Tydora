@@ -1,7 +1,7 @@
 // 启动计时统一入口：
 //  - console.time/timeEnd：用户明确要求的格式，输出到开发者工具 Console
 //  - performance.mark + performance.measure：在 Performance 面板（DevTools → Performance）中可视化
-//  - window.__TYDORA_BOOT__：时间点字典，最后汇总打印
+//  - window.__INIMARK_BOOT__：时间点字典，最后汇总打印
 //  - 监听 Rust 侧 `boot-timing` 事件，对齐 Rust / JS 两条时间轴
 //
 //  任何想测的阶段都用：
@@ -11,14 +11,14 @@
 
 declare global {
   interface Window {
-    __TYDORA_BOOT__: Record<string, number>;
-    __TYDORA_BOOT_SUMMARY__?: () => void;
+    __INIMARK_BOOT__: Record<string, number>;
+    __INIMARK_BOOT_SUMMARY__?: () => void;
   }
 }
 
-window.__TYDORA_BOOT__ = window.__TYDORA_BOOT__ ?? {};
+window.__INIMARK_BOOT__ = window.__INIMARK_BOOT__ ?? {};
 
-const stamps = window.__TYDORA_BOOT__;
+const stamps = window.__INIMARK_BOOT__;
 
 export function bootStamp(label: string): number {
   const now = performance.now();
@@ -73,7 +73,7 @@ export function bootSummary(): void {
   console.groupEnd?.();
 }
 
-window.__TYDORA_BOOT_SUMMARY__ = bootSummary;
+window.__INIMARK_BOOT_SUMMARY__ = bootSummary;
 
 /**
  * 接收 Rust 侧 emit 的 `boot-timing` 事件，
@@ -102,8 +102,8 @@ export async function connectRustBootTiming(): Promise<void> {
       }
     );
     // 正常情况下永远不取消：启动过程中都需要监听
-    // 如后续要卸载可调用 window.__TYDORA_UNLISTEN_BOOT__?.()
-    (window as unknown as { __TYDORA_UNLISTEN_BOOT__?: () => void }).__TYDORA_UNLISTEN_BOOT__ = unlisten;
+    // 如后续要卸载可调用 window.__INIMARK_UNLISTEN_BOOT__?.()
+    (window as unknown as { __INIMARK_UNLISTEN_BOOT__?: () => void }).__INIMARK_UNLISTEN_BOOT__ = unlisten;
   } catch (err) {
     // 浏览器环境（非 Tauri）直接忽略
     if (!import.meta.env.DEV) {

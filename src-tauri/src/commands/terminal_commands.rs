@@ -104,8 +104,8 @@ fn find_in_path(name: &str) -> Option<PathBuf> {
 /// 在 ConPTY 下设置 `WindowTitle` 会被转换为 OSC 标题序列送达终端。
 /// 该脚本通过 `pwsh -NoExit -Command <script>` **启动参数**注入（见 `spawn_terminal`），
 /// 而非写入 PTY stdin——因为 ConPTY 的 stdin 输入会被行编辑器回显到屏幕，
-/// 导致钩子代码本身显示出来（表现为 `> $Global:__tydora_prompt=...`）。
-const PWSH_TITLE_INIT: &str = "$Global:__tydora_prompt=$function:prompt; function prompt { $l=(Get-History -Count 1).CommandLine; if($l){$Host.UI.RawUI.WindowTitle=$l}; & $Global:__tydora_prompt }";
+/// 导致钩子代码本身显示出来（表现为 `> $Global:__inimark_prompt=...`）。
+const PWSH_TITLE_INIT: &str = "$Global:__inimark_prompt=$function:prompt; function prompt { $l=(Get-History -Count 1).CommandLine; if($l){$Host.UI.RawUI.WindowTitle=$l}; & $Global:__inimark_prompt }";
 
 /// 向终端写入“智能标题”初始化脚本，使工具栏标题能跟随当前运行的命令变化
 /// （例如执行 `htop` 时标题变为 `htop`）。通过 OSC 0/2 转义序列 `\x1b]0;...\x07` 设置

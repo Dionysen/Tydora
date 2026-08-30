@@ -434,8 +434,8 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
                 parse: {
                   // 解析 `![alt|300](src)` 中的宽度（Obsidian 风格）
                   setup(md: any) {
-                    if ((md as any).__tydoraImageWidthPatched) return;
-                    (md as any).__tydoraImageWidthPatched = true;
+                    if ((md as any).__inimarkImageWidthPatched) return;
+                    (md as any).__inimarkImageWidthPatched = true;
                     const esc = (v: string) =>
                       String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                     md.renderer.rules.image = (tokens: any[], idx: number) => {

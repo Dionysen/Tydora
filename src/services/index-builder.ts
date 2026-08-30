@@ -12,8 +12,8 @@ import { scanVaultFiles, type VaultFileScan } from "./vault-file-scanner";
 import { LinkIndexService } from "../wikilink";
 import { TagIndexService } from "../tags";
 
-const TAG_INDEX_KEY = "zmd-tag-index";
-const LINK_INDEX_KEY = "zmd-link-index";
+const TAG_INDEX_KEY = "inimark-tag-index";
+const LINK_INDEX_KEY = "inimark-link-index";
 
 export interface IndexBuildOptions {
   /** 启动时是否先从 localStorage 反序列化恢复（默认 true）。

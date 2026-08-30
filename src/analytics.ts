@@ -5,7 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
  *
  * 上报直接走前端 fetch，与官方网站 tracker 脚本使用完全相同的链路：
  * - 端点：https://gateway.umami.is/api/send（Umami 新网关，官方脚本默认端点）
- * - 与文档站共用同一个 Website ID，靠 hostname (app.tydora.local) 区分数据来源
+ * - 与文档站共用同一个 Website ID，靠 hostname (app.inimark.local) 区分数据来源
  * - payload 格式与官方 tracker 一致（网关按此 schema 校验）：
  *   - 页面浏览 = 不带 name 字段的 event 类型请求
  *   - 自定义事件 = 带顶层 name 字段的 event 类型请求
@@ -21,11 +21,11 @@ import { invoke } from "@tauri-apps/api/core";
 
 const UMAMI_WEBSITE_ID = "56c781b4-8ab7-4813-a503-b78da5b843d8";
 const UMAMI_ENDPOINT = "https://gateway.umami.is/api/send";
-const HOSTNAME = "app.tydora.local";
+const HOSTNAME = "app.inimark.local";
 
-const CONSENT_KEY = "tydora.analytics.consent";
-const INSTANCE_ID_KEY = "tydora.analytics.instance-id";
-const SESSION_CACHE_KEY = "tydora.analytics.session-cache";
+const CONSENT_KEY = "inimark.analytics.consent";
+const INSTANCE_ID_KEY = "inimark.analytics.instance-id";
+const SESSION_CACHE_KEY = "inimark.analytics.session-cache";
 
 /** 会话 token 有效时长：与 Umami 默认 30 分钟会话超时一致，超过后丢弃、由网关开启新会话 */
 const SESSION_TTL_MS = 30 * 60 * 1000;
@@ -152,7 +152,7 @@ function buildBasePayload(): Record<string, unknown> {
     website: UMAMI_WEBSITE_ID,
     hostname: HOSTNAME,
     language: navigator.language,
-    title: "Tydora",
+    title: "Inimark",
     screen: `${screen.width}x${screen.height}`,
   };
 }
