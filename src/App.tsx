@@ -69,7 +69,7 @@ import "./tags/Tag.css";
 import "./tags/TagAutocomplete.css";
 import "./components/FindReplaceDialog.css";
 import shortcutsConfig from "./config/shortcuts.json";
-import { matchShortcut, formatShortcutDisplay, loadShortcuts, getShortcutKeys } from "./Editor/shortcuts";
+import { matchShortcut, formatShortcutDisplay, formatShortcutKey, loadShortcuts, getShortcutKeys } from "./Editor/shortcuts";
 import { track, trackPageview, hasConsentChoice, isAnalyticsEnabled, setAnalyticsEnabled, ANALYTICS_EVENTS } from "./analytics";
 import { ConsentDialog } from "./analytics/ConsentDialog";
 
@@ -3696,13 +3696,13 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                 <div className="welcome-hint">
                   <div className="welcome-hint-item">
                     <span>{t("app.welcome.openFile")}</span>
-                    <kbd>Ctrl</kbd>
+                    <kbd>{formatShortcutKey("Ctrl")}</kbd>
                     <span>+</span>
                     <kbd>O</kbd>
                   </div>
                   <div className="welcome-hint-item">
                     <span>{t("app.welcome.commandPalette")}</span>
-                    <kbd>Ctrl</kbd>
+                    <kbd>{formatShortcutKey("Ctrl")}</kbd>
                     <span>+</span>
                     <kbd>P</kbd>
                   </div>
