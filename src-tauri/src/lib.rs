@@ -166,6 +166,27 @@ fn window_bg() -> tauri::utils::config::Color {
     tauri::utils::config::Color(0, 0, 0, 0)
 }
 
+/// macOS Overlay 标题栏（隐藏标题文字 + Overlay + 红绿灯位置）。
+/// `hidden_title` / `title_bar_style` / `traffic_light_position` 均为 macOS-only API。
+trait MacOsChrome<'a, R: tauri::Runtime, M: Manager<R>> {
+    fn macos_overlay_chrome(self) -> WebviewWindowBuilder<'a, R, M>;
+}
+
+impl<'a, R: tauri::Runtime, M: Manager<R>> MacOsChrome<'a, R, M> for WebviewWindowBuilder<'a, R, M> {
+    fn macos_overlay_chrome(self) -> WebviewWindowBuilder<'a, R, M> {
+        #[cfg(target_os = "macos")]
+        {
+            self.hidden_title(true)
+                .title_bar_style(tauri::TitleBarStyle::Overlay)
+                .traffic_light_position(tauri::LogicalPosition::new(14.0, 11.0))
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            self
+        }
+    }
+}
+
 
 /// 打开设置窗口
 #[tauri::command]
@@ -190,9 +211,7 @@ async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
     .visible(false)
     .decorations(cfg!(target_os = "macos"))
     .transparent(true)
-    .hidden_title(true)
-    .title_bar_style(tauri::TitleBarStyle::Overlay)
-    .traffic_light_position(tauri::LogicalPosition::new(14.0, 11.0))
+    .macos_overlay_chrome()
     .shadow(true)
     .background_color(window_bg());
 
@@ -245,9 +264,7 @@ fn spawn_editor_window(
     .min_inner_size(600.0, 400.0)
     .decorations(cfg!(target_os = "macos"))
     .transparent(true)
-    .hidden_title(true)
-    .title_bar_style(tauri::TitleBarStyle::Overlay)
-    .traffic_light_position(tauri::LogicalPosition::new(14.0, 11.0))
+    .macos_overlay_chrome()
     .shadow(true)
     .background_color(window_bg());
 
@@ -318,9 +335,7 @@ async fn open_mindmap_window(
     .visible(false)
     .decorations(cfg!(target_os = "macos"))
     .transparent(true)
-    .hidden_title(true)
-    .title_bar_style(tauri::TitleBarStyle::Overlay)
-    .traffic_light_position(tauri::LogicalPosition::new(14.0, 11.0))
+    .macos_overlay_chrome()
     .shadow(true)
     .background_color(window_bg())
     .build();
@@ -356,9 +371,7 @@ async fn open_graph_window(
     .visible(false)
     .decorations(cfg!(target_os = "macos"))
     .transparent(true)
-    .hidden_title(true)
-    .title_bar_style(tauri::TitleBarStyle::Overlay)
-    .traffic_light_position(tauri::LogicalPosition::new(14.0, 11.0))
+    .macos_overlay_chrome()
     .shadow(true)
     .background_color(window_bg())
     .build();
@@ -400,9 +413,7 @@ async fn open_canvas_window(
     .visible(false)
     .decorations(cfg!(target_os = "macos"))
     .transparent(true)
-    .hidden_title(true)
-    .title_bar_style(tauri::TitleBarStyle::Overlay)
-    .traffic_light_position(tauri::LogicalPosition::new(14.0, 11.0))
+    .macos_overlay_chrome()
     .shadow(true)
     .background_color(window_bg())
     .build();
@@ -451,9 +462,7 @@ async fn open_canvas_in_new_window(
     .center()
     .decorations(cfg!(target_os = "macos"))
     .transparent(true)
-    .hidden_title(true)
-    .title_bar_style(tauri::TitleBarStyle::Overlay)
-    .traffic_light_position(tauri::LogicalPosition::new(14.0, 11.0))
+    .macos_overlay_chrome()
     .shadow(true)
     .background_color(window_bg())
     .build();
@@ -500,9 +509,7 @@ async fn open_vault_manager_window(app: tauri::AppHandle) -> Result<(), String> 
     .visible(false)
     .decorations(cfg!(target_os = "macos"))
     .transparent(true)
-    .hidden_title(true)
-    .title_bar_style(tauri::TitleBarStyle::Overlay)
-    .traffic_light_position(tauri::LogicalPosition::new(14.0, 11.0))
+    .macos_overlay_chrome()
     .shadow(true)
     .background_color(window_bg())
     .build();
@@ -569,9 +576,7 @@ async fn open_vault_in_new_window(app: tauri::AppHandle, vault_path: String, wid
     .center()
     .decorations(cfg!(target_os = "macos"))
     .transparent(true)
-    .hidden_title(true)
-    .title_bar_style(tauri::TitleBarStyle::Overlay)
-    .traffic_light_position(tauri::LogicalPosition::new(14.0, 11.0))
+    .macos_overlay_chrome()
     .shadow(true)
     .background_color(window_bg())
     .build();
