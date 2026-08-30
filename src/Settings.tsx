@@ -30,7 +30,7 @@ import { ThemeColorField } from "./themes/ThemeColorField";
 import { ThemeSizeField } from "./themes/ThemeSizeField";
 import { syncAccentRgb } from "./themes/colorUtils";
 import { CODE_THEMES, type CustomCodeTheme } from "./themes";
-import { getCodeThemeCss, type ThemeVariable, type ThemeManifest, parseCssVariables, getCustomThemeCss } from "./themes/CustomThemeManager";
+import { getCodeThemeCss, type ThemeVariable, type ThemeManifest, parseCssVariables, getCustomThemeCss, resolveThemePreviewColors } from "./themes/CustomThemeManager";
 import appIcon from "./assets/icon.png";
 import { useLanguage } from "./i18n/LanguageContext";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "./i18n";
@@ -1448,19 +1448,35 @@ function ThemeSettingsContent() {
         {customThemes.map((m) => {
             const themeId = `custom-${m.id}`;
             const preferred = theme === themeId;
+            const [c0, c1, c2, c3] = resolveThemePreviewColors(m);
             return (
               <div
                 key={m.id}
                 className={`settings-theme-card custom-theme-card${preferred ? " active" : ""}`}
                 onClick={() => setPreferredAppTheme(resolvedMode, themeId)}
               >
-                <div className="settings-theme-preview custom-theme-preview" data-custom-theme={m.id}>
-                  <div
-                    className="custom-theme-gradient"
-                    style={{
-                      background: `linear-gradient(135deg, ${m.previewBg || "#ffffff"} 0%, ${m.previewAccent || "#4eb289"} 100%)`,
-                    }}
-                  />
+                <div className="settings-theme-preview">
+                  <div className="theme-preview-mock">
+                    <div className="mock-titlebar" style={{ background: c0 }}>
+                      <div className="mock-dots">
+                        <span style={{ background: c1 }} />
+                        <span style={{ background: c3 }} />
+                        <span style={{ background: c3 }} />
+                      </div>
+                    </div>
+                    <div className="mock-body">
+                      <div className="mock-sidebar" style={{ background: c3 }}>
+                        <div className="mock-line" style={{ background: c1, width: "60%" }} />
+                        <div className="mock-line" style={{ background: c2, opacity: 0.3, width: "80%" }} />
+                        <div className="mock-line" style={{ background: c2, opacity: 0.3, width: "45%" }} />
+                      </div>
+                      <div className="mock-editor" style={{ background: c0 }}>
+                        <div className="mock-line" style={{ background: c2, opacity: 0.2, width: "70%" }} />
+                        <div className="mock-line" style={{ background: c2, opacity: 0.15, width: "55%" }} />
+                        <div className="mock-accent-line" style={{ background: c1, width: "40%" }} />
+                      </div>
+                    </div>
+                  </div>
                   {preferred && (
                     <div className="settings-theme-check">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">

@@ -21,6 +21,7 @@ import {
   extractCodeThemePreviewColors,
   parseCssVariables,
   inferAppThemeIsDark,
+  extractPreviewColors,
   renameTheme as renameThemeFs,
   renameCodeTheme as renameCodeThemeFs,
   type ThemeManifest,
@@ -222,12 +223,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const enriched: ThemeManifest[] = [];
       for (const m of manifests) {
         let next = m;
-        if (typeof m.isDark !== "boolean") {
+        const needsPreview =
+          !m.previewBg || !m.previewAccent || !m.previewText || !m.previewSecondary;
+        const needsDark = typeof m.isDark !== "boolean";
+        if (needsPreview || needsDark) {
           try {
             const css = await getCustomThemeCss(m.id);
-            next = { ...m, isDark: inferAppThemeIsDark(parseCssVariables(css)) };
+            next = {
+              ...m,
+              ...(needsPreview ? extractPreviewColors(css) : {}),
+              ...(needsDark
+                ? { isDark: inferAppThemeIsDark(parseCssVariables(css)) }
+                : {}),
+            };
           } catch {
-            next = { ...m, isDark: false };
+            if (needsDark) next = { ...m, isDark: false };
           }
         }
         enriched.push(next);

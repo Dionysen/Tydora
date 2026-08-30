@@ -10,6 +10,8 @@ export interface ThemeManifest {
   importedAt: string;
   previewBg?: string;
   previewAccent?: string;
+  previewText?: string;
+  previewSecondary?: string;
   /** Explicit light/dark; inferred from --bg-primary when missing. */
   isDark?: boolean;
 }
@@ -195,7 +197,7 @@ export async function importTheme(
   await writeTextFile(joinPath(dir, fileName), processedCss);
 
   // Extract preview colors
-  const { bg, accent } = extractPreviewColors(processedCss);
+  const preview = extractPreviewColors(processedCss);
   const isDark = inferAppThemeIsDark(parseCssVariables(processedCss));
 
   // Update manifest
@@ -205,8 +207,7 @@ export async function importTheme(
     name: displayName,
     fileName,
     importedAt: new Date().toISOString(),
-    previewBg: bg,
-    previewAccent: accent,
+    ...preview,
     isDark,
   };
   manifests.push(manifest);
@@ -252,15 +253,14 @@ export async function createThemeFromVariables(
   const fileName = `${id}.css`;
   await writeTextFile(joinPath(dir, fileName), css);
 
-  const { bg, accent } = extractPreviewColors(css);
+  const preview = extractPreviewColors(css);
   const manifests = await loadManifest();
   const manifest: ThemeManifest = {
     id,
     name: displayName,
     fileName,
     importedAt: new Date().toISOString(),
-    previewBg: bg,
-    previewAccent: accent,
+    ...preview,
     isDark: typeof isDark === "boolean" ? isDark : inferAppThemeIsDark(variables),
   };
   manifests.push(manifest);
@@ -284,14 +284,13 @@ export async function persistThemeVariables(
 ): Promise<ThemeManifest | null> {
   const css = buildThemeCss(id, variables);
   await saveThemeCss(id, css);
-  const { bg, accent } = extractPreviewColors(css);
+  const preview = extractPreviewColors(css);
   const manifests = await loadManifest();
   const idx = manifests.findIndex((m) => m.id === id);
   if (idx < 0) return null;
   manifests[idx] = {
     ...manifests[idx],
-    previewBg: bg,
-    previewAccent: accent,
+    ...preview,
     isDark: inferAppThemeIsDark(variables),
   };
   await saveManifest(manifests);
@@ -300,11 +299,33 @@ export async function persistThemeVariables(
 
 // ── Preview Color Extraction ─────────────────────────────────────────
 
-export function extractPreviewColors(css: string): { bg: string; accent: string } {
+export interface ThemePreviewColors {
+  previewBg: string;
+  previewAccent: string;
+  previewText: string;
+  previewSecondary: string;
+}
+
+export function extractPreviewColors(css: string): ThemePreviewColors {
   const vars = parseCssVariables(css);
-  const bg = vars.find((v) => v.name === "--bg-primary")?.value || "#ffffff";
-  const accent = vars.find((v) => v.name === "--accent")?.value || "#4eb289";
-  return { bg, accent };
+  const get = (name: string, fallback: string) =>
+    vars.find((v) => v.name === name)?.value || fallback;
+  return {
+    previewBg: get("--bg-primary", "#ffffff"),
+    previewAccent: get("--accent", "#4eb289"),
+    previewText: get("--text-primary", "#1e293b"),
+    previewSecondary: get("--bg-secondary", get("--border", "#e2e8f0")),
+  };
+}
+
+/** Resolve preview palette for a manifest (fills gaps for older manifests). */
+export function resolveThemePreviewColors(m: ThemeManifest): [string, string, string, string] {
+  return [
+    m.previewBg || "#ffffff",
+    m.previewAccent || "#4eb289",
+    m.previewText || "#1e293b",
+    m.previewSecondary || m.previewBg || "#e2e8f0",
+  ];
 }
 
 /** Infer dark UI theme from --bg-primary luminance. */
