@@ -2172,7 +2172,9 @@
 
 .settings-code-sample-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
+  justify-content: flex-end;
 }
 
 .settings-code-sample-tab {
@@ -2212,7 +2214,8 @@
 .settings-code-theme-preview-code .hljs-type,
 .settings-code-theme-preview-code .hljs-literal,
 .settings-code-theme-preview-code .hljs-section,
-.settings-code-theme-preview-code .hljs-link {
+.settings-code-theme-preview-code .hljs-link,
+.settings-code-theme-preview-code .hljs-meta {
   color: var(--hljs-keyword, #d73a49);
 }
 
@@ -2231,8 +2234,7 @@
 
 .settings-code-theme-preview-code .hljs-comment,
 .settings-code-theme-preview-code .hljs-quote,
-.settings-code-theme-preview-code .hljs-deletion,
-.settings-code-theme-preview-code .hljs-meta {
+.settings-code-theme-preview-code .hljs-deletion {
   color: var(--hljs-comment, #6a737d);
 }
 

@@ -837,7 +837,11 @@ function ThemeSettingsContent() {
     paddingInlineY: "3px",
     paddingInlineX: "6px",
   });
-  const [deleteConfirm, setDeleteConfirm] = useState<ThemeManifest | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<
+    | { kind: "app"; name: string; id: string }
+    | { kind: "code"; name: string; id: string }
+    | null
+  >(null);
   const [nameDialog, setNameDialog] = useState<{
     open: boolean;
     mode: "export-pack" | "rename-app" | "rename-code";
@@ -990,14 +994,18 @@ function ThemeSettingsContent() {
   }, []);
 
   const handleDelete = useCallback(async (manifest: ThemeManifest) => {
-    setDeleteConfirm(manifest);
+    setDeleteConfirm({ kind: "app", name: manifest.name, id: manifest.id });
   }, []);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteConfirm) return;
-    await deleteTheme(deleteConfirm.id);
+    if (deleteConfirm.kind === "app") {
+      await deleteTheme(deleteConfirm.id);
+    } else {
+      await deleteCodeTheme(deleteConfirm.id);
+    }
     setDeleteConfirm(null);
-  }, [deleteConfirm, deleteTheme]);
+  }, [deleteConfirm, deleteTheme, deleteCodeTheme]);
 
   const openEditor = useCallback((manifest: ThemeManifest, variables: ThemeVariable[]) => {
     const merged = syncAccentRgb(
@@ -1078,11 +1086,9 @@ function ThemeSettingsContent() {
     setEditingTheme(null);
   }, [editingTheme, previewThemeVariables]);
 
-  const handleDeleteCodeTheme = useCallback(async (m: CustomCodeTheme) => {
-    if (confirm(t("settings.theme.deleteCodeThemeConfirm", { name: m.name }))) {
-      await deleteCodeTheme(m.id);
-    }
-  }, [deleteCodeTheme, t]);
+  const handleDeleteCodeTheme = useCallback((m: CustomCodeTheme) => {
+    setDeleteConfirm({ kind: "code", name: m.name, id: m.id });
+  }, []);
 
   const scheduleCodePreview = useCallback((id: string, vars: ThemeVariable[]) => {
     if (codePreviewTimerRef.current) window.clearTimeout(codePreviewTimerRef.current);
@@ -1793,9 +1799,15 @@ function ThemeSettingsContent() {
       {deleteConfirm && (
         <div className="theme-name-dialog-overlay" onClick={() => setDeleteConfirm(null)}>
           <div className="theme-name-dialog" onClick={(e) => e.stopPropagation()}>
-            <h3 className="theme-name-dialog-title">{t("settings.theme.deleteThemeTitle")}</h3>
+            <h3 className="theme-name-dialog-title">
+              {deleteConfirm.kind === "code"
+                ? t("settings.theme.deleteCodeThemeTitle")
+                : t("settings.theme.deleteThemeTitle")}
+            </h3>
             <p style={{ fontSize: 14, color: "var(--text-secondary)", margin: "0 0 16px" }}>
-              {t("settings.theme.deleteThemeConfirm", { name: deleteConfirm.name })}
+              {deleteConfirm.kind === "code"
+                ? t("settings.theme.deleteCodeThemeConfirm", { name: deleteConfirm.name })
+                : t("settings.theme.deleteThemeConfirm", { name: deleteConfirm.name })}
             </p>
             <div className="theme-name-dialog-actions">
               <button className="settings-button theme-name-dialog-cancel" onClick={() => setDeleteConfirm(null)}>{t("settings.theme.cancel")}</button>

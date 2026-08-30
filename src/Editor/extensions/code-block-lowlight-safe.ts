@@ -104,18 +104,17 @@ function parseNodes(
   className: string[] = []
 ): { text: string; classes: string[] }[] {
   return nodes.flatMap((node) => {
-    const classes = [
-      ...className,
-      ...(node.properties ? node.properties.className : []),
-    ];
-
+    // Element nodes: children inherit *this* element's classes only (not grandparents).
+    // TipTap decorations are flat spans — only keep the innermost token class
+    // so `#include` does not become `hljs-meta hljs-keyword` (cascade fights).
     if (node.children) {
-      return parseNodes(node.children, classes);
+      const ownClasses = node.properties?.className ?? [];
+      return parseNodes(node.children, ownClasses);
     }
 
     return {
       text: node.value,
-      classes,
+      classes: className,
     };
   });
 }

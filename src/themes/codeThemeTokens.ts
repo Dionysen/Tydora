@@ -36,6 +36,18 @@ export const CODE_THEME_SAMPLE_SNIPPETS: { id: string; language: string; labelKe
     labelKey: "codeSampleCss",
     code: `.card {\n  /* surface */\n  color: #1e293b;\n  background: rgba(78, 178, 137, 0.08);\n  border-radius: 8px;\n}`,
   },
+  {
+    id: "cpp",
+    language: "cpp",
+    labelKey: "codeSampleCpp",
+    code: `#include <cstdio>\n\n// greet helper\nint main() {\n  const char* name = "Tydora";\n  int answer = 42;\n  printf("%s %d\\n", name, answer);\n  return sizeof(int);\n}`,
+  },
+  {
+    id: "rust",
+    language: "rust",
+    labelKey: "codeSampleRust",
+    code: `fn greet(name: &str) -> String {\n    // say hello\n    format!("Hi, {}!", name)\n}\n\nfn main() {\n    let answer: i32 = 42;\n    println!("{} {}", greet("Tydora"), answer);\n}`,
+  },
 ];
 
 /** Convert a builtin code theme id into ThemeVariable[]. */

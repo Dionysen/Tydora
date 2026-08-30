@@ -287,7 +287,8 @@ html, body { margin: 0; height: 100%; overflow-y: auto; }
 .export-page .hljs-type,
 .export-page .hljs-literal,
 .export-page .hljs-section,
-.export-page .hljs-link {
+.export-page .hljs-link,
+.export-page .hljs-meta {
   color: var(--hljs-keyword, #d73a49);
 }
 .export-page .hljs-string,
@@ -304,8 +305,7 @@ html, body { margin: 0; height: 100%; overflow-y: auto; }
 }
 .export-page .hljs-comment,
 .export-page .hljs-quote,
-.export-page .hljs-deletion,
-.export-page .hljs-meta {
+.export-page .hljs-deletion {
   color: var(--hljs-comment, #6a737d);
 }
 .export-page .hljs-number,

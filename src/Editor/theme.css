@@ -177,7 +177,8 @@
 .source-highlight-layer .hljs-type,
 .source-highlight-layer .hljs-literal,
 .source-highlight-layer .hljs-section,
-.source-highlight-layer .hljs-link {
+.source-highlight-layer .hljs-link,
+.source-highlight-layer .hljs-meta {
   color: var(--hljs-keyword, #d73a49);
 }
 
@@ -201,8 +202,7 @@
 
 .source-highlight-layer .hljs-comment,
 .source-highlight-layer .hljs-quote,
-.source-highlight-layer .hljs-deletion,
-.source-highlight-layer .hljs-meta {
+.source-highlight-layer .hljs-deletion {
   color: var(--hljs-comment, #6a737d);
 }
 
@@ -391,7 +391,8 @@ html.platform-macos .tiptap-editor .tiptap {
 .tiptap-editor .hljs-type,
 .tiptap-editor .hljs-literal,
 .tiptap-editor .hljs-section,
-.tiptap-editor .hljs-link {
+.tiptap-editor .hljs-link,
+.tiptap-editor .hljs-meta {
   color: var(--hljs-keyword, #d73a49);
 }
 
@@ -410,8 +411,7 @@ html.platform-macos .tiptap-editor .tiptap {
 
 .tiptap-editor .hljs-comment,
 .tiptap-editor .hljs-quote,
-.tiptap-editor .hljs-deletion,
-.tiptap-editor .hljs-meta {
+.tiptap-editor .hljs-deletion {
   color: var(--hljs-comment, #6a7781);
 }
 
@@ -892,7 +892,8 @@ html.platform-macos .tiptap-editor .tiptap {
 .tiptap-export-content .hljs-type,
 .tiptap-export-content .hljs-literal,
 .tiptap-export-content .hljs-section,
-.tiptap-export-content .hljs-link {
+.tiptap-export-content .hljs-link,
+.tiptap-export-content .hljs-meta {
   color: var(--hljs-keyword, #d73a49);
 }
 
@@ -911,8 +912,7 @@ html.platform-macos .tiptap-editor .tiptap {
 
 .tiptap-export-content .hljs-comment,
 .tiptap-export-content .hljs-quote,
-.tiptap-export-content .hljs-deletion,
-.tiptap-export-content .hljs-meta {
+.tiptap-export-content .hljs-deletion {
   color: var(--hljs-comment, #6a7781);
 }
 
