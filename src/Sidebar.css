@@ -21,12 +21,13 @@
   -webkit-user-select: none;
 }
 
-/* ── 顶部透明栏 ── */
+/* ── 顶部透明栏（默认无高度；macOS 红绿灯占位见 global.css） ── */
 .sidebar-topbar {
-  height: 36px;
+  height: 0;
   flex-shrink: 0;
   background: transparent;
   -webkit-app-region: drag;
+  overflow: hidden;
 }
 
 /* ── Resize Handle ── */
@@ -637,6 +638,11 @@
   border-bottom: none;
   flex-shrink: 0;
   -webkit-app-region: drag;
+}
+
+/* Windows/Linux：去掉 macOS 顶栏占位后，保留 tab 上方正常边距 */
+html:not(.platform-macos) .sidebar-header {
+  padding-top: 14px;
 }
 
 .sidebar-tabs-wrapper {

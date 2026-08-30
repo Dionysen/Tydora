@@ -85,6 +85,8 @@ html.platform-macos {
 }
 
 html.platform-macos .sidebar-topbar {
+  height: 36px;
+  overflow: visible;
   padding-left: var(--mac-traffic-lights-width);
 }
 
