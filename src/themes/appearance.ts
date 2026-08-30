@@ -30,6 +30,7 @@ export const BUILTIN_THEME_IS_DARK: Record<BuiltinThemeName, boolean> = {
   white: false,
   mint: false,
   "mint-dark": true,
+  "modern-dark": true,
   "claude-code": false,
   purple: false,
   hermes: false,
