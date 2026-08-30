@@ -445,7 +445,7 @@ export async function persistCodeThemeVariables(
   manifests[idx] = {
     ...manifests[idx],
     previewColors: extractCodeThemePreviewColors(variables),
-    ...(typeof isDark === "boolean" ? { isDark } : {}),
+    isDark: typeof isDark === "boolean" ? isDark : inferCodeThemeIsDark(variables),
   };
   await saveCodeThemeManifest(manifests);
   return manifests[idx];

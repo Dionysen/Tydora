@@ -65,8 +65,8 @@ interface ThemeContextValue {
   /** Resolved active app theme id */
   theme: ThemeName;
   /**
-   * Apply a theme immediately: updates the matching light/dark preference
-   * and switches appearanceMode to that side (used by editors / quick apply).
+   * Apply a theme to the currently resolved appearance slot
+   * (themes themselves are not classified as light/dark).
    */
   setTheme: (t: ThemeName) => void;
   appearanceMode: AppearanceMode;
@@ -86,7 +86,7 @@ interface ThemeContextValue {
   refreshCustomThemes: () => Promise<void>;
   /** Resolved active code theme id */
   codeTheme: string;
-  /** @deprecated Prefer setPreferredCodeTheme; kept for editor force-apply */
+  /** Apply a code theme to the currently resolved appearance slot */
   setCodeTheme: (id: string) => void;
   customCodeThemes: CustomCodeTheme[];
   importCodeTheme: (filePath: string, name: string) => Promise<CustomCodeTheme>;
@@ -164,6 +164,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   themeRef.current = theme;
   const codeThemeRef = useRef(codeTheme);
   codeThemeRef.current = codeTheme;
+  const resolvedModeRef = useRef(resolvedMode);
+  resolvedModeRef.current = resolvedMode;
 
   const getAppThemeIsDark = useCallback((id: string): boolean => {
     if (id.startsWith("custom-")) {
@@ -527,49 +529,51 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  /** Force-apply a theme (editor / delete fallback). */
+  /**
+   * Apply a theme to the currently resolved appearance slot.
+   * Themes themselves are not light/dark — the slot decides when they apply.
+   */
   const setTheme = useCallback((t: ThemeName) => {
-    const dark = getAppThemeIsDark(t);
-    const mode: ResolvedAppearance = dark ? "dark" : "light";
+    const mode = resolvedModeRef.current;
     setPreferredAppThemeState((prev) => {
       const preferredAppThemeNext = withPreferredApp(prev, mode, t);
-      // Switch to matching forced mode so preview applies immediately
-      const appearanceModeNext: AppearanceMode = mode;
-      setAppearanceModeState(appearanceModeNext);
-      setPreferredCodeThemeState((code) => {
-        const state: AppearanceState = {
-          appearanceMode: appearanceModeNext,
-          preferredAppTheme: preferredAppThemeNext,
-          preferredCodeTheme: code,
-        };
-        persistAppearanceState(state);
-        emit(APPEARANCE_SYNC_EVENT, state).catch(() => {});
-        return code;
+      setAppearanceModeState((am) => {
+        setPreferredCodeThemeState((code) => {
+          const state: AppearanceState = {
+            appearanceMode: am,
+            preferredAppTheme: preferredAppThemeNext,
+            preferredCodeTheme: code,
+          };
+          persistAppearanceState(state);
+          emit(APPEARANCE_SYNC_EVENT, state).catch(() => {});
+          return code;
+        });
+        return am;
       });
       return preferredAppThemeNext;
     });
-  }, [getAppThemeIsDark]);
+  }, []);
 
   const setCodeTheme = useCallback((id: string) => {
-    const dark = getCodeThemeIsDark(id);
-    const mode: ResolvedAppearance = dark ? "dark" : "light";
+    const mode = resolvedModeRef.current;
     setPreferredCodeThemeState((prev) => {
       const preferredCodeThemeNext = withPreferredCode(prev, mode, id);
-      const appearanceModeNext: AppearanceMode = mode;
-      setAppearanceModeState(appearanceModeNext);
-      setPreferredAppThemeState((app) => {
-        const state: AppearanceState = {
-          appearanceMode: appearanceModeNext,
-          preferredAppTheme: app,
-          preferredCodeTheme: preferredCodeThemeNext,
-        };
-        persistAppearanceState(state);
-        emit(APPEARANCE_SYNC_EVENT, state).catch(() => {});
-        return app;
+      setAppearanceModeState((am) => {
+        setPreferredAppThemeState((app) => {
+          const state: AppearanceState = {
+            appearanceMode: am,
+            preferredAppTheme: app,
+            preferredCodeTheme: preferredCodeThemeNext,
+          };
+          persistAppearanceState(state);
+          emit(APPEARANCE_SYNC_EVENT, state).catch(() => {});
+          return app;
+        });
+        return am;
       });
       return preferredCodeThemeNext;
     });
-  }, [getCodeThemeIsDark]);
+  }, []);
 
   const importCodeTheme = useCallback(async (filePath: string, name: string): Promise<CustomCodeTheme> => {
     const manifest = await importCodeThemeFile(filePath, name);

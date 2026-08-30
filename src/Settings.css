@@ -532,11 +532,31 @@
 
 .settings-theme-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
+.settings-theme-divider {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.settings-theme-divider::before,
+.settings-theme-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
 .settings-theme-card {
+  min-width: 0;
   padding: 12px;
   background: var(--bg-secondary);
   border: 2px solid var(--border);
@@ -651,6 +671,87 @@
 .settings-theme-name {
   font-size: 13px;
   color: var(--text-primary);
+}
+
+.settings-theme-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.settings-theme-name-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.settings-theme-meta .settings-theme-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-theme-rename-btn {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+
+.custom-theme-card:hover .settings-theme-rename-btn,
+.settings-theme-card:hover .settings-theme-rename-btn {
+  opacity: 1;
+}
+
+.settings-theme-rename-btn:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+
+.settings-theme-slot-label {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  border: 1px solid transparent;
+}
+
+.settings-theme-slot-label.slot-light {
+  color: color-mix(in srgb, var(--accent) 80%, var(--text-primary));
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-primary));
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.settings-theme-slot-label.slot-dark {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-primary) 10%, var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--text-primary) 18%, transparent);
+}
+
+.settings-theme-slot-label.slot-both {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-primary));
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 /* ── Terminal Color Scheme Cards ───────────────────────────────── */
@@ -834,14 +935,26 @@
   gap: 12px;
 }
 
+.theme-editor-header .settings-section-title {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .theme-editor-back {
   background: none;
   border: none;
   color: var(--accent);
   cursor: pointer;
   font-size: 14px;
-  padding: 4px 8px;
+  line-height: 1.3;
+  padding: 6px 8px;
   border-radius: 4px;
+  flex-shrink: 0;
   transition: background 0.15s;
 }
 
@@ -851,7 +964,9 @@
 
 .theme-editor-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .theme-editor-cancel {
@@ -1813,6 +1928,43 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 10px;
+}
+
+.theme-pack-bar-footer {
+  margin: 20px 0 0;
+}
+
+.theme-kind-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.theme-kind-tab {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.theme-kind-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.theme-kind-tab.active {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-surface));
+  font-weight: 600;
 }
 
 .theme-pack-actions {

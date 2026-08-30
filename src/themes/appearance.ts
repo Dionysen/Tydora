@@ -25,7 +25,7 @@ export const DEFAULT_CODE_THEME_PAIR: ThemePair = {
   dark: "github-dark",
 };
 
-/** Explicit light/dark for every built-in app theme. */
+/** Catalog hint for built-in themes (preview / legacy migration only — not used for selection). */
 export const BUILTIN_THEME_IS_DARK: Record<BuiltinThemeName, boolean> = {
   white: false,
   mint: false,

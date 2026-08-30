@@ -6,7 +6,7 @@ import { clampWindowToMonitor } from "./services/windowState";
 import { invoke } from "@tauri-apps/api/core";
 import { ask, open } from "@tauri-apps/plugin-dialog";
 import { useTranslation } from "react-i18next";
-import { useTheme, type ThemeName } from "./themes";
+import { useTheme, type ThemeName, type ThemePair } from "./themes";
 import { loadImageSettings, saveImageSettings, type ImageSettings, type StorageMode, type FilenameFormat } from "./services";
 import { checkForUpdate, downloadAndInstall, relaunchApp, exitApp, isStoreVersion, isPortableVersion, type UpdateInfo } from "./services";
 import { PublishSettings } from "./publish";
@@ -773,11 +773,19 @@ function GraphSettingsContent({
   );
 }
 
+function getThemeSlotSelection(id: string, pair: ThemePair): "none" | "light" | "dark" | "both" {
+  const light = pair.light === id;
+  const dark = pair.dark === id;
+  if (light && dark) return "both";
+  if (light) return "light";
+  if (dark) return "dark";
+  return "none";
+}
+
 function ThemeSettingsContent() {
   const { t } = useTranslation();
   const {
     theme,
-    setTheme,
     appearanceMode,
     setAppearanceMode,
     resolvedMode,
@@ -792,13 +800,11 @@ function ThemeSettingsContent() {
     createThemeFromBuiltin,
     createThemeFromTemplate,
     codeTheme,
-    setCodeTheme,
     customCodeThemes,
     deleteCodeTheme,
     createCodeThemeFromBuiltin,
     updateCodeThemeVariables,
     previewCodeThemeVariables,
-    getAppThemeIsDark,
     renameAppTheme,
     renameCodeTheme,
     exportCurrentThemePack,
@@ -844,17 +850,10 @@ function ThemeSettingsContent() {
 
   const [editingCodeTheme, setEditingCodeTheme] = useState<CustomCodeTheme | null>(null);
   const [editCodeVariables, setEditCodeVariables] = useState<ThemeVariable[]>([]);
-  const [editCodeIsDark, setEditCodeIsDark] = useState(false);
   const [codeSampleLang, setCodeSampleLang] = useState(CODE_THEME_SAMPLE_SNIPPETS[0].id);
   const [forkingCode, setForkingCode] = useState(false);
-  const [appThemeTab, setAppThemeTab] = useState<"light" | "dark">(resolvedMode);
-  const [codeThemeTab, setCodeThemeTab] = useState<"light" | "dark">(resolvedMode);
+  const [themeKindTab, setThemeKindTab] = useState<"app" | "code">("app");
   const codePreviewTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    setAppThemeTab(resolvedMode);
-    setCodeThemeTab(resolvedMode);
-  }, [resolvedMode]);
 
   const [codeSampleHtml, setCodeSampleHtml] = useState("");
   useEffect(() => {
@@ -894,6 +893,18 @@ function ThemeSettingsContent() {
     { value: "slate", label: "Slate", colors: ["#f8fafc", "#475569", "#0f172a", "#e2e8f0"] },
     { value: "ocean", label: "Ocean", colors: ["#f0f9ff", "#0891b2", "#0c4a6e", "#a5f3fc"] },
   ];
+
+  const renderThemeSlotLabel = (id: string, pair: ThemePair) => {
+    const slot = getThemeSlotSelection(id, pair);
+    if (slot === "none") return null;
+    const labelKey =
+      slot === "both" ? "slotLabelBoth" : slot === "dark" ? "slotLabelDark" : "slotLabelLight";
+    return (
+      <span className={`settings-theme-slot-label slot-${slot}`}>
+        {t(`settings.theme.${labelKey}`)}
+      </span>
+    );
+  };
 
   const updateEditPreview = useCallback((vars: ThemeVariable[]) => {
     const get = (name: string, fallback: string) =>
@@ -994,9 +1005,9 @@ function ThemeSettingsContent() {
     setEditVariables(merged);
     updateEditPreview(merged);
     setEditingTheme(manifest);
-    setTheme(`custom-${manifest.id}`);
+    setPreferredAppTheme(resolvedMode, `custom-${manifest.id}`);
     previewThemeVariables(manifest.id, merged);
-  }, [previewThemeVariables, setTheme, updateEditPreview]);
+  }, [previewThemeVariables, resolvedMode, setPreferredAppTheme, updateEditPreview]);
 
   const handleStartEdit = useCallback(async (manifest: ThemeManifest) => {
     try {
@@ -1023,9 +1034,7 @@ function ThemeSettingsContent() {
   const handleCreateBlank = useCallback(async (kind: "light" | "dark") => {
     try {
       setForking(true);
-      const name = kind === "dark"
-        ? t("settings.theme.newDarkTheme")
-        : t("settings.theme.newLightTheme");
+      const name = t("settings.theme.newTheme");
       const manifest = await createThemeFromTemplate(kind, name);
       await handleStartEdit(manifest);
     } catch (err) {
@@ -1084,11 +1093,10 @@ function ThemeSettingsContent() {
   const openCodeEditor = useCallback((manifest: CustomCodeTheme, variables: ThemeVariable[]) => {
     const merged = mergeCodeThemeWithSchema(variables);
     setEditCodeVariables(merged);
-    setEditCodeIsDark(manifest.isDark);
     setEditingCodeTheme(manifest);
-    setCodeTheme(manifest.id);
+    setPreferredCodeTheme(resolvedMode, manifest.id);
     previewCodeThemeVariables(manifest.id, merged);
-  }, [previewCodeThemeVariables, setCodeTheme]);
+  }, [previewCodeThemeVariables, resolvedMode, setPreferredCodeTheme]);
 
   const handleStartEditCodeTheme = useCallback(async (manifest: CustomCodeTheme) => {
     try {
@@ -1124,10 +1132,9 @@ function ThemeSettingsContent() {
 
   const handleSaveCodeEdit = useCallback(async () => {
     if (!editingCodeTheme) return;
-    const isDark = editCodeIsDark;
-    await updateCodeThemeVariables(editingCodeTheme.id, editCodeVariables, isDark);
+    await updateCodeThemeVariables(editingCodeTheme.id, editCodeVariables);
     setEditingCodeTheme(null);
-  }, [editingCodeTheme, editCodeVariables, editCodeIsDark, updateCodeThemeVariables]);
+  }, [editingCodeTheme, editCodeVariables, updateCodeThemeVariables]);
 
   const handleCancelCodeEdit = useCallback(async () => {
     if (editingCodeTheme) {
@@ -1157,7 +1164,7 @@ function ThemeSettingsContent() {
             <button className="theme-editor-back" onClick={handleCancelCodeEdit}>
               {t("settings.theme.back")}
             </button>
-            <h3 className="settings-section-title" style={{ marginTop: 0 }}>
+            <h3 className="settings-section-title">
               {t("settings.theme.editCodeTheme", { name: editingCodeTheme.name })}
             </h3>
             <div className="theme-editor-actions">
@@ -1207,19 +1214,6 @@ function ThemeSettingsContent() {
                 />
               );
             })}
-            <label className="theme-editor-row code-theme-is-dark-row">
-              <div className="theme-editor-label-block">
-                <span className="theme-editor-label">{t("settings.theme.codeThemeIsDark")}</span>
-                <span className="theme-editor-var-name">{t("settings.theme.codeThemeIsDarkHint")}</span>
-              </div>
-              <div className="theme-editor-control">
-                <input
-                  type="checkbox"
-                  checked={editCodeIsDark}
-                  onChange={(e) => setEditCodeIsDark(e.target.checked)}
-                />
-              </div>
-            </label>
           </div>
         </div>
       </div>
@@ -1234,7 +1228,7 @@ function ThemeSettingsContent() {
             <button className="theme-editor-back" onClick={handleCancelEdit}>
               {t("settings.theme.back")}
             </button>
-            <h3 className="settings-section-title" style={{ marginTop: 0 }}>
+            <h3 className="settings-section-title">
               {t("settings.theme.editTheme", { name: editingTheme.name })}
             </h3>
             <div className="theme-editor-actions">
@@ -1359,66 +1353,38 @@ function ThemeSettingsContent() {
         })}
       </p>
 
-      <div className="theme-pack-bar">
-        <div className="theme-pack-actions">
-          <button
-            type="button"
-            className="theme-pack-btn"
-            onClick={handleExportPack}
-            disabled={exporting}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            <span>{exporting ? t("settings.theme.exportingPack") : t("settings.theme.exportPack")}</span>
-          </button>
-          <button
-            type="button"
-            className="theme-pack-btn"
-            onClick={handleImportPack}
-            disabled={importing}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            <span>{importing ? t("settings.theme.importing") : t("settings.theme.importPack")}</span>
-          </button>
-        </div>
-        <p className="settings-hint theme-pack-hint">{t("settings.theme.packHint")}</p>
-      </div>
-
-      <h3 className="settings-section-title">{t("settings.theme.appTheme")}</h3>
-      <div className="theme-pair-tabs" role="tablist" aria-label={t("settings.theme.appTheme")}>
-        {(["light", "dark"] as const).map((tab) => (
+      <div className="theme-kind-tabs" role="tablist" aria-label={t("settings.theme.appTheme")}>
+        {([
+          ["app", "appTheme"],
+          ["code", "codeTheme"],
+        ] as const).map(([tab, labelKey]) => (
           <button
             key={tab}
             type="button"
             role="tab"
-            aria-selected={appThemeTab === tab}
-            className={`theme-pair-tab${appThemeTab === tab ? " active" : ""}`}
-            onClick={() => setAppThemeTab(tab)}
+            aria-selected={themeKindTab === tab}
+            className={`theme-kind-tab${themeKindTab === tab ? " active" : ""}`}
+            onClick={() => setThemeKindTab(tab)}
           >
-            {t(tab === "dark" ? "settings.theme.appearanceDark" : "settings.theme.appearanceLight")}
-            {resolvedMode === tab && (
-              <span className="appearance-in-use-badge">{t("settings.theme.inUse")}</span>
-            )}
+            {t(`settings.theme.${labelKey}`)}
           </button>
         ))}
       </div>
+      <p className="settings-hint" style={{ marginTop: 8, marginBottom: 12 }}>
+        {t("settings.theme.slotHint", {
+          mode: t(`settings.theme.${resolvedMode === "dark" ? "appearanceDark" : "appearanceLight"}`),
+        })}
+      </p>
+
+      {themeKindTab === "app" ? (
       <div className="settings-theme-grid">
-        {builtinThemes
-          .filter((b) => getAppThemeIsDark(b.value) === (appThemeTab === "dark"))
-          .map((item) => {
-            const preferred = preferredAppTheme[appThemeTab] === item.value;
+        {builtinThemes.map((item) => {
+            const preferred = theme === item.value;
             return (
               <div
                 key={item.value}
                 className={`settings-theme-card${preferred ? " active" : ""}`}
-                onClick={() => setPreferredAppTheme(appThemeTab, item.value)}
+                onClick={() => setPreferredAppTheme(resolvedMode, item.value)}
               >
                 <div className="settings-theme-preview" data-theme={item.value}>
                   <div className="theme-preview-mock">
@@ -1466,21 +1432,26 @@ function ThemeSettingsContent() {
                     </button>
                   </div>
                 </div>
-                <span className="settings-theme-name">{item.label}</span>
+                <div className="settings-theme-meta">
+                  <span className="settings-theme-name">{item.label}</span>
+                  {renderThemeSlotLabel(item.value, preferredAppTheme)}
+                </div>
               </div>
             );
           })}
 
-        {customThemes
-          .filter((m) => !!m.isDark === (appThemeTab === "dark"))
-          .map((m) => {
+        <div className="settings-theme-divider" role="separator">
+          {t("settings.theme.customThemes")}
+        </div>
+
+        {customThemes.map((m) => {
             const themeId = `custom-${m.id}`;
-            const preferred = preferredAppTheme[appThemeTab] === themeId;
+            const preferred = theme === themeId;
             return (
               <div
                 key={m.id}
                 className={`settings-theme-card custom-theme-card${preferred ? " active" : ""}`}
-                onClick={() => setPreferredAppTheme(appThemeTab, themeId)}
+                onClick={() => setPreferredAppTheme(resolvedMode, themeId)}
               >
                 <div className="settings-theme-preview custom-theme-preview" data-custom-theme={m.id}>
                   <div
@@ -1508,35 +1479,43 @@ function ThemeSettingsContent() {
                       </svg>
                     </button>
                     <button
-                      className="custom-theme-edit-btn"
-                      title={t("settings.theme.rename")}
-                      onClick={(e) => { e.stopPropagation(); handleRenameApp(m); }}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 20h4L18 10l-4-4L4 16v4z" />
-                        <path d="M13 6l4 4" />
-                      </svg>
-                    </button>
-                    <button
                       className="custom-theme-delete-btn"
                       title={t("settings.theme.delete")}
                       onClick={(e) => { e.stopPropagation(); handleDelete(m); }}
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
                       </svg>
                     </button>
                   </div>
                 </div>
-                <span className="settings-theme-name">{m.name}</span>
+                <div className="settings-theme-meta">
+                  <div className="settings-theme-name-row">
+                    <span className="settings-theme-name">{m.name}</span>
+                    <button
+                      type="button"
+                      className="settings-theme-rename-btn"
+                      title={t("settings.theme.rename")}
+                      onClick={(e) => { e.stopPropagation(); handleRenameApp(m); }}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                      </svg>
+                    </button>
+                  </div>
+                  {renderThemeSlotLabel(themeId, preferredAppTheme)}
+                </div>
               </div>
             );
           })}
 
         <div
           className="settings-theme-card settings-theme-import-card"
-          onClick={() => handleCreateBlank(appThemeTab)}
+          onClick={() => handleCreateBlank(resolvedMode)}
         >
           <div className="settings-theme-preview settings-theme-import-preview">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1544,34 +1523,13 @@ function ThemeSettingsContent() {
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
           </div>
-          <span className="settings-theme-name">
-            {appThemeTab === "dark" ? t("settings.theme.newDarkTheme") : t("settings.theme.newLightTheme")}
-          </span>
+          <span className="settings-theme-name">{t("settings.theme.newTheme")}</span>
         </div>
       </div>
-
-      <h3 className="settings-section-title">{t("settings.theme.codeTheme")}</h3>
-      <div className="theme-pair-tabs" role="tablist" aria-label={t("settings.theme.codeTheme")}>
-        {(["light", "dark"] as const).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            role="tab"
-            aria-selected={codeThemeTab === tab}
-            className={`theme-pair-tab${codeThemeTab === tab ? " active" : ""}`}
-            onClick={() => setCodeThemeTab(tab)}
-          >
-            {t(tab === "dark" ? "settings.theme.appearanceDark" : "settings.theme.appearanceLight")}
-            {resolvedMode === tab && (
-              <span className="appearance-in-use-badge">{t("settings.theme.inUse")}</span>
-            )}
-          </button>
-        ))}
-      </div>
+      ) : (
+      <>
       <div className="settings-theme-grid">
-        {CODE_THEMES
-          .filter((c) => c.isDark === (codeThemeTab === "dark"))
-          .map((ct) => {
+        {CODE_THEMES.map((ct) => {
             const colors = [
               ct.variables["--hljs-keyword"],
               ct.variables["--hljs-string"],
@@ -1579,12 +1537,12 @@ function ThemeSettingsContent() {
               ct.variables["--hljs-number"],
               ct.variables["--hljs-built_in"],
             ];
-            const preferred = preferredCodeTheme[codeThemeTab] === ct.id;
+            const preferred = codeTheme === ct.id;
             return (
               <div
                 key={ct.id}
                 className={`settings-theme-card${preferred ? " active" : ""}`}
-                onClick={() => setPreferredCodeTheme(codeThemeTab, ct.id)}
+                onClick={() => setPreferredCodeTheme(resolvedMode, ct.id)}
               >
                 <div
                   className="settings-theme-preview code-theme-card-preview"
@@ -1623,21 +1581,28 @@ function ThemeSettingsContent() {
                     </button>
                   </div>
                 </div>
-                <span className="settings-theme-name">{ct.name}</span>
+                <div className="settings-theme-meta">
+                  <span className="settings-theme-name">{ct.name}</span>
+                  {renderThemeSlotLabel(ct.id, preferredCodeTheme)}
+                </div>
               </div>
             );
           })}
 
-        {customCodeThemes
-          .filter((m) => m.isDark === (codeThemeTab === "dark"))
-          .map((m) => {
+        {customCodeThemes.length > 0 && (
+          <div className="settings-theme-divider" role="separator">
+            {t("settings.theme.customThemes")}
+          </div>
+        )}
+
+        {customCodeThemes.map((m) => {
             const colors = m.previewColors ?? ["#d73a49", "#032f62", "#6a737d", "#005cc5", "#e36209"];
-            const preferred = preferredCodeTheme[codeThemeTab] === m.id;
+            const preferred = codeTheme === m.id;
             return (
               <div
                 key={m.id}
                 className={`settings-theme-card custom-theme-card${preferred ? " active" : ""}`}
-                onClick={() => setPreferredCodeTheme(codeThemeTab, m.id)}
+                onClick={() => setPreferredCodeTheme(resolvedMode, m.id)}
               >
                 <div
                   className="settings-theme-preview code-theme-card-preview"
@@ -1671,28 +1636,36 @@ function ThemeSettingsContent() {
                       </svg>
                     </button>
                     <button
-                      className="custom-theme-edit-btn"
-                      title={t("settings.theme.rename")}
-                      onClick={(e) => { e.stopPropagation(); handleRenameCode(m); }}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 20h4L18 10l-4-4L4 16v4z" />
-                        <path d="M13 6l4 4" />
-                      </svg>
-                    </button>
-                    <button
                       className="custom-theme-delete-btn"
                       title={t("settings.theme.deleteBtn")}
                       onClick={(e) => { e.stopPropagation(); handleDeleteCodeTheme(m); }}
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
                       </svg>
                     </button>
                   </div>
                 </div>
-                <span className="settings-theme-name">{m.name}</span>
+                <div className="settings-theme-meta">
+                  <div className="settings-theme-name-row">
+                    <span className="settings-theme-name">{m.name}</span>
+                    <button
+                      type="button"
+                      className="settings-theme-rename-btn"
+                      title={t("settings.theme.rename")}
+                      onClick={(e) => { e.stopPropagation(); handleRenameCode(m); }}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                      </svg>
+                    </button>
+                  </div>
+                  {renderThemeSlotLabel(m.id, preferredCodeTheme)}
+                </div>
               </div>
             );
           })}
@@ -1717,6 +1690,40 @@ function ThemeSettingsContent() {
         <pre className="settings-code-theme-preview-code">
           <code dangerouslySetInnerHTML={{ __html: codeSampleHtml }} />
         </pre>
+      </div>
+      </>
+      )}
+
+      <div className="theme-pack-bar theme-pack-bar-footer">
+        <div className="theme-pack-actions">
+          <button
+            type="button"
+            className="theme-pack-btn"
+            onClick={handleExportPack}
+            disabled={exporting}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <span>{exporting ? t("settings.theme.exportingPack") : t("settings.theme.exportPack")}</span>
+          </button>
+          <button
+            type="button"
+            className="theme-pack-btn"
+            onClick={handleImportPack}
+            disabled={importing}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span>{importing ? t("settings.theme.importing") : t("settings.theme.importPack")}</span>
+          </button>
+        </div>
+        <p className="settings-hint theme-pack-hint">{t("settings.theme.packHint")}</p>
       </div>
 
       {nameDialog.open && (
