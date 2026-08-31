@@ -1853,7 +1853,9 @@ function FileTree({
     const el = treeRef.current;
     if (!el) return;
     const onSelectStart = (e: Event) => {
-      if ((e.target as HTMLElement).closest(".tree-name-input")) return;
+      const node = e.target as Node | null;
+      const element = node instanceof Element ? node : node?.parentElement ?? null;
+      if (element?.closest(".tree-name-input")) return;
       e.preventDefault();
     };
     el.addEventListener("selectstart", onSelectStart);
