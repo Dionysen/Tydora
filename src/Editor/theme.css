@@ -2310,7 +2310,8 @@ html[data-code-block-toolbar="classic"] .code-block-content {
   position: relative;
 }
 
-.context-menu-item {
+.editor-context-menu .context-menu-item,
+.context-menu-submenu .context-menu-item {
   display: flex;
   align-items: center;
   width: 100%;
@@ -2349,7 +2350,8 @@ html[data-code-block-toolbar="classic"] .code-block-content {
   color: var(--text-secondary, #999);
 }
 
-.context-menu-icon {
+.editor-context-menu .context-menu-icon,
+.context-menu-submenu .context-menu-icon {
   width: 20px;
   height: 20px;
   display: flex;
@@ -2360,28 +2362,33 @@ html[data-code-block-toolbar="classic"] .code-block-content {
   flex-shrink: 0;
 }
 
-.context-menu-icon svg {
+.editor-context-menu .context-menu-icon svg,
+.context-menu-submenu .context-menu-icon svg {
   width: 16px;
   height: 16px;
 }
 
-.context-menu-label {
+.editor-context-menu .context-menu-label,
+.context-menu-submenu .context-menu-label {
   flex: 1;
 }
 
-.context-menu-shortcut {
+.editor-context-menu .context-menu-shortcut,
+.context-menu-submenu .context-menu-shortcut {
   color: var(--text-secondary, #999);
   font-size: 11px;
   margin-left: 16px;
 }
 
-.context-menu-arrow {
+.editor-context-menu .context-menu-arrow,
+.context-menu-submenu .context-menu-arrow {
   margin-left: 8px;
   font-size: 8px;
   color: var(--text-secondary, #999);
 }
 
-.context-menu-divider {
+.editor-context-menu .context-menu-divider,
+.context-menu-submenu .context-menu-divider {
   height: 1px;
   background: var(--border, #e0e0e0);
   margin: var(--menu-divider-margin-y) 0;

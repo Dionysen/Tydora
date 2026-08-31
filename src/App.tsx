@@ -3669,8 +3669,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       onClick={() => { if (!fileName && !(activeVaultIndex >= 0)) return; handleOpenTerminal(); }}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="4 17 10 11 4 5" />
-                        <line x1="12" y1="19" x2="20" y2="19" />
+                        <rect x="2" y="4" width="20" height="16" rx="2" />
+                        <path d="M7 9l3 3-3 3" />
+                        <line x1="13" y1="15" x2="17" y2="15" />
                       </svg>
                       <span className="editor-topbar-more-menu-label">{t("app.menu.openInTerminal")}</span>
                     </div>

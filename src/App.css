@@ -1881,6 +1881,13 @@
   transition: background 0.1s;
 }
 
+.editor-topbar-more-menu-item > svg {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
 .editor-topbar-more-menu-item:hover {
   background: var(--bg-hover, #e8e8e8);
 }
