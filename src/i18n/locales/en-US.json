@@ -866,18 +866,16 @@
       "panel": {
         "noVault": "No vault opened",
         "empty": "No bookmarks",
-        "emptyHint": "Right-click a file or folder to add a bookmark",
-        "dropHere": "Drag bookmarks here"
+        "emptyHint": "Right-click a file or folder to add a bookmark"
       },
       "contextMenu": {
         "openInNewWindow": "Open in New Window",
-        "editTitle": "Edit Title",
+        "editBookmark": "Edit Bookmark",
         "unfavorite": "Remove Bookmark",
         "copyPath": "Copy Path",
         "rename": "Rename",
         "deleteGroup": "Delete Group"
       },
-      "editTitlePrompt": "Edit title (leave blank to show original filename):",
       "defaultGroup": "Default Group",
       "ungrouped": "Ungrouped"
     },

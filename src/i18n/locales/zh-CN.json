@@ -866,18 +866,16 @@
       "panel": {
         "noVault": "尚未打开仓库",
         "empty": "暂无书签",
-        "emptyHint": "右键文件或文件夹可添加书签",
-        "dropHere": "拖拽书签到此分组"
+        "emptyHint": "右键文件或文件夹可添加书签"
       },
       "contextMenu": {
         "openInNewWindow": "在新窗口打开",
-        "editTitle": "修改标题",
+        "editBookmark": "编辑书签",
         "unfavorite": "取消收藏",
         "copyPath": "复制路径",
         "rename": "重命名",
         "deleteGroup": "删除分组"
       },
-      "editTitlePrompt": "修改标题（留空则显示原文件名）：",
       "defaultGroup": "默认分组",
       "ungrouped": "未分组"
     },
