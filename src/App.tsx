@@ -13,9 +13,6 @@ import { MODE_LABELS } from "./Editor/types";
 const Editor = lazy(() => import("./Editor/TipTapEditor").then(m => ({ default: m.default })));
 const CodeMirrorEditor = lazy(() => import("./Editor/CodeMirrorEditor").then(m => ({ default: m.default })));
 import Sidebar, { VaultInfo } from "./Sidebar";
-import { FileTreeVim, useWindowNavigation } from "./vim";
-// 用 Vim HOC 包裹 Sidebar：enabled=false 时透传，零影响
-const VimSidebar = FileTreeVim(Sidebar);
 import { FilePreview } from "./components";
 import { QuickOpen } from "./components";
 import { CommandPalette } from "./components";
@@ -2714,98 +2711,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     return () => window.removeEventListener("keydown", handler);
   }, [handleSplit, fileName, isCurrentFileMarkdown]);
 
-  // ── Vim 窗格导航 ──────────────────────────────────────────────────
-  // 焦点切换：在扁平 pane 列表中按方向移动
-  const focusPane = useCallback((dir: "left" | "down" | "up" | "right") => {
-    const ids = collectPaneIds(splitLayoutRef.current);
-    const idx = ids.indexOf(activePaneIdRef.current);
-    if (idx < 0 || ids.length <= 1) return;
-    // left/up → 前一个，right/down → 后一个
-    const delta = dir === "left" || dir === "up" ? -1 : 1;
-    const next = (idx + delta + ids.length) % ids.length;
-    setActivePaneId(ids[next]);
-    editorHandleRef.current = paneHandlesRef.current[ids[next]] ?? null;
-  }, []);
-
-  // 移动当前窗格到父组的边缘
-  const movePaneToEdge = useCallback((dir: "left" | "down" | "up" | "right") => {
-    const activeId = activePaneIdRef.current;
-    const found = findPaneInTree(splitLayoutRef.current, activeId);
-    if (!found || found.path.length === 0) return; // 根叶子，无法移动
-
-    const lastStep = found.path[found.path.length - 1];
-    const parent = lastStep.group;
-    const childIdx = lastStep.childIndex;
-
-    // left/up → 移到首，right/down → 移到末
-    const targetIdx = dir === "left" || dir === "up" ? 0 : parent.children.length - 1;
-    if (childIdx === targetIdx) return; // 已在目标位置
-
-    // 不可变地重排 children
-    const newChildren = [...parent.children];
-    const [moved] = newChildren.splice(childIdx, 1);
-    newChildren.splice(targetIdx, 0, moved);
-
-    // 用 path 到父组的路径替换父组（path.slice(0,-1) 为空时 replaceNodeByPath 直接返回 replacement）
-    const newRoot = replaceNodeByPath(
-      splitLayoutRef.current,
-      found.path.slice(0, -1),
-      { ...parent, children: newChildren }
-    );
-    setSplitLayout(newRoot);
-  }, []);
-
-  // Vim Leader 菜单的 app.* 动作分发：监听全局 vim-app-action 事件
-  // 用 ref 持有最新 handler，避免每次依赖变化重新注册监听
-  const vimAppHandlersRef = useRef<Record<string, () => void>>({});
-  vimAppHandlersRef.current = {
-    "save": handleSave,
-    "format-document": handleFormatDocument,
-    "toggle-sidebar": handleSidebarToggle,
-    "toggle-mode": cycleMode,
-    "command-palette": () => setCommandPaletteOpen(true),
-    "quick-open": () => { if (activeVaultIndex >= 0) setQuickOpenOpen(true); },
-    "find": () => {
-      // 触发编辑器内查找（模拟 Ctrl+F）
-      const editor = document.querySelector(".codemirror-editor") as HTMLElement | null
-        || document.querySelector(".tiptap-editor .ProseMirror") as HTMLElement | null;
-      editor?.focus();
-      requestAnimationFrame(() => {
-        document.dispatchEvent(new KeyboardEvent("keydown", { key: "f", ctrlKey: true, bubbles: true }));
-      });
-    },
-    "global-search": () => {
-      // 打开侧栏并切换到搜索 tab
-      if (!sidebarOpen) handleSidebarToggle();
-      requestAnimationFrame(() => {
-        window.dispatchEvent(new CustomEvent("vim-sidebar-tab", { detail: { tab: "search" } }));
-      });
-    },
-    "split-horizontal": () => { if (fileName && isCurrentFileMarkdown) handleSplit("lr"); },
-    "split-vertical": () => { if (fileName && isCurrentFileMarkdown) handleSplit("tb"); },
-    "close-pane": () => closePane(activePaneIdRef.current),
-    "focus-left": () => focusPane("left"),
-    "focus-down": () => focusPane("down"),
-    "focus-up": () => focusPane("up"),
-    "focus-right": () => focusPane("right"),
-    "move-pane-left": () => movePaneToEdge("left"),
-    "move-pane-down": () => movePaneToEdge("down"),
-    "move-pane-up": () => movePaneToEdge("up"),
-    "move-pane-right": () => movePaneToEdge("right"),
-  };
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const { action } = (e as CustomEvent).detail;
-      vimAppHandlersRef.current[action]?.();
-    };
-    window.addEventListener("vim-app-action", handler);
-    return () => window.removeEventListener("vim-app-action", handler);
-  }, []);
-
-  // Vim 窗口导航：Ctrl+w h/j/k/l 切换焦点
-  useWindowNavigation();
-
   // 监听 wikilink 点击
   useEffect(() => {
     const handleWikiLinkClick = (e: Event) => {
@@ -3341,7 +3246,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       {/* 主内容区：左侧栏 + 编辑区域 */}
       <div className="main-container">
         {/* 左侧栏 */}
-        <VimSidebar
+        <Sidebar
           vaults={vaults}
           activeVaultIndex={activeVaultIndex}
           currentFilePath={fileName}

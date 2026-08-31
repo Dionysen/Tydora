@@ -8,7 +8,6 @@ bootStamp("js_main_entry");
 
 import { ThemeProvider } from "./themes";
 import { LanguageProvider } from "./i18n/LanguageContext";
-import { VimProvider } from "./vim";
 import "./i18n"; // init i18next before first render
 bootStamp("i18n_imported_init_done");
 
@@ -112,9 +111,7 @@ function Root() {
     return <CanvasWindow />;
   }
   return (
-    <VimProvider>
-      <App initialFilePath={initialFilePath} initialVaultPath={initialVaultPath} />
-    </VimProvider>
+    <App initialFilePath={initialFilePath} initialVaultPath={initialVaultPath} />
   );
 }
 

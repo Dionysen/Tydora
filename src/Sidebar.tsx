@@ -2739,17 +2739,6 @@ export default function Sidebar({
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // Vim Leader 菜单的全局搜索：监听 vim-sidebar-tab 事件切换侧栏 tab
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const { tab } = (e as CustomEvent).detail;
-      if (tab === "search" || tab === "files" || tab === "openFiles" || tab === "outline" || tab === "bookmarks") {
-        switchTab(tab);
-      }
-    };
-    window.addEventListener("vim-sidebar-tab", handler);
-    return () => window.removeEventListener("vim-sidebar-tab", handler);
-  }, [switchTab]);
 
   // 外部触发切换到大纲（如双击 .md 文件时按设置自动展开大纲）
   const prevOutlineTriggerRef = useRef<number | undefined>(outlineTrigger);
