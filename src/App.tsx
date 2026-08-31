@@ -28,17 +28,27 @@ import { buildExportArtifact, EXPORT_FORMATS, type ExportFormat, type BuiltArtif
 import { ExportPreviewDialog } from "./components/ExportPreviewDialog";
 import { XhsPreviewPanel } from "./export/xiaohongshu";
 import { emit, listen } from "@tauri-apps/api/event";
-import { loadImageSettings, type ImageSettings } from "./services";
+import {
+  loadImageSettings,
+  type ImageSettings,
+  checkForUpdate,
+  downloadAndInstall,
+  relaunchApp,
+  exitApp,
+  isPortableVersion,
+  type UpdateInfo,
+  useVaultWatcher,
+  formatMarkdown,
+  readMarkdownFormatOptions,
+} from "./services";
 import { loadEditorSettings, type EditorSettings, EDITOR_SETTINGS_KEY, SHORTCUTS_KEY, GRAPH_SETTINGS_KEY, DEFAULT_GRAPH } from "./Settings";
 import { applyFontSettings } from "./utils/systemFonts";
 import { applyMenuDensity, applyEditorSpacingFromSettings, normalizeMenuDensity } from "./utils/menuDensity";
-import { checkForUpdate, downloadAndInstall, relaunchApp, exitApp, isPortableVersion, type UpdateInfo } from "./services";
 import { LinkIndexService } from "./wikilink";
 import { WikiLinkAutocomplete } from "./wikilink";
 import { WikiLinkPreview } from "./wikilink";
 import { TagAutocomplete, TagIndexService } from "./tags";
 import { useCanvasStore } from "./Canvas/canvas-store";
-import { useVaultWatcher } from "./services";
 import PublishPanel from "./publish/PublishPanel";
 import PublishConfigDialog from "./publish/PublishConfigDialog";
 import { CONFIG_FILE } from "./publish/PublishService";
@@ -1302,7 +1312,33 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       }
       // 对话框期间内容可能变化，重新读取最新内容
       const latest = buffersRef.current.find((b) => b.id === bufId) ?? buf;
-      const contentToWrite = latest.content;
+      let contentToWrite = latest.content;
+
+      // 保存时格式化（仅 Markdown）
+      if (path && isMarkdownFile(path)) {
+        try {
+          const raw = localStorage.getItem("inimark-general-settings");
+          const settings = raw ? JSON.parse(raw) : {};
+          const formatOpts = readMarkdownFormatOptions(settings);
+          if (formatOpts.formatOnSave) {
+            const formatted = formatMarkdown(contentToWrite, formatOpts);
+            if (formatted !== contentToWrite) {
+              contentToWrite = formatted;
+              updateBuffer(bufId, { content: formatted });
+              if (bufId === activeBufferIdRef.current) {
+                const viewState = editorHandleRef.current?.getViewState();
+                editorHandleRef.current?.setValue(formatted);
+                if (viewState) {
+                  requestAnimationFrame(() => editorHandleRef.current?.restoreViewState(viewState));
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("format on save failed:", e);
+        }
+      }
+
       await writeTextFile(path, contentToWrite);
       updateBuffer(bufId, { savedContent: contentToWrite, modified: false });
       if (bufId === activeBufferIdRef.current) setSaveStatus("saved");
@@ -1319,6 +1355,34 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       return false;
     }
   }, [activeVaultIndex, vaults, t, updateBuffer]);
+
+  /** 格式化当前 Markdown 文档（不保存） */
+  const handleFormatDocument = useCallback(() => {
+    const path = fileName;
+    if (path && !isMarkdownFile(path)) return;
+    if (!path && !isCurrentFileMarkdown) return;
+
+    const rawContent = editorHandleRef.current?.getValue() ?? content;
+    try {
+      const raw = localStorage.getItem("inimark-general-settings");
+      const settings = raw ? JSON.parse(raw) : {};
+      const formatOpts = readMarkdownFormatOptions(settings);
+      const formatted = formatMarkdown(rawContent, formatOpts);
+      if (formatted === rawContent) return;
+
+      const viewState = editorHandleRef.current?.getViewState();
+      updateBuffer(activeBufferIdRef.current, {
+        content: formatted,
+        modified: formatted !== (buffersRef.current.find((b) => b.id === activeBufferIdRef.current)?.savedContent ?? ""),
+      });
+      editorHandleRef.current?.setValue(formatted);
+      if (viewState) {
+        requestAnimationFrame(() => editorHandleRef.current?.restoreViewState(viewState));
+      }
+    } catch (e) {
+      console.error(t("app.error.formatFailed"), e);
+    }
+  }, [fileName, isCurrentFileMarkdown, content, t, updateBuffer]);
 
   // 保存成功后绿灯闪烁效果
   useEffect(() => {
@@ -1355,12 +1419,30 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         const activeVault = activeVaultIndex >= 0 ? vaults[activeVaultIndex] : null;
         for (const b of buffersRef.current) {
           if (!b.modified || !b.fileName) continue;
-          await writeTextFile(b.fileName, b.content);
-          updateBuffer(b.id, { savedContent: b.content, modified: false });
+          let contentToWrite = b.content;
+          if (isMarkdownFile(b.fileName)) {
+            const formatOpts = readMarkdownFormatOptions(settings);
+            if (formatOpts.formatOnSave) {
+              const formatted = formatMarkdown(contentToWrite, formatOpts);
+              if (formatted !== contentToWrite) {
+                contentToWrite = formatted;
+                updateBuffer(b.id, { content: formatted });
+                if (b.id === activeBufferIdRef.current) {
+                  const viewState = editorHandleRef.current?.getViewState();
+                  editorHandleRef.current?.setValue(formatted);
+                  if (viewState) {
+                    requestAnimationFrame(() => editorHandleRef.current?.restoreViewState(viewState));
+                  }
+                }
+              }
+            }
+          }
+          await writeTextFile(b.fileName, contentToWrite);
+          updateBuffer(b.id, { savedContent: contentToWrite, modified: false });
           if (b.id === activeBufferIdRef.current) setSaveStatus("saved");
           if (activeVault) {
             LinkIndexService.updateFileLinks(b.fileName, activeVault.path);
-            TagIndexService.updateFileTags(b.fileName, b.content);
+            TagIndexService.updateFileTags(b.fileName, contentToWrite);
           }
         }
         if (activeVault) {
@@ -2833,6 +2915,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const vimAppHandlersRef = useRef<Record<string, () => void>>({});
   vimAppHandlersRef.current = {
     "save": handleSave,
+    "format-document": handleFormatDocument,
     "toggle-sidebar": handleSidebarToggle,
     "toggle-mode": cycleMode,
     "command-palette": () => setCommandPaletteOpen(true),
@@ -3280,6 +3363,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const commands = useMemo(() => [
     // 文件操作
     { id: "save", label: t("app.command.labels.saveFile"), category: t("app.command.categories.file"), shortcut: getCommandShortcut("save"), action: handleSave },
+    { id: "format-document", label: t("app.command.labels.formatDocument"), category: t("app.command.categories.edit"), action: handleFormatDocument },
     { id: "open", label: t("app.command.labels.openFile"), category: t("app.command.categories.file"), shortcut: getCommandShortcut("open"), action: () => { if (activeVaultIndex >= 0) setQuickOpenOpen(true); } },
     { id: "new-window", label: t("app.command.labels.openInNewWindow"), category: t("app.command.categories.file"), action: () => { if (fileName) handleNewWindow(fileName); } },
 
@@ -3393,7 +3477,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "settings-image", label: t("app.command.labels.imageSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.imageSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "image"); invoke("open_settings_window"); } },
     { id: "settings-canvas", label: t("app.command.labels.canvasSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.canvasSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "canvas"); invoke("open_settings_window"); } },
     { id: "settings-about", label: t("app.command.labels.about"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.about").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "about"); invoke("open_settings_window"); } },
-  ], [t, handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, closeOpenFile, closeAllOpenFiles, getActiveOpenPath, setViewMode, setActiveMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings, handleOpenXhs, handlePublish]);
+  ], [t, handleSave, handleFormatDocument, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, closeOpenFile, closeAllOpenFiles, getActiveOpenPath, setViewMode, setActiveMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings, handleOpenXhs, handlePublish]);
 
   const modifiedOpenPaths = useMemo(() => {
     const set = new Set<string>();
@@ -3618,6 +3702,22 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                         <polyline points="12 16 16 20 20 16"/>
                       </svg>
                       <span className="editor-topbar-more-menu-label">{t("app.menu.replace")}</span>
+                    </div>
+                    <div
+                      className={`editor-topbar-more-menu-item${!isCurrentFileMarkdown ? " disabled" : ""}`}
+                      onClick={() => {
+                        if (!isCurrentFileMarkdown) return;
+                        setMoreMenuOpen(false);
+                        handleFormatDocument();
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="21" y1="10" x2="7" y2="10" />
+                        <line x1="21" y1="6" x2="3" y2="6" />
+                        <line x1="21" y1="14" x2="3" y2="14" />
+                        <line x1="21" y1="18" x2="7" y2="18" />
+                      </svg>
+                      <span className="editor-topbar-more-menu-label">{t("app.menu.formatDocument")}</span>
                     </div>
                     <div className="editor-topbar-more-menu-divider" />
                     <div

@@ -10,3 +10,9 @@ export {
 } from "./ImageManager";
 export type { ImageSettings, StorageMode, FilenameFormat } from "./ImageManager";
 export { useVaultWatcher } from "./useVaultWatcher";
+export {
+  formatMarkdown,
+  readMarkdownFormatOptions,
+  DEFAULT_MARKDOWN_FORMAT_OPTIONS,
+} from "./MarkdownFormatter";
+export type { MarkdownFormatOptions } from "./MarkdownFormatter";

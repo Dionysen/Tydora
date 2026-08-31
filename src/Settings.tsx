@@ -7,7 +7,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ask, open } from "@tauri-apps/plugin-dialog";
 import { useTranslation } from "react-i18next";
 import { useTheme, type ThemeName, type ThemePair } from "./themes";
-import { loadImageSettings, saveImageSettings, type ImageSettings, type StorageMode, type FilenameFormat } from "./services";
+import { loadImageSettings, saveImageSettings, type ImageSettings, type StorageMode, type FilenameFormat, type MarkdownFormatOptions, DEFAULT_MARKDOWN_FORMAT_OPTIONS } from "./services";
 import { checkForUpdate, downloadAndInstall, relaunchApp, exitApp, isStoreVersion, isPortableVersion, type UpdateInfo } from "./services";
 import { PublishSettings } from "./publish";
 import { loadCanvasSettings, saveCanvasSettings, type CanvasSettings } from "./Canvas/canvas-settings";
@@ -129,6 +129,8 @@ interface GeneralSettings {
   codeBlockToolbarStyle: CodeBlockToolbarStyle;
   /** 菜单项高度密度 */
   menuDensity: MenuDensity;
+  /** Markdown 格式化选项 */
+  markdownFormat: MarkdownFormatOptions;
 }
 
 interface ShortcutItem {
@@ -158,6 +160,7 @@ const DEFAULT_GENERAL: GeneralSettings = {
   expandOutlineOnOpen: true,
   codeBlockToolbarStyle: "minimal",
   menuDensity: "compact",
+  markdownFormat: { ...DEFAULT_MARKDOWN_FORMAT_OPTIONS },
 };
 
 interface MindmapSettings {
@@ -458,6 +461,105 @@ function GeneralSettingsContent({
               type="checkbox"
               checked={settings.autoSave}
               onChange={(e) => onChange({ ...settings, autoSave: e.target.checked })}
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.formatOnSave")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.formatOnSaveDesc")}</span>
+          </div>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={settings.markdownFormat.formatOnSave}
+              onChange={(e) =>
+                onChange({
+                  ...settings,
+                  markdownFormat: { ...settings.markdownFormat, formatOnSave: e.target.checked },
+                })
+              }
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+      </div>
+
+      <div className="settings-section-title">{t("settings.appearance.groupTitleMarkdownFormat")}</div>
+      <div className="canvas-settings-card">
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.formatCjkSpacing")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.formatCjkSpacingDesc")}</span>
+          </div>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={settings.markdownFormat.cjkSpacing}
+              onChange={(e) =>
+                onChange({
+                  ...settings,
+                  markdownFormat: { ...settings.markdownFormat, cjkSpacing: e.target.checked },
+                })
+              }
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.formatTrimTrailing")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.formatTrimTrailingDesc")}</span>
+          </div>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={settings.markdownFormat.trimTrailingWhitespace}
+              onChange={(e) =>
+                onChange({
+                  ...settings,
+                  markdownFormat: { ...settings.markdownFormat, trimTrailingWhitespace: e.target.checked },
+                })
+              }
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.formatEnsureNewline")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.formatEnsureNewlineDesc")}</span>
+          </div>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={settings.markdownFormat.ensureFinalNewline}
+              onChange={(e) =>
+                onChange({
+                  ...settings,
+                  markdownFormat: { ...settings.markdownFormat, ensureFinalNewline: e.target.checked },
+                })
+              }
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.formatNormalizeBlank")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.formatNormalizeBlankDesc")}</span>
+          </div>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={settings.markdownFormat.normalizeBlankLines}
+              onChange={(e) =>
+                onChange({
+                  ...settings,
+                  markdownFormat: { ...settings.markdownFormat, normalizeBlankLines: e.target.checked },
+                })
+              }
             />
             <span className="settings-switch-slider" />
           </label>
@@ -2940,6 +3042,12 @@ export default function Settings() {
           typeof parsed.codeLineHeight === "number"
             ? Math.min(2.4, Math.max(1.2, Math.round(parsed.codeLineHeight * 10) / 10))
             : DEFAULT_GENERAL.codeLineHeight,
+        markdownFormat: {
+          ...DEFAULT_MARKDOWN_FORMAT_OPTIONS,
+          ...(parsed.markdownFormat && typeof parsed.markdownFormat === "object"
+            ? parsed.markdownFormat
+            : {}),
+        },
       };
     } catch {
       return DEFAULT_GENERAL;
