@@ -6,7 +6,7 @@ import { availableMonitors } from "@tauri-apps/api/window";
 import { clampWindowToMonitor } from "../services/windowState";
 import { listen } from "@tauri-apps/api/event";
 import MindmapView, { type MindmapViewHandle } from "./MindmapView";
-import { MINDMAP_SETTINGS_KEY, DEFAULT_MINDMAP } from "../Settings";
+import { MINDMAP_SETTINGS_KEY, DEFAULT_MINDMAP } from "../settings-store";
 import { matchShortcut } from "../Editor/shortcuts";
 import shortcutsConfig from "../config/shortcuts.json";
 import { track, trackPageview, ANALYTICS_EVENTS } from "../analytics";

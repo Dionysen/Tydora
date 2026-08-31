@@ -1,11 +1,10 @@
-import { DEFAULT_SHORTCUTS, SHORTCUTS_KEY } from "../Settings";
+import {
+  DEFAULT_SHORTCUTS,
+  SHORTCUTS_KEY,
+  type ShortcutItem,
+} from "../settings-store";
 
-export interface ShortcutItem {
-  id: string;
-  label: string;
-  keys: string[];
-  group?: string;
-}
+export type { ShortcutItem };
 
 /** macOS（含 WKWebView）：配置里的 Ctrl 表示 Command */
 export function isMacPlatform(): boolean {

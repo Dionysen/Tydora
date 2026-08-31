@@ -201,9 +201,13 @@ impl<'a, R: tauri::Runtime, M: Manager<R>> MacOsChrome<'a, R, M> for WebviewWind
 async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
     let label = "settings";
 
-    // Check if settings window already exists, if so just focus it
+    // 窗口可能被前端 hide（而非销毁）；已存在则直接显示并聚焦
     if let Some(existing) = app.get_webview_window(label) {
+        let _ = existing.show();
+        let _ = existing.unminimize();
         let _ = existing.set_focus();
+        // 通知前端读取 inimark-settings-initial-tab（命令面板可指定打开某一页）
+        let _ = existing.emit("settings-reactivate", ());
         return Ok(());
     }
 

@@ -5,7 +5,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { writeImage } from "@tauri-apps/plugin-clipboard-manager";
 import { invoke } from "@tauri-apps/api/core";
-import { MINDMAP_SETTINGS_KEY, DEFAULT_MINDMAP, type MindmapSettings } from "../Settings";
+import { MINDMAP_SETTINGS_KEY, DEFAULT_MINDMAP, type MindmapSettings } from "../settings-store";
 import "./MindmapView.css";
 
 declare global {

@@ -1,7 +1,7 @@
 import type { MutableRefObject } from "react";
 import type { ThemeName } from "../themes";
 import type { ImageSettings } from "../services";
-import type { EditorSettings } from "../Settings";
+import type { EditorSettings } from "../settings-store";
 
 export interface EditorViewState {
   scrollTop: number;

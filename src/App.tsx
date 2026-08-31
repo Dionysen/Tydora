@@ -35,7 +35,7 @@ import {
   formatMarkdown,
   readMarkdownFormatOptions,
 } from "./services";
-import { loadEditorSettings, type EditorSettings, EDITOR_SETTINGS_KEY, SHORTCUTS_KEY, GRAPH_SETTINGS_KEY, DEFAULT_GRAPH } from "./Settings";
+import { loadEditorSettings, type EditorSettings, EDITOR_SETTINGS_KEY, SHORTCUTS_KEY, GRAPH_SETTINGS_KEY, DEFAULT_GRAPH } from "./settings-store";
 import { applyFontSettings } from "./utils/systemFonts";
 import { applyMenuDensity, applyEditorSpacingFromSettings, normalizeMenuDensity } from "./utils/menuDensity";
 import { LinkIndexService } from "./wikilink";
@@ -2581,6 +2581,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   }, [closeAllOpenFiles]);
 
   // Ctrl+,（macOS：⌘+,）切换设置窗口；可在设置-快捷键中自定义
+  // 设置窗关闭改为 hide 复用：已存在但隐藏时必须 show，不能再 close
   useEffect(() => {
     const handler = async (e: KeyboardEvent) => {
       const keys = getShortcutKeys(loadShortcuts(), "open-settings");
@@ -2590,8 +2591,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       try {
         const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
         const existing = await WebviewWindow.getByLabel("settings");
-        if (existing) {
-          await existing.close();
+        if (existing && (await existing.isVisible())) {
+          await existing.hide();
         } else {
           await invoke("open_settings_window");
         }
@@ -3212,8 +3213,11 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       try {
         const { WebviewWindow } = await import("@tauri-apps/api/webviewWindow");
         const existing = await WebviewWindow.getByLabel("settings");
-        if (existing) await existing.close();
-        else await invoke("open_settings_window");
+        if (existing && (await existing.isVisible())) {
+          await existing.hide();
+        } else {
+          await invoke("open_settings_window");
+        }
       } catch {
         invoke("open_settings_window");
       }

@@ -40,9 +40,23 @@ import {
   normalizeMenuDensity,
   type MenuDensity,
 } from "./utils/menuDensity";
-import shortcutsConfig from "./config/shortcuts.json";
 import { formatShortcutKey, matchShortcut, loadShortcuts, getShortcutKeys } from "./Editor/shortcuts";
 import { isAnalyticsEnabled, setAnalyticsEnabled, track, trackPageview, ANALYTICS_EVENTS } from "./analytics";
+import shortcutsConfig from "./config/shortcuts.json";
+import {
+  loadEditorSettings,
+  type EditorSettings,
+  EDITOR_SETTINGS_KEY,
+  DEFAULT_SHORTCUTS,
+  SHORTCUTS_KEY,
+  DEFAULT_MINDMAP,
+  MINDMAP_SETTINGS_KEY,
+  type MindmapSettings,
+  DEFAULT_GRAPH,
+  GRAPH_SETTINGS_KEY,
+  type GraphSettings,
+  type ShortcutItem,
+} from "./settings-store";
 import "./Settings.css";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -61,46 +75,8 @@ interface NavGroup {
   items: NavItem[];
 }
 
-// ── Editor Settings ─────────────────────────────────────────────
-
-export interface EditorSettings {
-  // 编辑模式
-  defaultMode: "ir" | "sv";
-  // 编辑行为
-  counterType: "markdown" | "text";
-  // 扩展功能
-  callout: boolean;
-  mermaid: boolean;
-  math: boolean;
-  wikiLink: boolean;
-  frontmatter: boolean;
-  tableToolbar: boolean;
-}
-
-export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
-  defaultMode: "ir",
-  counterType: "text",
-  callout: true,
-  mermaid: true,
-  math: true,
-  wikiLink: true,
-  frontmatter: true,
-  tableToolbar: true,
-};
-
-export const EDITOR_SETTINGS_KEY = "inimark-editor-settings";
-
-export function loadEditorSettings(): EditorSettings {
-  try {
-    const saved = localStorage.getItem(EDITOR_SETTINGS_KEY);
-    return saved ? { ...DEFAULT_EDITOR_SETTINGS, ...JSON.parse(saved) } : DEFAULT_EDITOR_SETTINGS;
-  } catch {
-    return DEFAULT_EDITOR_SETTINGS;
-  }
-}
-
 /** 代码块工具栏样式：minimal = 右上角浮动语言选择；classic = 顶栏 + 复制/删除 */
-export type CodeBlockToolbarStyle = "minimal" | "classic";
+type CodeBlockToolbarStyle = "minimal" | "classic";
 
 interface GeneralSettings {
   appearance: "system" | "light" | "dark";
@@ -130,13 +106,6 @@ interface GeneralSettings {
   markdownFormat: MarkdownFormatOptions;
 }
 
-interface ShortcutItem {
-  id: string;
-  label: string;
-  keys: string[];
-  group?: string;
-}
-
 // ── Default values ──────────────────────────────────────────────────
 
 const DEFAULT_GENERAL: GeneralSettings = {
@@ -160,56 +129,7 @@ const DEFAULT_GENERAL: GeneralSettings = {
   markdownFormat: { ...DEFAULT_MARKDOWN_FORMAT_OPTIONS },
 };
 
-interface MindmapSettings {
-  maxWidth: number;
-  duration: number;
-  initialExpandLevel: number;
-  spacingHorizontal: number;
-  spacingVertical: number;
-  lineWidth: number;
-  colorFreezeLevel: number;
-}
-
-const DEFAULT_MINDMAP: MindmapSettings = {
-  maxWidth: 200,
-  duration: 300,
-  initialExpandLevel: 2,
-  spacingHorizontal: 80,
-  spacingVertical: 5,
-  lineWidth: 1.5,
-  colorFreezeLevel: 0,
-};
-
-interface GraphSettings {
-  openInNewWindow: boolean;
-  nodeSize: number;
-  linkDistance: number;
-  chargeStrength: number;
-  edgeOpacity: number;
-  labelFontSize: number;
-}
-
-const DEFAULT_GRAPH: GraphSettings = {
-  openInNewWindow: false,
-  nodeSize: 15,
-  linkDistance: 160,
-  chargeStrength: -200,
-  edgeOpacity: 0.8,
-  labelFontSize: 11,
-};
-
-// 默认快捷键统一从 src/config/shortcuts.json 读取（设置面板中的自定义仍存储在 localStorage）
-const DEFAULT_SHORTCUTS: ShortcutItem[] = shortcutsConfig.editor as ShortcutItem[];
-
-// ── Storage keys ────────────────────────────────────────────────────
-
 const GENERAL_SETTINGS_KEY = "inimark-general-settings";
-export const SHORTCUTS_KEY = "inimark-shortcuts";
-export const MINDMAP_SETTINGS_KEY = "inimark-mindmap-settings";
-export const GRAPH_SETTINGS_KEY = "inimark-graph-settings";
-export type { MindmapSettings, GraphSettings };
-
-export { DEFAULT_SHORTCUTS, DEFAULT_MINDMAP, DEFAULT_GRAPH };
 
 // ── Components ──────────────────────────────────────────────────────
 
@@ -2882,19 +2802,24 @@ const SETTINGS_NAV_WIDTH_KEY = "inimark-settings-nav-width";
 const SETTINGS_NAV_WIDTH_DEFAULT = 260;
 const SETTINGS_NAV_WIDTH_MIN = 180;
 const SETTINGS_NAV_WIDTH_MAX = 420;
+const SETTINGS_TABS: SettingsTab[] = [
+  "general", "theme", "shortcuts", "mindmap", "graph", "image", "canvas", "publish", "about",
+];
+
+function consumeInitialSettingsTab(): SettingsTab | null {
+  try {
+    const saved = localStorage.getItem("inimark-settings-initial-tab") as SettingsTab | null;
+    if (saved && SETTINGS_TABS.includes(saved)) {
+      localStorage.removeItem("inimark-settings-initial-tab");
+      return saved;
+    }
+  } catch { }
+  return null;
+}
 
 export default function Settings() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
-    try {
-      const saved = localStorage.getItem("inimark-settings-initial-tab") as SettingsTab | null;
-      if (saved && ["general", "theme", "shortcuts", "mindmap", "graph", "image", "canvas", "publish", "about"].includes(saved)) {
-        localStorage.removeItem("inimark-settings-initial-tab");
-        return saved;
-      }
-    } catch { }
-    return "general";
-  });
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() => consumeInitialSettingsTab() ?? "general");
   const [navWidth, setNavWidth] = useState(() => {
     try {
       const saved = Number(localStorage.getItem(SETTINGS_NAV_WIDTH_KEY));
@@ -2943,7 +2868,20 @@ export default function Settings() {
     trackPageview("/app/settings");
   }, []);
 
-  // ── 窗口位置/大小记忆 ──
+  // hide 复用后再次打开：切换到命令面板指定的 tab
+  useEffect(() => {
+    const win = getCurrentWebviewWindow();
+    const unlisten = win.listen("settings-reactivate", () => {
+      const tab = consumeInitialSettingsTab();
+      if (tab) setActiveTab(tab);
+      track(ANALYTICS_EVENTS.SETTINGS_OPEN);
+    });
+    return () => {
+      unlisten.then((fn) => fn()).catch(() => { });
+    };
+  }, []);
+
+  // ── 窗口位置/大小记忆（先尽快 show，避免等 monitor IPC；关闭改为 hide 复用 WebView）──
   const saveWindowStateRef = useRef<() => Promise<void>>(async () => { });
   useEffect(() => {
     const win = getCurrentWebviewWindow();
@@ -2966,30 +2904,51 @@ export default function Settings() {
     saveWindowStateRef.current = saveWindowState;
 
     (async () => {
+      // 1) 同步读 localStorage，尽快还原几何并显示（不等 availableMonitors）
+      let pendingClamp: { x: number; y: number; width: number; height: number } | null = null;
       try {
         const saved = localStorage.getItem(SETTINGS_WINDOW_STATE_KEY);
         if (saved) {
           const state = JSON.parse(saved) as {
             x: number; y: number; width: number; height: number; maximized: boolean;
           };
-
-          const monitors = await availableMonitors();
-          if (monitors && monitors.length > 0 && state.width && state.height) {
-            const clamped = clampWindowToMonitor(
-              { x: state.x ?? 0, y: state.y ?? 0, width: state.width, height: state.height },
-              monitors
-            );
-            await win.setSize(new PhysicalSize(clamped.width, clamped.height));
-            await win.setPosition(new PhysicalPosition(clamped.x, clamped.y));
+          if (state.width && state.height) {
+            pendingClamp = {
+              x: state.x ?? 0,
+              y: state.y ?? 0,
+              width: state.width,
+              height: state.height,
+            };
+            await win.setSize(new PhysicalSize(pendingClamp.width, pendingClamp.height));
+            await win.setPosition(new PhysicalPosition(pendingClamp.x, pendingClamp.y));
           }
           if (state.maximized) {
             await win.maximize();
           }
         }
       } catch { }
-      // 无论是否有保存的窗口状态，都必须显示窗口（Rust 端以 visible(false) 创建）
+
       await win.show();
       await win.setFocus().catch(() => { });
+
+      // 2) 显示后再用显示器信息微调，避免首开被 IPC 堵住
+      if (pendingClamp) {
+        try {
+          const monitors = await availableMonitors();
+          if (monitors && monitors.length > 0) {
+            const clamped = clampWindowToMonitor(pendingClamp, monitors);
+            if (
+              clamped.x !== pendingClamp.x ||
+              clamped.y !== pendingClamp.y ||
+              clamped.width !== pendingClamp.width ||
+              clamped.height !== pendingClamp.height
+            ) {
+              await win.setSize(new PhysicalSize(clamped.width, clamped.height));
+              await win.setPosition(new PhysicalPosition(clamped.x, clamped.y));
+            }
+          }
+        } catch { }
+      }
     })();
 
     let moveTimer: ReturnType<typeof setTimeout>;
@@ -3005,11 +2964,21 @@ export default function Settings() {
       resizeTimer = setTimeout(saveWindowState, 300);
     });
 
+    // 系统关闭（红绿灯 / Alt+F4）改为隐藏，保留 WebView 以便下次瞬时打开
+    const unlistenClose = win.onCloseRequested(async (event) => {
+      event.preventDefault();
+      try {
+        await saveWindowStateRef.current();
+      } catch { }
+      await win.hide().catch(() => { });
+    });
+
     return () => {
       clearTimeout(moveTimer);
       clearTimeout(resizeTimer);
       unlistenMove.then((fn) => fn()).catch(() => { });
       unlistenResize.then((fn) => fn()).catch(() => { });
+      unlistenClose.then((fn) => fn()).catch(() => { });
     };
   }, []);
 
@@ -3114,7 +3083,11 @@ export default function Settings() {
 
   const handleClose = useCallback(async () => {
     const win = getCurrentWebviewWindow();
-    await win.close();
+    try {
+      await saveWindowStateRef.current();
+    } catch { }
+    // 隐藏而非销毁，下次打开直接 show（避免重建 WebView）
+    await win.hide().catch(() => { });
   }, []);
 
   // Ctrl+W / Ctrl+,（macOS：⌘）关闭设置窗口

@@ -56,7 +56,7 @@ import { LinkDialog } from "./LinkDialog";
 import { MathDialog } from "./MathDialog";
 import type { ThemeName } from "../themes";
 import type { ImageSettings } from "../services";
-import type { EditorSettings } from "../Settings";
+import type { EditorSettings } from "../settings-store";
 import type { EditorHandle, EditorMode, EditorViewState } from "./types";
 import "./theme.css";
 import "katex/dist/katex.min.css";
