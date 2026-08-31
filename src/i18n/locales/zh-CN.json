@@ -957,6 +957,7 @@
       "paragraph": "段落",
       "image": "图像",
       "horizontalRule": "水平分割线",
+      "moreTag": "摘要分割 (<!--more-->)",
       "table": "表格",
       "codeBlock": "代码块",
       "mathBlock": "公式块",

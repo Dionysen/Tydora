@@ -957,6 +957,7 @@
       "paragraph": "Paragraph",
       "image": "Image",
       "horizontalRule": "Horizontal Rule",
+      "moreTag": "Excerpt Break (<!--more-->)",
       "table": "Table",
       "codeBlock": "Code Block",
       "mathBlock": "Math Block",

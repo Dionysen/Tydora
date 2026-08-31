@@ -31,6 +31,7 @@ import { defaultMarkdownSerializer } from "prosemirror-markdown";
 import { common, createLowlight } from "lowlight";
 import { Frontmatter } from "./extensions/frontmatter";
 import { Callout } from "./extensions/callout";
+import { More } from "./extensions/more";
 import { Mermaid } from "./extensions/mermaid";
 import { WikiLink } from "./extensions/wiki-link";
 import { Tag } from "./extensions/tag";
@@ -929,6 +930,7 @@ const TipTapEditor = forwardRef<EditorHandle, TipTapEditorProps>(
         }),
         ...(editorSettings?.frontmatter !== false ? [Frontmatter] : []),
         ...(editorSettings?.callout !== false ? [Callout] : []),
+        More,
         ...(editorSettings?.mermaid !== false ? [Mermaid] : []),
         ...(editorSettings?.wikiLink !== false ? [WikiLink] : []),
         ...(editorSettings?.math !== false

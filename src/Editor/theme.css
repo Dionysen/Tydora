@@ -270,14 +270,14 @@ html.platform-macos .tiptap-editor .tiptap {
 /* ── IR 模式右侧行号 ── */
 
 /* 直接块级子元素 + 列表项，每个计为一行（ul/ol 容器本身不计） */
-.tiptap-editor .tiptap> :where(p, h1, h2, h3, h4, h5, h6, blockquote, pre, hr, table, .code-block-toolbar-wrapper, [data-type="frontmatter"]),
+.tiptap-editor .tiptap> :where(p, h1, h2, h3, h4, h5, h6, blockquote, pre, hr, table, .code-block-toolbar-wrapper, [data-type="frontmatter"], [data-type="more"]),
 .tiptap-editor .tiptap li {
   counter-increment: line;
   position: relative;
 }
 
 /* 行号统一用 rem，不受元素自身字号影响 */
-.tiptap-editor .tiptap> :where(p, h1, h2, h3, h4, h5, h6, blockquote, pre, hr, table, .code-block-toolbar-wrapper, [data-type="frontmatter"])::before,
+.tiptap-editor .tiptap> :where(p, h1, h2, h3, h4, h5, h6, blockquote, pre, hr, table, .code-block-toolbar-wrapper, [data-type="frontmatter"], [data-type="more"])::before,
 .tiptap-editor .tiptap li::before {
   content: counter(line);
   position: absolute;
@@ -295,7 +295,7 @@ html.platform-macos .tiptap-editor .tiptap {
 }
 
 /* 隐藏 IR 模式行号 */
-.hide-ir-line-numbers .tiptap> :where(p, h1, h2, h3, h4, h5, h6, blockquote, pre, hr, table, .code-block-toolbar-wrapper, [data-type="frontmatter"])::before,
+.hide-ir-line-numbers .tiptap> :where(p, h1, h2, h3, h4, h5, h6, blockquote, pre, hr, table, .code-block-toolbar-wrapper, [data-type="frontmatter"], [data-type="more"])::before,
 .hide-ir-line-numbers .tiptap li::before {
   content: none;
 }
@@ -1509,6 +1509,39 @@ html.platform-macos .tiptap-editor .frontmatter-node {
   border: none;
   border-top: 1px solid var(--border, #d9ede5);
   margin: 0;
+}
+
+/* Hexo / 博客摘要分割 <!--more--> */
+.tiptap-editor .more-separator,
+.tiptap-editor [data-type="more"] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 4px 0;
+  user-select: none;
+  cursor: default;
+}
+
+.tiptap-editor .more-separator-line {
+  flex: 1;
+  height: 0;
+  border-top: 1px dashed var(--border, #d9ede5);
+}
+
+.tiptap-editor .more-separator-label {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-family: var(--code-font, "JetBrains Mono", "Fira Code", monospace);
+  color: var(--text-tertiary, #999);
+  letter-spacing: 0.04em;
+  padding: 0 2px;
+}
+
+.tiptap-editor .ProseMirror-selectednode.more-separator,
+.tiptap-editor .ProseMirror-selectednode[data-type="more"] {
+  outline: 1px solid var(--accent, #4a9eff);
+  border-radius: 4px;
 }
 
 /* Wiki 链接 */
