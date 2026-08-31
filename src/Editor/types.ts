@@ -1,6 +1,14 @@
+import type { MutableRefObject } from "react";
 import type { ThemeName } from "../themes";
 import type { ImageSettings } from "../services";
 import type { EditorSettings } from "../Settings";
+
+export interface EditorViewState {
+  scrollTop: number;
+  scrollLeft: number;
+  cursorOffset: number;
+  selectionHead: number;
+}
 
 export interface EditorHandle {
   getValue: () => string;
@@ -28,6 +36,8 @@ export interface EditorHandle {
   selectAndScroll: (from: number, to: number) => void;
   /** 替换指定范围内容 */
   replaceAt: (from: number, to: number, replacement: string) => void;
+  getViewState: () => EditorViewState | null;
+  restoreViewState: (state: EditorViewState) => void;
 }
 
 export type EditorMode = "ir" | "sv";
@@ -53,4 +63,5 @@ export interface EditorProps {
   currentFilePath?: string | null;
   activeVaultPath?: string | null;
   onWordCount?: (count: number) => void;
+  pendingViewRestoreRef?: MutableRefObject<EditorViewState | null>;
 }

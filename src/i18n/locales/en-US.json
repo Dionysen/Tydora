@@ -696,6 +696,8 @@
         "minimizeWindow": "Minimize Window",
         "maximizeWindow": "Maximize Window",
         "closeWindow": "Close Window",
+        "closeFile": "Close Current File",
+        "closeAllFiles": "Close All Files",
         "openSettings": "Toggle Settings",
         "generalSettings": "General Settings",
         "themeSettings": "Theme Settings",
@@ -920,6 +922,15 @@
       "expandAll": "Expand All",
       "revealActiveFile": "Reveal Active File"
     }
+  },
+  "openFiles": {
+    "tabTitle": "Open Files",
+    "empty": "No open files",
+    "emptyHint": "Select a file in the tree to open it here",
+    "close": "Close",
+    "closeConfirmTitle": "Save changes?",
+    "closeConfirmMessage": "\"{{name}}\" has unsaved changes. Save before closing?",
+    "closeAllConfirmMessage": "Some files have unsaved changes. Save before closing all?"
   },
   "editor": {
     "contextMenu": {

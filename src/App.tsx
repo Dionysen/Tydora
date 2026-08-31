@@ -6,7 +6,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { readTextFile, writeTextFile, rename, exists } from "@tauri-apps/plugin-fs";
 import { save } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
-import type { EditorHandle, EditorMode } from "./Editor/types";
+import type { EditorHandle, EditorMode, EditorViewState } from "./Editor/types";
 import type { CodeMirrorEditorHandle } from "./Editor/CodeMirrorEditor";
 import { MODE_LABELS } from "./Editor/types";
 // lazy load：TipTap/CodeMirror/Terminal 是重型组件，首次渲染不一定需要
@@ -711,6 +711,17 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   // 白板文件路径（在主区域显示白板时设置）
   const [canvasFilePath, setCanvasFilePath] = useState<string | null>(null);
 
+  // 已打开文件列表（按打开顺序，不自动重排）
+  const [openFiles, setOpenFiles] = useState<string[]>([]);
+  const openFilesRef = useRef<string[]>([]);
+  openFilesRef.current = openFiles;
+  const fileViewStatesRef = useRef<Map<string, EditorViewState>>(new Map());
+  const pendingViewRestoreRef = useRef<EditorViewState | null>(null);
+  const [closeFileConfirmOpen, setCloseFileConfirmOpen] = useState(false);
+  const [pendingClosePath, setPendingClosePath] = useState<string | null>(null);
+  const [pendingCloseAll, setPendingCloseAll] = useState(false);
+  const keyboardChordRef = useRef<number | null>(null);
+
   // 统计：进入白板视图（主窗口内嵌模式；仅 null → 有值 的转换，切换画布文件不重复上报）
   const prevCanvasPathRef = useRef<string | null>(null);
   useEffect(() => {
@@ -1045,8 +1056,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       setPreviewFilePath(null);
       setModified(false);
       setContent("");
+      setOpenFiles([initialFilePath]);
       return;
     }
+    setOpenFiles([initialFilePath]);
     readTextFile(initialFilePath)
       .then((text) => {
         updateBuffer(activeBufferIdRef.current, { content: text, fileName: initialFilePath, savedContent: text, modified: false });
@@ -1429,8 +1442,122 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   // openFile 在下方声明，handleSelectFile 需在它之前定义；用 ref 转发以避免“先使用后声明”
   const openFileRef = useRef<(path: string, line?: number, query?: string) => Promise<void>>(async () => {});
+  const handleSelectFileRef = useRef<(path: string, line?: number, query?: string) => void>(() => {});
+
+  const getActiveOpenPath = useCallback((): string | null => {
+    return canvasFilePath ?? previewFilePath ?? (buffersRef.current.find((b) => b.id === activeBufferIdRef.current)?.fileName ?? null);
+  }, [canvasFilePath, previewFilePath]);
+
+  const saveCurrentViewState = useCallback(() => {
+    const path = getActiveOpenPath();
+    if (!path) return;
+    const name = path.split(/[/\\]/).pop() || path;
+    if (!isEditableFile(name)) return;
+    const state = editorHandleRef.current?.getViewState();
+    if (state) fileViewStatesRef.current.set(path, state);
+  }, [getActiveOpenPath]);
+
+  /** 首次打开时追加到列表末尾；已存在则保持原顺序 */
+  const registerOpenFile = useCallback((path: string) => {
+    setOpenFiles((prev) => (prev.includes(path) ? prev : [...prev, path]));
+  }, []);
+
+  const clearEditorToWelcome = useCallback(() => {
+    setPreviewFilePath(null);
+    setCanvasFilePath(null);
+    setGraphViewOpen(false);
+    updateBuffer(activeBufferIdRef.current, { fileName: null, content: "", savedContent: "", modified: false });
+    setSaveStatus("idle");
+  }, [updateBuffer]);
+
+  const isOpenFileModified = useCallback((path: string): boolean => {
+    if (canvasFilePath === path) return useCanvasStore.getState().isModified;
+    const buf = buffersRef.current.find((b) => b.fileName === path);
+    return buf?.modified ?? false;
+  }, [canvasFilePath]);
+
+  const performCloseOpenFile = useCallback((path: string) => {
+    const wasActive = getActiveOpenPath() === path;
+    const idx = openFilesRef.current.indexOf(path);
+    const nextOpenFiles = openFilesRef.current.filter((p) => p !== path);
+    fileViewStatesRef.current.delete(path);
+    setOpenFiles(nextOpenFiles);
+
+    const buf = buffersRef.current.find((b) => b.fileName === path);
+    if (buf) {
+      setBuffers((bs) => {
+        const remaining = bs.filter((b) => b.id !== buf.id);
+        const nextBuffers = remaining.length === 0
+          ? [{ id: bid(), fileName: null, content: "", savedContent: "", modified: false }]
+          : remaining;
+        const fallbackId = nextBuffers[0]?.id;
+        if (fallbackId) {
+          setPanes((ps) => ps.map((p) => (p.bufferId === buf.id ? { ...p, bufferId: fallbackId } : p)));
+        }
+        return nextBuffers;
+      });
+    }
+
+    if (canvasFilePath === path) setCanvasFilePath(null);
+    if (previewFilePath === path) setPreviewFilePath(null);
+
+    if (wasActive) {
+      if (nextOpenFiles.length === 0) {
+        clearEditorToWelcome();
+      } else {
+        const switchIdx = Math.min(idx, nextOpenFiles.length - 1);
+        const nextPath = nextOpenFiles[switchIdx];
+        pendingViewRestoreRef.current = fileViewStatesRef.current.get(nextPath) ?? null;
+        handleSelectFileRef.current(nextPath);
+      }
+    }
+  }, [getActiveOpenPath, canvasFilePath, previewFilePath, clearEditorToWelcome]);
+
+  const performCloseAllOpenFiles = useCallback(() => {
+    fileViewStatesRef.current.clear();
+    setOpenFiles([]);
+    setPreviewFilePath(null);
+    setCanvasFilePath(null);
+    setGraphViewOpen(false);
+    const emptyBuf: FileBuffer = { id: bid(), fileName: null, content: "", savedContent: "", modified: false };
+    setBuffers([emptyBuf]);
+    setPanes((ps) => ps.map((p) => (p.kind === "editor" ? { ...p, bufferId: emptyBuf.id } : p)));
+    setSaveStatus("idle");
+  }, []);
+
+  const closeOpenFile = useCallback((path: string) => {
+    if (isOpenFileModified(path)) {
+      setPendingClosePath(path);
+      setPendingCloseAll(false);
+      setCloseFileConfirmOpen(true);
+      return;
+    }
+    if (getActiveOpenPath() === path) saveCurrentViewState();
+    performCloseOpenFile(path);
+  }, [isOpenFileModified, getActiveOpenPath, saveCurrentViewState, performCloseOpenFile]);
+
+  const closeAllOpenFiles = useCallback(() => {
+    if (openFilesRef.current.some((p) => isOpenFileModified(p))) {
+      setPendingClosePath(null);
+      setPendingCloseAll(true);
+      setCloseFileConfirmOpen(true);
+      return;
+    }
+    saveCurrentViewState();
+    performCloseAllOpenFiles();
+  }, [isOpenFileModified, saveCurrentViewState, performCloseAllOpenFiles]);
 
   const handleSelectFile = useCallback((path: string, line?: number, query?: string) => {
+    const currentPath = getActiveOpenPath();
+    if (currentPath && currentPath !== path) {
+      saveCurrentViewState();
+    }
+    if (line == null && !query) {
+      pendingViewRestoreRef.current = fileViewStatesRef.current.get(path) ?? null;
+    } else {
+      pendingViewRestoreRef.current = null;
+    }
+
     // 点击文件时关闭关系图谱
     setGraphViewOpen(false);
 
@@ -1445,6 +1572,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       setModified(false);
       setContent("");
       pushToHistory(path);
+      registerOpenFile(path);
       return;
     }
 
@@ -1454,6 +1582,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       setPreviewFilePath(path);
       setCanvasFilePath(null);
       pushToHistory(path);
+      registerOpenFile(path);
       return;
     }
 
@@ -1469,7 +1598,14 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       openFileGenerationRef.current++;
       openFileRef.current(path, line, query);
     }
-  }, [modified]);
+  }, [modified, getActiveOpenPath, saveCurrentViewState, registerOpenFile]);
+
+  const handleSelectOpenFile = useCallback((path: string) => {
+    if (path === getActiveOpenPath()) return;
+    handleSelectFile(path);
+  }, [getActiveOpenPath, handleSelectFile]);
+
+  handleSelectFileRef.current = handleSelectFile;
 
   // 处理系统文件关联打开（双击 .md 文件）：
   // 默认折叠侧栏（与新窗口打开体验一致）；若开启"启动时展开大纲"，则展开侧栏并切到大纲
@@ -1659,6 +1795,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         pushToHistory(path);
       }
       isNavigatingHistoryRef.current = false;
+      registerOpenFile(path);
 
       // 更新最近访问文件列表
       const activeVault = activeVaultIndex >= 0 ? vaults[activeVaultIndex] : null;
@@ -1676,7 +1813,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     } catch (e) {
       console.error(t("app.error.openFileFailed"), e);
     }
-  }, [activeVaultIndex, vaults, t, updateBuffer]);
+  }, [activeVaultIndex, vaults, t, updateBuffer, registerOpenFile]);
   // 转发 openFile 给在上方定义的 handleSelectFile（避免“先使用后声明”）
   openFileRef.current = openFile;
 
@@ -1758,32 +1895,64 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
   }, [pendingFilePath, openFile]);
 
+  const handleCloseFileConfirmSave = useCallback(async () => {
+    setCloseFileConfirmOpen(false);
+    try {
+      if (pendingCloseAll) {
+        for (const path of openFilesRef.current) {
+          if (!isOpenFileModified(path)) continue;
+          if (canvasFilePath === path) {
+            await useCanvasStore.getState().saveCanvas();
+          } else {
+            const buf = buffersRef.current.find((b) => b.fileName === path);
+            if (buf?.fileName) {
+              await writeTextFile(buf.fileName, buf.content);
+              updateBuffer(buf.id, { savedContent: buf.content, modified: false });
+            }
+          }
+        }
+        performCloseAllOpenFiles();
+      } else if (pendingClosePath) {
+        const path = pendingClosePath;
+        if (canvasFilePath === path) {
+          await useCanvasStore.getState().saveCanvas();
+        } else {
+          const buf = buffersRef.current.find((b) => b.fileName === path);
+          if (buf?.fileName) {
+            await writeTextFile(buf.fileName, buf.content);
+            updateBuffer(buf.id, { savedContent: buf.content, modified: false });
+          }
+        }
+        performCloseOpenFile(path);
+      }
+    } catch (e) {
+      console.error(t("app.error.autoSaveFailed"), e);
+    } finally {
+      setPendingClosePath(null);
+      setPendingCloseAll(false);
+    }
+  }, [pendingCloseAll, pendingClosePath, canvasFilePath, isOpenFileModified, performCloseAllOpenFiles, performCloseOpenFile, updateBuffer, t]);
+
+  const handleCloseFileConfirmDiscard = useCallback(() => {
+    setCloseFileConfirmOpen(false);
+    if (pendingCloseAll) {
+      performCloseAllOpenFiles();
+    } else if (pendingClosePath) {
+      performCloseOpenFile(pendingClosePath);
+    }
+    setPendingClosePath(null);
+    setPendingCloseAll(false);
+  }, [pendingCloseAll, pendingClosePath, performCloseAllOpenFiles, performCloseOpenFile]);
+
+  const handleCloseFileConfirmCancel = useCallback(() => {
+    setCloseFileConfirmOpen(false);
+    setPendingClosePath(null);
+    setPendingCloseAll(false);
+  }, []);
+
   const handleSidebarToggle = useCallback(() => {
     setSidebarOpen((prev) => !prev);
   }, []);
-
-  // 切换侧栏快捷键（从 localStorage 读取，默认值来自 src/config/shortcuts.json）
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      let shortcutKeys = shortcutsConfig.editor.find((s) => s.id === "toggle-sidebar")?.keys ?? ["Ctrl", "\\"];
-      try {
-        const saved = localStorage.getItem(SHORTCUTS_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          const item = parsed.find((s: { id: string }) => s.id === "toggle-sidebar");
-          if (item) shortcutKeys = item.keys;
-        }
-      } catch {}
-      const key = shortcutKeys.join("+").toLowerCase();
-      const eventKey = `${e.ctrlKey || e.metaKey ? "ctrl+" : ""}${e.altKey ? "alt+" : ""}${e.shiftKey ? "shift+" : ""}${e.key.toLowerCase()}`;
-      if (eventKey === key) {
-        e.preventDefault();
-        handleSidebarToggle();
-      }
-    };
-    window.addEventListener("keydown", handler, { capture: true });
-    return () => window.removeEventListener("keydown", handler, { capture: true });
-  }, [handleSidebarToggle]);
 
   const handleNewWindow = useCallback(async (filePath: string) => {
     try {
@@ -2227,6 +2396,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
             currentFilePath={buf.fileName}
             activeVaultPath={activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null}
             onWordCount={(c) => { if (pane.id === activePaneIdRef.current) setWordCount(c); }}
+            pendingViewRestoreRef={pendingViewRestoreRef}
           />
         </Suspense>
       </EditorErrorBoundary>
@@ -2255,6 +2425,12 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         if (vp) await LinkIndexService.rewriteWikiLinks(fileName, newPath, vp);
       }
       await rename(fileName, newPath);
+      setOpenFiles((prev) => prev.map((p) => (p === fileName ? newPath : p)));
+      const savedView = fileViewStatesRef.current.get(fileName);
+      if (savedView) {
+        fileViewStatesRef.current.delete(fileName);
+        fileViewStatesRef.current.set(newPath, savedView);
+      }
       setTreeRefreshKey(k => k + 1);
       handleSelectFile(newPath);
     } catch (err) {
@@ -2414,7 +2590,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     };
   }, [hasUnsavedChanges, promptCloseConfirm]);
 
-  // 关闭窗口 / 查找 / 替换快捷键（配置见 src/config/shortcuts.json 的 app）
+  // 关闭当前文件 / 查找 / 替换快捷键（配置见 src/config/shortcuts.json 的 app）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (matchShortcut(e, shortcutsConfig.app["close-window"])) {
@@ -2423,15 +2599,18 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         const label = win.label;
         if (label === "settings" || label === "mindmap") {
           win.close();
-        } else {
-          // 多面板时优先关闭当前激活面板，仅剩单面板时才走窗口关闭流程
-          const paneCount = collectPaneIds(splitLayoutRef.current).length;
-          if (paneCount > 1) {
-            closePane(activePaneIdRef.current);
-          } else {
-            handleClose();
-          }
+          return;
         }
+        const activePath = canvasFilePath ?? previewFilePath ?? (buffersRef.current.find((b) => b.id === activeBufferIdRef.current)?.fileName ?? null);
+        if (activePath && openFilesRef.current.includes(activePath)) {
+          closeOpenFile(activePath);
+          return;
+        }
+        const paneCount = collectPaneIds(splitLayoutRef.current).length;
+        if (paneCount > 1) {
+          closePane(activePaneIdRef.current);
+        }
+        return;
       }
       if (matchShortcut(e, shortcutsConfig.app["find"])) {
         e.preventDefault();
@@ -2444,7 +2623,30 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [handleClose, closePane]);
+  }, [closeOpenFile, closePane, canvasFilePath, previewFilePath]);
+
+  // Ctrl+K W：关闭所有已打开文件
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const isMod = e.ctrlKey || e.metaKey;
+      if (isMod && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        keyboardChordRef.current = Date.now();
+        return;
+      }
+      if (keyboardChordRef.current && Date.now() - keyboardChordRef.current < 1200) {
+        if (e.key.toLowerCase() === "w" && !isMod && !e.altKey) {
+          e.preventDefault();
+          keyboardChordRef.current = null;
+          closeAllOpenFiles();
+          return;
+        }
+      }
+      keyboardChordRef.current = null;
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [closeAllOpenFiles]);
 
   // Ctrl+,（macOS：⌘+,）切换设置窗口；可在设置-快捷键中自定义
   useEffect(() => {
@@ -3165,7 +3367,12 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     // 窗口操作
     { id: "minimize", label: t("app.command.labels.minimizeWindow"), category: t("app.command.categories.window"), action: handleMinimize },
     { id: "maximize", label: t("app.command.labels.maximizeWindow"), category: t("app.command.categories.window"), action: handleToggleMaximize },
-    { id: "close", label: t("app.command.labels.closeWindow"), category: t("app.command.categories.window"), action: handleClose },
+    { id: "close", label: t("app.command.labels.closeFile"), category: t("app.command.categories.file"), shortcut: getCommandShortcut("close-window"), action: () => {
+      const activePath = getActiveOpenPath();
+      if (activePath) closeOpenFile(activePath);
+    }},
+    { id: "close-all", label: t("app.command.labels.closeAllFiles"), category: t("app.command.categories.file"), action: closeAllOpenFiles },
+    { id: "close-window", label: t("app.command.labels.closeWindow"), category: t("app.command.categories.window"), action: handleClose },
 
     // 设置
     { id: "open-settings", label: t("app.command.labels.openSettings"), category: t("app.command.categories.settings"), shortcut: getCommandShortcut("open-settings"), action: async () => {
@@ -3186,7 +3393,20 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "settings-image", label: t("app.command.labels.imageSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.imageSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "image"); invoke("open_settings_window"); } },
     { id: "settings-canvas", label: t("app.command.labels.canvasSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.canvasSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "canvas"); invoke("open_settings_window"); } },
     { id: "settings-about", label: t("app.command.labels.about"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.about").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "about"); invoke("open_settings_window"); } },
-  ], [t, handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, setViewMode, setActiveMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings, handleOpenXhs, handlePublish]);
+  ], [t, handleSave, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, closeOpenFile, closeAllOpenFiles, getActiveOpenPath, setViewMode, setActiveMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings, handleOpenXhs, handlePublish]);
+
+  const modifiedOpenPaths = useMemo(() => {
+    const set = new Set<string>();
+    for (const b of buffers) {
+      if (b.modified && b.fileName) set.add(b.fileName);
+    }
+    if (canvasFilePath && useCanvasStore.getState().isModified) {
+      set.add(canvasFilePath);
+    }
+    return set;
+  }, [buffers, canvasFilePath, saveStatus]);
+
+  const activeOpenFilePath = canvasFilePath ?? previewFilePath ?? fileName;
 
   return (
     <div className="app">
@@ -3212,6 +3432,11 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           onWidthChange={setSidebarWidth}
           onBookmark={handleShowBookmarkDialog}
           outlineTrigger={outlineTrigger}
+          openFiles={openFiles}
+          activeOpenFilePath={activeOpenFilePath}
+          modifiedOpenPaths={modifiedOpenPaths}
+          onSelectOpenFile={handleSelectOpenFile}
+          onCloseOpenFile={closeOpenFile}
         />
 
         {/* 编辑区域 */}
@@ -3885,6 +4110,23 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         cancelText={t("app.dialog.dontSave")}
         onConfirm={handleSaveConfirm}
         onCancel={handleSaveCancel}
+      />
+
+      <ConfirmDialog
+        isOpen={closeFileConfirmOpen}
+        title={t("openFiles.closeConfirmTitle")}
+        message={
+          pendingCloseAll
+            ? t("openFiles.closeAllConfirmMessage")
+            : t("openFiles.closeConfirmMessage", { name: pendingClosePath?.split(/[/\\]/).pop() || "" })
+        }
+        type="warning"
+        confirmText={t("app.dialog.save")}
+        cancelText={t("app.dialog.cancel")}
+        discardText={t("app.dialog.dontSave")}
+        onConfirm={handleCloseFileConfirmSave}
+        onCancel={handleCloseFileConfirmCancel}
+        onDiscard={handleCloseFileConfirmDiscard}
       />
 
       <ConfirmDialog

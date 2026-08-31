@@ -13,6 +13,7 @@ import { LinkIndexService } from "./wikilink";
 import { resolveRelativePath } from "./services";
 import { relativePath as computeRelativePath } from "./services/ImageManager";
 import { BookmarksPanel } from "./Bookmarks";
+import { OpenFilesPanel } from "./OpenFiles";
 import "./Sidebar.css";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -88,6 +89,11 @@ interface SidebarProps {
   onWidthChange: (width: number) => void;
   onBookmark: (filePath: string, isDirectory: boolean) => void;
   outlineTrigger?: number;
+  openFiles: string[];
+  activeOpenFilePath: string | null;
+  modifiedOpenPaths: Set<string>;
+  onSelectOpenFile: (path: string) => void;
+  onCloseOpenFile: (path: string) => void;
 }
 
 interface ContextMenuItem {
@@ -2606,12 +2612,17 @@ export default function Sidebar({
   onWidthChange,
   onBookmark,
   outlineTrigger,
+  openFiles,
+  activeOpenFilePath,
+  modifiedOpenPaths,
+  onSelectOpenFile,
+  onCloseOpenFile,
 }: SidebarProps) {
   bootStart("sidebar_component_render");
   bootStamp("sidebar_component_entered");
   const activeVault = activeVaultIndex >= 0 ? vaults[activeVaultIndex] : null;
   const [isResizing, setIsResizing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"files" | "search" | "outline" | "bookmarks">("files");
+  const [activeTab, setActiveTab] = useState<"files" | "openFiles" | "search" | "outline" | "bookmarks">("files");
   const [searchQuery, setSearchQuery] = useState("");
   // Trigger re-render on language change
   useTranslation();
@@ -2621,12 +2632,94 @@ export default function Sidebar({
     [onSelectFile],
   );
 
-  const switchTab = useCallback((tab: "files" | "search" | "outline" | "bookmarks") => {
+  const switchTab = useCallback((tab: "files" | "openFiles" | "search" | "outline" | "bookmarks") => {
     setActiveTab(tab);
     if (tab !== "search") {
       setSearchQuery("");
     }
   }, []);
+
+  const sidebarTabs = ["files", "openFiles", "search", "outline", "bookmarks"] as const;
+
+  // Alt+1~5：切换侧栏页签
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const num = Number(e.key);
+      if (num >= 1 && num <= sidebarTabs.length) {
+        e.preventDefault();
+        switchTab(sidebarTabs[num - 1]);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [switchTab]);
+
+  // 打开的文件页签：Ctrl+Tab 切换文件
+  // 单次 Ctrl+Tab（本轮 Ctrl 下第一次 Tab）：当前文件 ↔ 上一个文件
+  // 按住 Ctrl 连续按 Tab：按打开列表顺序循环切换
+  const prevOpenFileRef = useRef<string | null>(null);
+  const lastActiveOpenFileRef = useRef<string | null>(null);
+  const ctrlTabPressCountRef = useRef(0);
+  const openFilesForTabRef = useRef(openFiles);
+  const activeOpenFilePathForTabRef = useRef(activeOpenFilePath);
+  openFilesForTabRef.current = openFiles;
+  activeOpenFilePathForTabRef.current = activeOpenFilePath;
+
+  useEffect(() => {
+    if (activeOpenFilePath !== lastActiveOpenFileRef.current) {
+      if (lastActiveOpenFileRef.current !== null) {
+        prevOpenFileRef.current = lastActiveOpenFileRef.current;
+      }
+      lastActiveOpenFileRef.current = activeOpenFilePath;
+    }
+  }, [activeOpenFilePath]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (activeTab !== "openFiles" || openFilesForTabRef.current.length === 0) return;
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.key !== "Tab") return;
+      e.preventDefault();
+
+      const files = openFilesForTabRef.current;
+      const currentPath = activeOpenFilePathForTabRef.current;
+      const isFirstTabInSession = ctrlTabPressCountRef.current === 0;
+      ctrlTabPressCountRef.current += 1;
+
+      if (isFirstTabInSession) {
+        const prev = prevOpenFileRef.current;
+        if (prev && files.includes(prev) && prev !== currentPath) {
+          onSelectOpenFile(prev);
+          activeOpenFilePathForTabRef.current = prev;
+          return;
+        }
+      }
+
+      const currentIdx = currentPath ? files.indexOf(currentPath) : -1;
+      let nextIdx: number;
+      if (e.shiftKey) {
+        nextIdx = currentIdx <= 0 ? files.length - 1 : currentIdx - 1;
+      } else {
+        nextIdx = currentIdx < 0 || currentIdx >= files.length - 1 ? 0 : currentIdx + 1;
+      }
+      const nextPath = files[nextIdx];
+      onSelectOpenFile(nextPath);
+      activeOpenFilePathForTabRef.current = nextPath;
+    };
+
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Control" || e.key === "Meta") {
+        ctrlTabPressCountRef.current = 0;
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    window.addEventListener("keyup", onKeyUp, { capture: true });
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, { capture: true });
+      window.removeEventListener("keyup", onKeyUp, { capture: true });
+    };
+  }, [activeTab, onSelectOpenFile]);
 
   // Ctrl+Shift+F to toggle search tab
   useEffect(() => {
@@ -2648,7 +2741,7 @@ export default function Sidebar({
   useEffect(() => {
     const handler = (e: Event) => {
       const { tab } = (e as CustomEvent).detail;
-      if (tab === "search" || tab === "files" || tab === "outline" || tab === "bookmarks") {
+      if (tab === "search" || tab === "files" || tab === "openFiles" || tab === "outline" || tab === "bookmarks") {
         switchTab(tab);
       }
     };
@@ -2713,6 +2806,16 @@ export default function Sidebar({
             </svg>
           </button>
           <button
+            className={`sidebar-tab${activeTab === "openFiles" ? " active" : ""}`}
+            onClick={() => switchTab("openFiles")}
+            title={i18n.t("openFiles.tabTitle")}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="18" rx="1" />
+              <rect x="14" y="3" width="7" height="18" rx="1" />
+            </svg>
+          </button>
+          <button
             className={`sidebar-tab${activeTab === "search" ? " active" : ""}`}
             onClick={() => switchTab("search")}
           >
@@ -2764,6 +2867,16 @@ export default function Sidebar({
             <div className="tree-empty-hint">{i18n.t("sidebar.empty.openVaultHint")}</div>
           </div>
         )
+      )}
+
+      {activeTab === "openFiles" && (
+        <OpenFilesPanel
+          openFiles={openFiles}
+          activeFilePath={activeOpenFilePath}
+          modifiedPaths={modifiedOpenPaths}
+          onSelectFile={onSelectOpenFile}
+          onCloseFile={onCloseOpenFile}
+        />
       )}
 
       {activeTab === "search" && (

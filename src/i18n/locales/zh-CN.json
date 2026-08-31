@@ -695,6 +695,8 @@
         "minimizeWindow": "最小化窗口",
         "maximizeWindow": "最大化窗口",
         "closeWindow": "关闭窗口",
+        "closeFile": "关闭当前文件",
+        "closeAllFiles": "关闭所有文件",
         "openSettings": "打开/关闭设置",
         "generalSettings": "通用设置",
         "themeSettings": "主题设置",
@@ -920,6 +922,15 @@
       "expandAll": "展开全部",
       "revealActiveFile": "定位当前文件"
     }
+  },
+  "openFiles": {
+    "tabTitle": "打开的文件",
+    "empty": "暂无打开的文件",
+    "emptyHint": "在文件树中选择文件即可在此查看",
+    "close": "关闭",
+    "closeConfirmTitle": "保存更改？",
+    "closeConfirmMessage": "文件 \"{{name}}\" 有未保存的更改，是否保存？",
+    "closeAllConfirmMessage": "有未保存的更改，关闭所有文件前是否保存？"
   },
   "editor": {
     "contextMenu": {
