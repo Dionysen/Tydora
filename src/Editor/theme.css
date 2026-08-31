@@ -2228,7 +2228,14 @@ html[data-code-block-toolbar="classic"] .code-block-content {
 }
 
 .context-menu-icon-btn:hover {
-  background: var(--bg-hover, #e8e8e8);
+  background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+  color: var(--text-primary, #333);
+}
+
+.context-menu-icon-btn:active,
+.context-menu-icon-btn:focus-visible {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+  color: var(--text-primary, #333);
 }
 
 .context-menu-icon-btn svg {
@@ -2282,11 +2289,31 @@ html[data-code-block-toolbar="classic"] .code-block-content {
   font-size: 13px;
   line-height: var(--menu-item-line-height);
   text-align: left;
-  transition: background 0.1s;
+  transition: background 0.1s ease, color 0.1s ease;
 }
 
-.context-menu-item:hover {
-  background: var(--bg-hover, #e8e8e8);
+.editor-context-menu .context-menu-item:hover,
+.editor-context-menu .context-menu-item:active,
+.editor-context-menu .context-menu-item:focus-visible,
+.context-menu-submenu .context-menu-item:hover,
+.context-menu-submenu .context-menu-item:active,
+.context-menu-submenu .context-menu-item:focus-visible {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+  color: var(--text-primary, #333);
+}
+
+.editor-context-menu .context-menu-item:hover .context-menu-icon,
+.editor-context-menu .context-menu-item:active .context-menu-icon,
+.context-menu-submenu .context-menu-item:hover .context-menu-icon,
+.context-menu-submenu .context-menu-item:active .context-menu-icon {
+  color: var(--text-secondary, #666);
+}
+
+.editor-context-menu .context-menu-item:hover .context-menu-shortcut,
+.editor-context-menu .context-menu-item:active .context-menu-shortcut,
+.context-menu-submenu .context-menu-item:hover .context-menu-shortcut,
+.context-menu-submenu .context-menu-item:active .context-menu-shortcut {
+  color: var(--text-secondary, #999);
 }
 
 .context-menu-icon {

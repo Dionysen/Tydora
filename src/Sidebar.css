@@ -512,7 +512,7 @@
   font-size: 13px;
   line-height: var(--menu-item-line-height);
   color: var(--text-primary);
-  transition: background 0.1s ease;
+  transition: background 0.1s ease, color 0.1s ease;
   white-space: nowrap;
   gap: 8px;
 }
@@ -525,13 +525,18 @@
   color: var(--text-secondary);
 }
 
-.context-menu-item:hover {
-  background: var(--accent);
-  color: var(--bg-primary);
+.context-menu .context-menu-item:hover,
+.context-submenu .context-menu-item:hover,
+.context-menu .context-menu-item:active,
+.context-submenu .context-menu-item:active {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
-.context-menu-item.danger:hover {
-  background: var(--danger);
+.context-menu .context-menu-item.danger:hover,
+.context-submenu .context-menu-item.danger:hover {
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+  color: var(--danger);
 }
 
 .context-menu-item.disabled {
@@ -565,14 +570,17 @@
   opacity: 0.6;
 }
 
-.context-menu-item.has-submenu.open {
-  background: var(--accent);
-  color: var(--bg-primary);
+.context-menu .context-menu-item.has-submenu.open,
+.context-submenu .context-menu-item.has-submenu.open {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
-.context-menu-item.has-submenu.open .context-menu-icon,
-.context-menu-item.has-submenu.open .context-menu-chevron {
-  color: var(--bg-primary);
+.context-menu .context-menu-item.has-submenu.open .context-menu-icon,
+.context-menu .context-menu-item.has-submenu.open .context-menu-chevron,
+.context-submenu .context-menu-item.has-submenu.open .context-menu-icon,
+.context-submenu .context-menu-item.has-submenu.open .context-menu-chevron {
+  color: var(--text-secondary);
   opacity: 0.8;
 }
 
