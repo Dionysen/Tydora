@@ -232,7 +232,8 @@
   font-family: var(--editor-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
   font-size: var(--editor-font-size, 16px);
   line-height: var(--editor-line-height, 1.6);
-  padding: 2rem 3rem;
+  /* 显示行号时右侧多留槽位；关闭行号见下方 hide-ir-line-numbers */
+  padding: 2rem 5.5rem 2rem 3rem;
   /* 文末留白：允许滚动到文末后继续下滚，把最后一行放到窗口中间附近 */
   padding-bottom: calc(2rem + var(--editor-end-scroll-space, 0px));
   min-height: 100%;
@@ -249,6 +250,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--editor-paragraph-spacing, 0.5em);
+}
+
+/* 不显示行号：左右 padding 对称，正文在内容区内居中 */
+.editor-wrapper.hide-ir-line-numbers .tiptap-editor .tiptap {
+  padding-right: 3rem;
 }
 
 /* 顶层块：清掉纵向 margin，间距交给父级 gap（避免选区横条） */
