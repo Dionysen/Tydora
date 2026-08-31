@@ -2217,8 +2217,32 @@ interface OutlineNode {
 function parseOutline(markdown: string): OutlineItem[] {
   const items: OutlineItem[] = [];
   const lines = markdown.split("\n");
+  let inCodeBlock = false;
+  let codeFence: { char: string; length: number } | null = null;
+
   for (let i = 0; i < lines.length; i++) {
-    const m = lines[i].match(/^(#{1,6})\s+(.+)/);
+    const line = lines[i];
+    const fenceMatch = line.match(/^(`{3,}|~{3,})/);
+
+    if (fenceMatch) {
+      const fence = fenceMatch[1];
+      if (!inCodeBlock) {
+        inCodeBlock = true;
+        codeFence = { char: fence[0], length: fence.length };
+      } else if (
+        codeFence &&
+        fence[0] === codeFence.char &&
+        fence.length >= codeFence.length
+      ) {
+        inCodeBlock = false;
+        codeFence = null;
+      }
+      continue;
+    }
+
+    if (inCodeBlock) continue;
+
+    const m = line.match(/^(#{1,6})\s+(.+)/);
     if (m) {
       items.push({ level: m[1].length, text: m[2].trim(), line: i + 1 });
     }
