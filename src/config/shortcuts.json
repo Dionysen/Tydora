@@ -1,76 +1,510 @@
 {
   "_comment": "Inimark 统一快捷键配置文件。所有快捷键定义都集中在此处，修改后需重启应用生效。editor 中的快捷键可在设置-快捷键面板中自定义（存储在 localStorage）。",
   "editor": [
-    { "id": "bold", "label": "加粗", "keys": ["Ctrl", "B"], "group": "格式" },
-    { "id": "italic", "label": "斜体", "keys": ["Ctrl", "I"], "group": "格式" },
-    { "id": "strike", "label": "删除线", "keys": ["Ctrl", "D"], "group": "格式" },
-    { "id": "inline-code", "label": "行内代码", "keys": ["Ctrl", "E"], "group": "格式" },
-    { "id": "code-block", "label": "代码块", "keys": ["Ctrl", "U"], "group": "格式" },
-    { "id": "link", "label": "超链接", "keys": ["Ctrl", "K"], "group": "格式" },
-    { "id": "highlight", "label": "高亮", "keys": ["Ctrl", "="], "group": "格式" },
-    { "id": "quote", "label": "引用", "keys": ["Ctrl", ";"], "group": "格式" },
-    { "id": "hr", "label": "水平分割线", "keys": ["Ctrl", "Shift", "H"], "group": "格式" },
-    { "id": "unordered-list", "label": "无序列表", "keys": ["Ctrl", "L"], "group": "列表" },
-    { "id": "ordered-list", "label": "有序列表", "keys": [], "group": "列表" },
-    { "id": "check-list", "label": "任务列表", "keys": ["Ctrl", "J"], "group": "列表" },
-    { "id": "indent", "label": "增加缩进", "keys": ["Ctrl", "Shift", "O"], "group": "列表" },
-    { "id": "outdent", "label": "减少缩进", "keys": ["Ctrl", "Shift", "I"], "group": "列表" },
-    { "id": "task-toggle", "label": "切换任务状态", "keys": ["Ctrl", "Shift", "J"], "group": "列表" },
-    { "id": "heading-1", "label": "一级标题", "keys": ["Ctrl", "1"], "group": "标题" },
-    { "id": "heading-2", "label": "二级标题", "keys": ["Ctrl", "2"], "group": "标题" },
-    { "id": "heading-3", "label": "三级标题", "keys": ["Ctrl", "3"], "group": "标题" },
-    { "id": "heading-4", "label": "四级标题", "keys": ["Ctrl", "4"], "group": "标题" },
-    { "id": "heading-5", "label": "五级标题", "keys": ["Ctrl", "5"], "group": "标题" },
-    { "id": "heading-6", "label": "六级标题", "keys": ["Ctrl", "6"], "group": "标题" },
-    { "id": "paragraph", "label": "段落", "keys": ["Ctrl", "0"], "group": "标题" },
-    { "id": "table", "label": "表格", "keys": ["Ctrl", "T"], "group": "插入" },
-    { "id": "insert-before", "label": "在上方插入", "keys": ["Ctrl", "Shift", "B"], "group": "插入" },
-    { "id": "insert-after", "label": "在下方插入", "keys": ["Ctrl", "Shift", "E"], "group": "插入" },
-    { "id": "table-row-above", "label": "表格：上方插入行", "keys": ["Ctrl", "Shift", "F"], "group": "表格" },
-    { "id": "table-row-below", "label": "表格：下方插入行", "keys": ["Ctrl", "Shift", "."], "group": "表格" },
-    { "id": "table-col-left", "label": "表格：左侧插入列", "keys": ["Ctrl", "Shift", "G"], "group": "表格" },
-    { "id": "table-col-right", "label": "表格：右侧插入列", "keys": ["Ctrl", "Shift", "="], "group": "表格" },
-    { "id": "table-row-delete", "label": "表格：删除行", "keys": ["Ctrl", "-"], "group": "表格" },
-    { "id": "table-col-delete", "label": "表格：删除列", "keys": ["Ctrl", "Shift", "-"], "group": "表格" },
-    { "id": "table-align-left", "label": "表格：左对齐", "keys": ["Ctrl", "Shift", "L"], "group": "表格" },
-    { "id": "table-align-center", "label": "表格：居中对齐", "keys": ["Ctrl", "Shift", "C"], "group": "表格" },
-    { "id": "table-align-right", "label": "表格：右对齐", "keys": ["Ctrl", "Shift", "R"], "group": "表格" },
-    { "id": "undo", "label": "撤销", "keys": ["Ctrl", "Z"], "group": "编辑" },
-    { "id": "redo", "label": "重做", "keys": ["Ctrl", "Y"], "group": "编辑" },
-    { "id": "select-all", "label": "全选（代码块内）", "keys": ["Ctrl", "A"], "group": "编辑" },
-    { "id": "typewriter", "label": "打字机模式", "keys": ["Ctrl", "Alt", "T"], "group": "视图" },
-    { "id": "open-mindmap", "label": "打开思维导图", "keys": ["Ctrl", "M"], "group": "视图" },
-    { "id": "split-lr", "label": "左右分屏", "keys": ["Ctrl", "\\"], "group": "视图" },
-    { "id": "split-tb", "label": "上下分屏", "keys": ["Ctrl", "-"], "group": "视图" },
-    { "id": "terminal-new", "label": "新建终端", "keys": ["Ctrl", "`"], "group": "视图" },
-    { "id": "toggle-mode", "label": "模式切换", "keys": ["Ctrl", "/"], "group": "模式" },
-    { "id": "escape", "label": "关闭提示", "keys": ["Escape"], "group": "系统" },
-    { "id": "quick-open", "label": "快速打开文件", "keys": ["Ctrl", "O"], "group": "系统" },
-    { "id": "command-palette", "label": "命令面板", "keys": ["Ctrl", "P"], "group": "系统" },
-    { "id": "open-settings", "label": "打开/关闭设置", "keys": ["Ctrl", ","], "group": "系统" }
+    {
+      "id": "bold",
+      "label": "加粗",
+      "keys": [
+        "Ctrl",
+        "B"
+      ],
+      "group": "格式"
+    },
+    {
+      "id": "italic",
+      "label": "斜体",
+      "keys": [
+        "Ctrl",
+        "I"
+      ],
+      "group": "格式"
+    },
+    {
+      "id": "strike",
+      "label": "删除线",
+      "keys": [
+        "Ctrl",
+        "D"
+      ],
+      "group": "格式"
+    },
+    {
+      "id": "inline-code",
+      "label": "行内代码",
+      "keys": [
+        "Ctrl",
+        "E"
+      ],
+      "group": "格式"
+    },
+    {
+      "id": "code-block",
+      "label": "代码块",
+      "keys": [
+        "Ctrl",
+        "U"
+      ],
+      "group": "格式"
+    },
+    {
+      "id": "link",
+      "label": "超链接",
+      "keys": [
+        "Ctrl",
+        "K"
+      ],
+      "group": "格式"
+    },
+    {
+      "id": "highlight",
+      "label": "高亮",
+      "keys": [
+        "Ctrl",
+        "="
+      ],
+      "group": "格式"
+    },
+    {
+      "id": "quote",
+      "label": "引用",
+      "keys": [
+        "Ctrl",
+        ";"
+      ],
+      "group": "格式"
+    },
+    {
+      "id": "hr",
+      "label": "水平分割线",
+      "keys": [
+        "Ctrl",
+        "Shift",
+        "H"
+      ],
+      "group": "格式"
+    },
+    {
+      "id": "unordered-list",
+      "label": "无序列表",
+      "keys": [
+        "Ctrl",
+        "L"
+      ],
+      "group": "列表"
+    },
+    {
+      "id": "ordered-list",
+      "label": "有序列表",
+      "keys": [],
+      "group": "列表"
+    },
+    {
+      "id": "check-list",
+      "label": "任务列表",
+      "keys": [
+        "Ctrl",
+        "J"
+      ],
+      "group": "列表"
+    },
+    {
+      "id": "indent",
+      "label": "增加缩进",
+      "keys": [
+        "Ctrl",
+        "Shift",
+        "O"
+      ],
+      "group": "列表"
+    },
+    {
+      "id": "outdent",
+      "label": "减少缩进",
+      "keys": [
+        "Ctrl",
+        "Shift",
+        "I"
+      ],
+      "group": "列表"
+    },
+    {
+      "id": "task-toggle",
+      "label": "切换任务状态",
+      "keys": [
+        "Ctrl",
+        "Shift",
+        "J"
+      ],
+      "group": "列表"
+    },
+    {
+      "id": "heading-1",
+      "label": "一级标题",
+      "keys": [
+        "Ctrl",
+        "1"
+      ],
+      "group": "标题"
+    },
+    {
+      "id": "heading-2",
+      "label": "二级标题",
+      "keys": [
+        "Ctrl",
+        "2"
+      ],
+      "group": "标题"
+    },
+    {
+      "id": "heading-3",
+      "label": "三级标题",
+      "keys": [
+        "Ctrl",
+        "3"
+      ],
+      "group": "标题"
+    },
+    {
+      "id": "heading-4",
+      "label": "四级标题",
+      "keys": [
+        "Ctrl",
+        "4"
+      ],
+      "group": "标题"
+    },
+    {
+      "id": "heading-5",
+      "label": "五级标题",
+      "keys": [
+        "Ctrl",
+        "5"
+      ],
+      "group": "标题"
+    },
+    {
+      "id": "heading-6",
+      "label": "六级标题",
+      "keys": [
+        "Ctrl",
+        "6"
+      ],
+      "group": "标题"
+    },
+    {
+      "id": "paragraph",
+      "label": "段落",
+      "keys": [
+        "Ctrl",
+        "0"
+      ],
+      "group": "标题"
+    },
+    {
+      "id": "table",
+      "label": "表格",
+      "keys": [
+        "Ctrl",
+        "T"
+      ],
+      "group": "插入"
+    },
+    {
+      "id": "insert-before",
+      "label": "在上方插入",
+      "keys": [
+        "Ctrl",
+        "Shift",
+        "B"
+      ],
+      "group": "插入"
+    },
+    {
+      "id": "insert-after",
+      "label": "在下方插入",
+      "keys": [
+        "Ctrl",
+        "Shift",
+        "E"
+      ],
+      "group": "插入"
+    },
+    {
+      "id": "table-row-above",
+      "label": "表格：上方插入行",
+      "keys": [
+        "Ctrl",
+        "Shift",
+        "F"
+      ],
+      "group": "表格"
+    },
+    {
+      "id": "table-row-below",
+      "label": "表格：下方插入行",
+      "keys": [
+        "Ctrl",
+        "Shift",
+        "."
+      ],
+      "group": "表格"
+    },
+    {
+      "id": "table-col-left",
+      "label": "表格：左侧插入列",
+      "keys": [
+        "Ctrl",
+        "Shift",
+        "G"
+      ],
+      "group": "表格"
+    },
+    {
+      "id": "table-col-right",
+      "label": "表格：右侧插入列",
+      "keys": [
+        "Ctrl",
+        "Shift",
+        "="
+      ],
+      "group": "表格"
+    },
+    {
+      "id": "table-row-delete",
+      "label": "表格：删除行",
+      "keys": [
+        "Ctrl",
+        "-"
+      ],
+      "group": "表格"
+    },
+    {
+      "id": "table-col-delete",
+      "label": "表格：删除列",
+      "keys": [
+        "Ctrl",
+        "Shift",
+        "-"
+      ],
+      "group": "表格"
+    },
+    {
+      "id": "table-align-left",
+      "label": "表格：左对齐",
+      "keys": [
+        "Ctrl",
+        "Shift",
+        "L"
+      ],
+      "group": "表格"
+    },
+    {
+      "id": "table-align-center",
+      "label": "表格：居中对齐",
+      "keys": [
+        "Ctrl",
+        "Shift",
+        "C"
+      ],
+      "group": "表格"
+    },
+    {
+      "id": "table-align-right",
+      "label": "表格：右对齐",
+      "keys": [
+        "Ctrl",
+        "Shift",
+        "R"
+      ],
+      "group": "表格"
+    },
+    {
+      "id": "undo",
+      "label": "撤销",
+      "keys": [
+        "Ctrl",
+        "Z"
+      ],
+      "group": "编辑"
+    },
+    {
+      "id": "redo",
+      "label": "重做",
+      "keys": [
+        "Ctrl",
+        "Y"
+      ],
+      "group": "编辑"
+    },
+    {
+      "id": "select-all",
+      "label": "全选（代码块内）",
+      "keys": [
+        "Ctrl",
+        "A"
+      ],
+      "group": "编辑"
+    },
+    {
+      "id": "typewriter",
+      "label": "打字机模式",
+      "keys": [
+        "Ctrl",
+        "Alt",
+        "T"
+      ],
+      "group": "视图"
+    },
+    {
+      "id": "open-mindmap",
+      "label": "打开思维导图",
+      "keys": [
+        "Ctrl",
+        "M"
+      ],
+      "group": "视图"
+    },
+    {
+      "id": "split-lr",
+      "label": "左右分屏",
+      "keys": [
+        "Ctrl",
+        "\\"
+      ],
+      "group": "视图"
+    },
+    {
+      "id": "split-tb",
+      "label": "上下分屏",
+      "keys": [
+        "Ctrl",
+        "-"
+      ],
+      "group": "视图"
+    },
+    {
+      "id": "toggle-mode",
+      "label": "模式切换",
+      "keys": [
+        "Ctrl",
+        "/"
+      ],
+      "group": "模式"
+    },
+    {
+      "id": "escape",
+      "label": "关闭提示",
+      "keys": [
+        "Escape"
+      ],
+      "group": "系统"
+    },
+    {
+      "id": "quick-open",
+      "label": "快速打开文件",
+      "keys": [
+        "Ctrl",
+        "O"
+      ],
+      "group": "系统"
+    },
+    {
+      "id": "command-palette",
+      "label": "命令面板",
+      "keys": [
+        "Ctrl",
+        "P"
+      ],
+      "group": "系统"
+    },
+    {
+      "id": "open-settings",
+      "label": "打开/关闭设置",
+      "keys": [
+        "Ctrl",
+        ","
+      ],
+      "group": "系统"
+    }
   ],
   "app": {
-    "save": ["Ctrl", "S"],
-    "close-window": ["Ctrl", "W"],
-    "find": ["Ctrl", "F"],
-    "replace": ["Ctrl", "H"],
-    "toggle-mode": ["Ctrl", "/"],
-    "typewriter": ["Ctrl", "Alt", "T"],
-    "open-mindmap": ["Ctrl", "M"],
-    "split-lr": ["Ctrl", "\\"],
-    "split-tb": ["Ctrl", "-"],
-    "terminal-new": ["Ctrl", "`"],
-    "open-settings": ["Ctrl", ","]
+    "save": [
+      "Ctrl",
+      "S"
+    ],
+    "close-window": [
+      "Ctrl",
+      "W"
+    ],
+    "find": [
+      "Ctrl",
+      "F"
+    ],
+    "replace": [
+      "Ctrl",
+      "H"
+    ],
+    "toggle-mode": [
+      "Ctrl",
+      "/"
+    ],
+    "typewriter": [
+      "Ctrl",
+      "Alt",
+      "T"
+    ],
+    "open-mindmap": [
+      "Ctrl",
+      "M"
+    ],
+    "split-lr": [
+      "Ctrl",
+      "\\"
+    ],
+    "split-tb": [
+      "Ctrl",
+      "-"
+    ],
+    "open-settings": [
+      "Ctrl",
+      ","
+    ]
   },
   "canvas": {
-    "undo": ["Ctrl", "Z"],
-    "redo": ["Ctrl", "Y"],
-    "redo-alt": ["Ctrl", "Shift", "Z"],
-    "copy": ["Ctrl", "C"],
-    "paste": ["Ctrl", "V"],
-    "select-all": ["Ctrl", "A"],
-    "deselect": ["Escape"],
-    "arrow-move": ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]
+    "undo": [
+      "Ctrl",
+      "Z"
+    ],
+    "redo": [
+      "Ctrl",
+      "Y"
+    ],
+    "redo-alt": [
+      "Ctrl",
+      "Shift",
+      "Z"
+    ],
+    "copy": [
+      "Ctrl",
+      "C"
+    ],
+    "paste": [
+      "Ctrl",
+      "V"
+    ],
+    "select-all": [
+      "Ctrl",
+      "A"
+    ],
+    "deselect": [
+      "Escape"
+    ],
+    "arrow-move": [
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight"
+    ]
   },
   "commandDisplay": {
     "save": "Ctrl+S",
@@ -79,7 +513,6 @@
     "toggle-typewriter": "Ctrl+Alt+T",
     "split-lr": "Ctrl+\\",
     "split-tb": "Ctrl+-",
-    "terminal-new": "Ctrl+`",
     "open-settings": "Ctrl+,"
   }
 }

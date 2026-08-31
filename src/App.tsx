@@ -9,12 +9,9 @@ import { invoke } from "@tauri-apps/api/core";
 import type { EditorHandle, EditorMode, EditorViewState } from "./Editor/types";
 import type { CodeMirrorEditorHandle } from "./Editor/CodeMirrorEditor";
 import { MODE_LABELS } from "./Editor/types";
-// lazy load：TipTap/CodeMirror/Terminal 是重型组件，首次渲染不一定需要
+// lazy load：TipTap/CodeMirror 是重型组件，首次渲染不一定需要
 const Editor = lazy(() => import("./Editor/TipTapEditor").then(m => ({ default: m.default })));
 const CodeMirrorEditor = lazy(() => import("./Editor/CodeMirrorEditor").then(m => ({ default: m.default })));
-const TerminalView = lazy(() => import("./Terminal/TerminalView").then(m => ({ default: m.TerminalView })));
-import { killTerminal, unregisterTerminal } from "./Terminal/terminalApi";
-import { startTerminalSettingsSync } from "./Terminal/terminal-settings";
 import Sidebar, { VaultInfo } from "./Sidebar";
 import { FileTreeVim, useWindowNavigation } from "./vim";
 // 用 Vim HOC 包裹 Sidebar：enabled=false 时透传，零影响
@@ -173,9 +170,8 @@ interface FileBuffer {
 }
 interface Pane {
   id: string;
-  kind: "editor" | "terminal";
+  kind: "editor";
   bufferId?: string;
-  terminalId?: string;
   mode: EditorMode;
 }
 interface PaneLeaf {
@@ -339,9 +335,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const initialPaneId = pid();
   const [buffers, setBuffers] = useState<FileBuffer[]>(() => [{ id: bid(), fileName: null, content: "", savedContent: "", modified: false }]);
   const [panes, setPanes] = useState<Pane[]>(() => [{ id: initialPaneId, kind: "editor", bufferId: buffers[0].id, mode: editorSettings.defaultMode }]);
-  // 终端会话登记表：terminalId -> { cwd }。PTY 实际由 Rust 端 TerminalManager 持有，
-  // 这里仅记录前端需要的信息（工作目录），并在关闭面板且无其他引用时清理条目。
-  const [terminals, setTerminals] = useState<Record<string, { id: string; cwd: string }>>({});
   const [activePaneId, setActivePaneId] = useState<string>(() => initialPaneId);
   // 布局树根节点：单窗格时就是一个 PaneLeaf，分屏时会嵌套 SplitGroup
   const [splitLayout, setSplitLayout] = useState<SplitNode>(() => ({ type: "leaf", paneId: initialPaneId, flex: 1 }));
@@ -352,11 +345,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   // 供所有既有读取点（字数、大纲、链接索引、标题、查找替换、导出等）继续使用。
   // 加兜底空对象，避免极端情况下 panes/buffers 临时为空导致读取 .content/.id 等 undefined 崩溃
   const activePane = panes.find((p) => p.id === activePaneId) ?? panes[0] ?? ({ id: initialPaneId, kind: "editor", bufferId: "", mode: editorSettings.defaultMode } as Pane);
-  // 当前激活窗格是否为终端（用于隐藏/禁用编辑器专属 UI、放宽分屏守卫等）
-  const isActiveTerminal = activePane.kind === "terminal";
-  // 布局中是否存在终端窗格：存在时强制走分屏树渲染分支，
-  // 避免“仅有终端、无 md 缓冲”时落入欢迎页或 CodeMirrorEditor 兜底。
-  const layoutHasTerminal = panes.some((p) => p.kind === "terminal");
   const activeBuffer = buffers.find((b) => b.id === activePane.bufferId) ?? buffers[0] ?? ({ id: "", fileName: null, content: "", savedContent: "", modified: false } as FileBuffer);
   const content = activeBuffer.content;
   const fileName = activeBuffer.fileName;
@@ -373,8 +361,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   buffersRef.current = buffers;
   const panesRef = useRef(panes);
   panesRef.current = panes;
-  const terminalsRef = useRef(terminals);
-  terminalsRef.current = terminals;
   const splitLayoutRef = useRef(splitLayout);
   splitLayoutRef.current = splitLayout;
   // 每个分屏组对应的外层 DOM（用于该组内部拖拽计算尺寸）；key = groupId
@@ -444,11 +430,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       trackPageview("/app/launch");
     }
   }, [consentVisible]);
-
-  // 启动终端设置跨窗口同步：设置窗口修改配色/字体/字号后，主窗口已挂载终端实时热更新。
-  useEffect(() => {
-    startTerminalSettingsSync();
-  }, []);
 
   const handleConsentDecision = useCallback((granted: boolean) => {
     setAnalyticsEnabled(granted);
@@ -577,7 +558,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       if (!targetEl) return;
       const editorRoot = targetEl.closest(".editor-container");
       if (!editorRoot) return;
-      if (targetEl.closest(".terminal-pane")) return;
 
       e.preventDefault();
       e.stopImmediatePropagation();
@@ -1111,14 +1091,11 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     // 按优先级查找可聚焦 DOM：和 Tab 遍历命中的元素一致
     // 1. TipTap: ProseMirror contenteditable
     // 2. CodeMirror: .cm-content / textarea
-    // 3. xterm 终端: .xterm textarea
-    // 4. 兜底: 任意 contenteditable=true / textarea / input
+    // 3. 兜底: 任意 contenteditable=true / textarea / input
     const focusableSelectors = [
       '[data-pane-id="' + paneId + '"] .ProseMirror[contenteditable="true"]',
       '[data-pane-id="' + paneId + '"] .cm-content',
       '[data-pane-id="' + paneId + '"] .cm-editor',
-      '[data-pane-id="' + paneId + '"] .xterm textarea',
-      '[data-pane-id="' + paneId + '"] .terminal-container textarea',
       '[data-pane-id="' + paneId + '"] [contenteditable="true"]',
       '[data-pane-id="' + paneId + '"] textarea',
       '[data-pane-id="' + paneId + '"] input',
@@ -1812,26 +1789,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       trackPageview("/file");
 
       const activePaneObj = panesRef.current.find((p) => p.id === activePaneIdRef.current) ?? panesRef.current[0];
-      // 终端激活时，文件应落到编辑器窗格：优先复用已有编辑器窗格，否则在终端旁新建一个
-      let targetPaneId = activePaneObj.id;
-      let targetBufferId: string | undefined = activePaneObj.bufferId;
-      if (activePaneObj.kind === "terminal") {
-        const editorPane = panesRef.current.find((p) => p.kind === "editor");
-        if (editorPane) {
-          targetPaneId = editorPane.id;
-          targetBufferId = editorPane.bufferId;
-          setActivePaneId(editorPane.id);
-        } else {
-          const newEditorPane: Pane = { id: pid(), kind: "editor", bufferId: buffersRef.current[0]?.id, mode: editorSettings.defaultMode };
-          targetBufferId = newEditorPane.bufferId;
-          spawnPaneBeside(activePaneObj.id, newEditorPane, "lr");
-          targetPaneId = newEditorPane.id;
-          setActivePaneId(newEditorPane.id);
-          setTimeout(() => {
-            paneHandlesRef.current[newEditorPane.id]?.focus();
-          }, 60);
-        }
-      }
+      const targetPaneId = activePaneObj.id;
+      const targetBufferId: string | undefined = activePaneObj.bufferId;
       // 检查目标编辑器窗格的 buffer 是否被多个窗格共享（分屏同步状态）
       const activeBufferHolders = panesRef.current.filter((p) => p.bufferId === targetBufferId).length;
       const isSharedBuffer = activeBufferHolders > 1;
@@ -2066,51 +2025,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
   }, []);
 
-  // 默认工作目录：当前文件所在目录 > 仓库根目录 > 空串。
-  const defaultCwd = useCallback((): string => {
-    if (fileName) return fileName.replace(/[/\\][^/\\]*$/, "");
-    if (activeVaultIndex >= 0 && vaults[activeVaultIndex]) return vaults[activeVaultIndex].path;
-    return "";
-  }, [fileName, activeVaultIndex, vaults]);
-
-  // 创建一个终端面板（生成 terminalId 并登记），但不涉及布局插入。
-  const makeTerminalPane = useCallback((cwd: string): Pane => {
-    const tid = bid();
-    const pane: Pane = { id: pid(), kind: "terminal", terminalId: tid, mode: editorSettings.defaultMode };
-    setTerminals((prev) => ({ ...prev, [tid]: { id: tid, cwd } }));
-    return pane;
-  }, [editorSettings.defaultMode]);
-
-  // 在指定激活窗格旁按 dir 方向插入一个新窗格（通用：终端或编辑器均可复用）。
-  const spawnPaneBeside = useCallback((activeId: string, newPane: Pane, dir: "lr" | "tb") => {
-    setPanes((ps) => [...ps, newPane]);
-    const found = findPaneInTree(splitLayoutRef.current, activeId);
-    const keepLeaf: PaneLeaf = found ? found.leaf : { type: "leaf", paneId: activeId, flex: 1 };
-    const newLeaf: PaneLeaf = { type: "leaf", paneId: newPane.id, flex: 1 };
-    const wrapFlex = found?.leaf.flex ?? 1;
-    const replacement: SplitGroup = { type: "group", groupId: gid(), dir, flex: wrapFlex, children: [keepLeaf, newLeaf] };
-    if (!found) setSplitLayout(replacement);
-    else setSplitLayout(replaceNodeByPath(splitLayoutRef.current, found.path, replacement));
-  }, []);
-
-  // 入口：新建一个终端面板，置于当前激活窗格旁（默认左右分屏）。
-  const handleOpenTerminalPane = useCallback((dir: "lr" | "tb" = "lr") => {
-    const activeId = activePaneIdRef.current;
-    const cwd = defaultCwd();
-    const newPane = makeTerminalPane(cwd);
-    spawnPaneBeside(activeId, newPane, dir);
-    setActivePaneId(newPane.id);
-  }, [defaultCwd, makeTerminalPane, spawnPaneBeside]);
-
-  // 在某终端面板旁再分屏出一个新终端（工具栏"分屏"按钮回调）。
-  const handleSplitTerminalBeside = useCallback((paneId: string, dir: "lr" | "tb") => {
-    const tid = panesRef.current.find((p) => p.id === paneId)?.terminalId;
-    const cwd = (tid && terminalsRef.current[tid]?.cwd) || defaultCwd();
-    const newPane = makeTerminalPane(cwd);
-    spawnPaneBeside(paneId, newPane, dir);
-    setActivePaneId(newPane.id);
-  }, [defaultCwd, makeTerminalPane, spawnPaneBeside]);
-
   // 分屏：在当前激活窗格“当前所在层级”，按指定方向插入一个同步克隆（共享 buffer，编辑联动）。
   // - 单窗格时：根变成 SplitGroup(dir = 点击方向，两孩子 = 原 + 新)。
   // - 已有分屏时：不改变其他区域，只在激活窗格的位置把它替换为新的 SplitGroup(dir)，
@@ -2119,15 +2033,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     const activeId = activePaneIdRef.current;
     const currentPanes = panesRef.current;
     const active = currentPanes.find((p) => p.id === activeId) ?? currentPanes[0];
-    // 终端窗格分屏：新建一个独立的终端置于其旁（不共享 PTY）
-    if (active.kind === "terminal") {
-      const tid = active.terminalId;
-      const cwd = (tid && terminalsRef.current[tid]?.cwd) || defaultCwd();
-      const newPane = makeTerminalPane(cwd);
-      spawnPaneBeside(activeId, newPane, dir);
-      setActivePaneId(newPane.id);
-      return;
-    }
     // 编辑器窗格：同步克隆（共享 buffer），并入 panes 数组
     const newPane: Pane = { id: pid(), kind: "editor", bufferId: active.bufferId, mode: active.mode };
     setPanes((ps) => [...ps, newPane]);
@@ -2151,20 +2056,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     setTimeout(() => {
       paneHandlesRef.current[newPane.id]?.focus();
     }, 60);
-  }, [defaultCwd, makeTerminalPane, spawnPaneBeside]);
-
-  // 终端快捷键（Ctrl+`）：toggle —— 无终端则新建；已有终端且当前不在终端则聚焦最近终端；已在终端则无操作。
-  const handleToggleTerminal = useCallback(() => {
-    const current = panesRef.current.find((p) => p.id === activePaneIdRef.current);
-    const hasTerminal = panesRef.current.some((p) => p.kind === "terminal");
-    if (!hasTerminal) {
-      handleOpenTerminalPane("lr");
-      return;
-    }
-    if (current?.kind === "terminal") return; // 已在终端，无操作
-    const tp = panesRef.current.find((p) => p.kind === "terminal");
-    if (tp) setActivePaneId(tp.id);
-  }, [handleOpenTerminalPane]);
+  }, []);
 
   // 文件树右键“在新面板打开”：
   // - 活动窗格若有同步兄弟（同 buffer 的另一窗格），则把活动窗格切换为新文件（原文件保留在兄弟窗格）；
@@ -2326,7 +2218,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     if (activePaneIdRef.current === paneId && adjacentPaneId) {
       setActivePaneId(adjacentPaneId);
       editorHandleRef.current = paneHandlesRef.current[adjacentPaneId] ?? null;
-      // 延迟聚焦相邻窗格的编辑器/终端，等待布局重新挂载
+      // 延迟聚焦相邻窗格的编辑器，等待布局重新挂载
       setTimeout(() => {
         paneHandlesRef.current[adjacentPaneId]?.focus();
       }, 60);
@@ -2338,30 +2230,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     const usedBufferIds = new Set<string>();
     panesRef.current.forEach((p) => {
       if (p.id !== paneId && remainingSet.has(p.id) && p.bufferId) usedBufferIds.add(p.bufferId);
-    });
-    // 终端会话销毁统一在此显式处理：kill PTY + 注销前端缓冲/监听。
-    // 不再依赖 TerminalView 卸载时 kill——分屏等布局变化也会卸载并重挂 TerminalView，
-    // 届时进程与屏幕缓冲须保留（按 sessionId 复用），故排除真正关闭时才销毁。
-    const remainingTerminalIds = new Set<string>();
-    panesRef.current.forEach((p) => {
-      if (p.id !== paneId && remainingSet.has(p.id) && p.kind === "terminal" && p.terminalId) {
-        remainingTerminalIds.add(p.terminalId);
-      }
-    });
-    const removedPane = panesRef.current.find((p) => p.id === paneId);
-    if (removedPane?.kind === "terminal" && removedPane.terminalId) {
-      const tid = removedPane.terminalId;
-      if (!remainingTerminalIds.has(tid)) {
-        killTerminal(tid).catch(() => {});
-        unregisterTerminal(tid);
-      }
-    }
-    setTerminals((prev) => {
-      const next = { ...prev };
-      Object.keys(next).forEach((tid) => {
-        if (!remainingTerminalIds.has(tid)) delete next[tid];
-      });
-      return next;
     });
     setBuffers((bs) => {
       // 基于同一时刻的 panes 再次计算，确保批处理中 panes 已变化时不会错删
@@ -2437,21 +2305,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   // 每个窗格从其 bufferId 取内容与文件路径；onChange 路由到该窗格的缓冲；
   // 仅激活窗格的字数回调会更新全局 wordCount。ref 按窗格 id 注册到 paneHandlesRef。
   const renderPane = (pane: Pane) => {
-    // 终端面板：直接渲染 TerminalView，分屏/关闭由父级回调处理
-    if (pane.kind === "terminal" && pane.terminalId) {
-      return (
-        <Suspense fallback={<div className="editor-panel" />}>
-          <TerminalView
-            sessionId={pane.terminalId}
-            cwd={terminals[pane.terminalId]?.cwd ?? ""}
-            theme={theme}
-            onSplit={(dir) => handleSplitTerminalBeside(pane.id, dir)}
-            onClose={() => closePane(pane.id)}
-            onFontSizeChange={showFontSizeToast}
-          />
-        </Suspense>
-      );
-    }
     const buf = buffers.find((b) => b.id === pane.bufferId) ?? buffers[0];
     const refCb = (h: EditorHandle | null) => {
       if (h) paneHandlesRef.current[pane.id] = h;
@@ -2843,31 +2696,23 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     return () => window.removeEventListener("keydown", handler, { capture: true });
   }, []);
 
-  // 分屏 / 终端快捷键（配置见 shortcuts.json 的 app.split-lr / split-tb / terminal-new）
+  // 分屏快捷键（配置见 shortcuts.json 的 app.split-lr / split-tb）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (matchShortcut(e, shortcutsConfig.app["split-lr"])) {
         e.preventDefault();
-        // 编辑器（md）或终端窗格均可触发分屏
         if (fileName && isCurrentFileMarkdown) handleSplit("lr");
-        else if (isActiveTerminal) handleSplit("lr");
         return;
       }
       if (matchShortcut(e, shortcutsConfig.app["split-tb"])) {
         e.preventDefault();
         if (fileName && isCurrentFileMarkdown) handleSplit("tb");
-        else if (isActiveTerminal) handleSplit("tb");
-        return;
-      }
-      if (matchShortcut(e, shortcutsConfig.app["terminal-new"])) {
-        e.preventDefault();
-        handleToggleTerminal();
         return;
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [handleSplit, handleToggleTerminal, fileName, isCurrentFileMarkdown, isActiveTerminal]);
+  }, [handleSplit, fileName, isCurrentFileMarkdown]);
 
   // ── Vim 窗格导航 ──────────────────────────────────────────────────
   // 焦点切换：在扁平 pane 列表中按方向移动
@@ -2936,8 +2781,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         window.dispatchEvent(new CustomEvent("vim-sidebar-tab", { detail: { tab: "search" } }));
       });
     },
-    "split-horizontal": () => { if (fileName && isCurrentFileMarkdown) handleSplit("lr"); else if (isActiveTerminal) handleSplit("lr"); },
-    "split-vertical": () => { if (fileName && isCurrentFileMarkdown) handleSplit("tb"); else if (isActiveTerminal) handleSplit("tb"); },
+    "split-horizontal": () => { if (fileName && isCurrentFileMarkdown) handleSplit("lr"); },
+    "split-vertical": () => { if (fileName && isCurrentFileMarkdown) handleSplit("tb"); },
     "close-pane": () => closePane(activePaneIdRef.current),
     "focus-left": () => focusPane("left"),
     "focus-down": () => focusPane("down"),
@@ -3375,9 +3220,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "toggle-sidebar", label: t("app.command.labels.toggleSidebar"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("toggle-sidebar"), action: handleSidebarToggle },
     { id: "toggle-mode", label: t("app.command.labels.toggleEditMode"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("toggle-mode"), action: cycleMode },
     { id: "toggle-typewriter", label: t("app.command.labels.toggleTypewriter"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("toggle-typewriter"), action: toggleTypewriterMode },
-    { id: "split-lr", label: t("app.menu.splitLeftRight"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("split-lr"), aliases: t("app.command.aliases.splitLeftRight").split(", "), action: () => { if (fileName && isCurrentFileMarkdown) handleSplit("lr"); else if (isActiveTerminal) handleSplit("lr"); } },
-    { id: "split-tb", label: t("app.menu.splitTopBottom"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("split-tb"), aliases: t("app.command.aliases.splitTopBottom").split(", "), action: () => { if (fileName && isCurrentFileMarkdown) handleSplit("tb"); else if (isActiveTerminal) handleSplit("tb"); } },
-    { id: "new-terminal", label: t("app.command.labels.newTerminal"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("terminal-new"), aliases: t("app.command.aliases.newTerminal").split(", "), action: () => handleOpenTerminalPane("lr") },
+    { id: "split-lr", label: t("app.menu.splitLeftRight"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("split-lr"), aliases: t("app.command.aliases.splitLeftRight").split(", "), action: () => { if (fileName && isCurrentFileMarkdown) handleSplit("lr"); } },
+    { id: "split-tb", label: t("app.menu.splitTopBottom"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("split-tb"), aliases: t("app.command.aliases.splitTopBottom").split(", "), action: () => { if (fileName && isCurrentFileMarkdown) handleSplit("tb"); } },
     { id: "open-mindmap", label: t("app.command.labels.openMindmap"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("open-mindmap"), action: () => {
       localStorage.setItem("inimark-mindmap-mode", "document");
       localStorage.setItem("inimark-mindmap-content", content);
@@ -3625,8 +3469,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                 <button
                   className="window-control-btn"
                   title={t("app.menu.splitLeftRight")}
-                  disabled={(!fileName || !isCurrentFileMarkdown) && !isActiveTerminal}
-                  onClick={() => { if ((!fileName || !isCurrentFileMarkdown) && !isActiveTerminal) return; handleSplit('lr'); }}
+                  disabled={!fileName || !isCurrentFileMarkdown}
+                  onClick={() => { if (!fileName || !isCurrentFileMarkdown) return; handleSplit('lr'); }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -3638,8 +3482,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                 <button
                   className="window-control-btn"
                   title={t("app.menu.splitTopBottom")}
-                  disabled={(!fileName || !isCurrentFileMarkdown) && !isActiveTerminal}
-                  onClick={() => { if ((!fileName || !isCurrentFileMarkdown) && !isActiveTerminal) return; handleSplit('tb'); }}
+                  disabled={!fileName || !isCurrentFileMarkdown}
+                  onClick={() => { if (!fileName || !isCurrentFileMarkdown) return; handleSplit('tb'); }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -3739,19 +3583,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       <span className="editor-topbar-more-menu-label">{t("app.menu.favorite")}</span>
                     </div>
                     <div
-                      className="editor-topbar-more-menu-item"
-                      onClick={() => { handleOpenTerminalPane("lr"); setMoreMenuOpen(false); }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="4 17 10 11 4 5" />
-                        <line x1="12" y1="19" x2="20" y2="19" />
-                      </svg>
-                      <span className="editor-topbar-more-menu-label">{t("app.menu.newTerminal")}</span>
-                    </div>
-                    <div className="editor-topbar-more-menu-divider" />
-                    <div
-                      className={`editor-topbar-more-menu-item${(!fileName || !isCurrentFileMarkdown) && !isActiveTerminal ? ' disabled' : ''}${getImmediateParentGroupDir(splitLayout, activePaneId) === 'lr' ? ' active' : ''}`}
-                      onClick={() => { if ((!fileName || !isCurrentFileMarkdown) && !isActiveTerminal) return; handleSplit('lr'); setMoreMenuOpen(false); }}
+                      className={`editor-topbar-more-menu-item${!fileName || !isCurrentFileMarkdown ? ' disabled' : ''}${getImmediateParentGroupDir(splitLayout, activePaneId) === 'lr' ? ' active' : ''}`}
+                      onClick={() => { if (!fileName || !isCurrentFileMarkdown) return; handleSplit('lr'); setMoreMenuOpen(false); }}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -3774,8 +3607,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       </button>
                     </div>
                     <div
-                      className={`editor-topbar-more-menu-item${(!fileName || !isCurrentFileMarkdown) && !isActiveTerminal ? ' disabled' : ''}${getImmediateParentGroupDir(splitLayout, activePaneId) === 'tb' ? ' active' : ''}`}
-                      onClick={() => { if ((!fileName || !isCurrentFileMarkdown) && !isActiveTerminal) return; handleSplit('tb'); setMoreMenuOpen(false); }}
+                      className={`editor-topbar-more-menu-item${!fileName || !isCurrentFileMarkdown ? ' disabled' : ''}${getImmediateParentGroupDir(splitLayout, activePaneId) === 'tb' ? ' active' : ''}`}
+                      onClick={() => { if (!fileName || !isCurrentFileMarkdown) return; handleSplit('tb'); setMoreMenuOpen(false); }}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -4009,7 +3842,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                   <EmbeddedCanvasView />
                 </Suspense>
               </div>
-            ) : !fileName && !content.trim() && !layoutHasTerminal &&
+            ) : !fileName && !content.trim() &&
                 // initialFilePath / hasExternalFile 明确有文件 → 不显示欢迎
                 // hasPendingFileResult === null：快查未返回 → 保持纯白（不闪现欢迎，避免"先欢迎再编辑器"）
                 // hasPendingFileResult === true：有文件待处理 → 保持纯白
@@ -4033,7 +3866,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                   </div>
                 </div>
               </div>
-            ) : isCurrentFileMarkdown || layoutHasTerminal ? (
+            ) : isCurrentFileMarkdown ? (
               // 递归渲染布局树：根若为 leaf 就是单窗格，否则为（嵌套）分屏组。
               (() => {
                 const totalPanes = collectPaneIds(splitLayout).length;

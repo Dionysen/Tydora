@@ -25,12 +25,10 @@ export function useWindowNavigation(): void {
       const isUpper = ["H", "J", "K", "L"].includes(key);
       if (!isLower && !isUpper) return;
 
-      // 不拦截输入框中的 Ctrl+h/j/k/l（如搜索框、终端）
+      // 不拦截输入框中的 Ctrl+h/j/k/l（如搜索框）
       const target = e.target as HTMLElement;
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
-        // 终端 xterm 特殊处理：允许 Ctrl+h/j/k/l 在终端中生效
-        if (!target.closest(".xterm") && !target.closest(".terminal-container")) return;
-        else return; // 终端中也不拦截
+        return;
       }
 
       e.preventDefault();

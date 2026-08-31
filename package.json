@@ -83,8 +83,6 @@
     "@tiptap/react": "^3.27.1",
     "@tiptap/starter-kit": "^3.27.1",
     "@types/d3": "^7.4.3",
-    "@xterm/addon-fit": "^0.10.0",
-    "@xterm/xterm": "^5.5.0",
     "@xyflow/react": "^12.11.2",
     "d3": "^7.9.0",
     "d3-force": "^3.0.0",

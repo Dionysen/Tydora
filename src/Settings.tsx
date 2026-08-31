@@ -11,9 +11,7 @@ import { loadImageSettings, saveImageSettings, type ImageSettings, type StorageM
 import { checkForUpdate, downloadAndInstall, relaunchApp, exitApp, isStoreVersion, isPortableVersion, type UpdateInfo } from "./services";
 import { PublishSettings } from "./publish";
 import { loadCanvasSettings, saveCanvasSettings, type CanvasSettings } from "./Canvas/canvas-settings";
-import { TerminalSettingsContent } from "./Terminal/TerminalSettingsContent";
 import { VimSettingsPanel } from "./vim/settings/VimSettingsPanel";
-import { loadTerminalSettings, type TerminalSettings } from "./Terminal/terminal-settings";
 import {
   mergeWithSchema,
   buildThemeEditorSections,
@@ -50,7 +48,7 @@ import "./Settings.css";
 
 // ── Types ────────────────────────────────────────────────────────────
 
-type SettingsTab = "general" | "theme" | "shortcuts" | "mindmap" | "graph" | "image" | "canvas" | "terminal" | "publish" | "vim" | "about";
+type SettingsTab = "general" | "theme" | "shortcuts" | "mindmap" | "graph" | "image" | "canvas" | "publish" | "vim" | "about";
 
 interface NavItem {
   id: SettingsTab;
@@ -3115,10 +3113,6 @@ export default function Settings() {
     saveCanvasSettings(canvasSettings);
   }, [canvasSettings]);
 
-  // 终端设置状态：TerminalSettingsContent 的 onChange 已调用 setTerminalSettings
-  // 触发持久化 + 跨窗口广播，此处仅维护设置窗口内的本地 state 供 UI 渲染。
-  const [terminalSettings, setTerminalSettings] = useState<TerminalSettings>(() => loadTerminalSettings());
-
   const handleClose = useCallback(async () => {
     const win = getCurrentWebviewWindow();
     await win.close();
@@ -3219,15 +3213,6 @@ export default function Settings() {
               <path d="M9 21V9" />
             </svg>
           ), searchTerms: ["白板", "canvas", "画布", "卡片"]
-        },
-        {
-          id: "terminal", label: t("settings.tabs.terminal"), icon: (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="4" width="20" height="16" rx="2" />
-              <path d="M7 9l3 3-3 3" />
-              <line x1="13" y1="15" x2="17" y2="15" />
-            </svg>
-          ), searchTerms: ["终端", "terminal", "命令行", "shell", "配色", "字体"]
         },
         {
           id: "publish", label: t("settings.tabs.publish"), icon: (
@@ -3385,9 +3370,6 @@ export default function Settings() {
             )}
             {activeTab === "canvas" && (
               <CanvasSettingsContent settings={canvasSettings} onChange={setCanvasSettings} />
-            )}
-            {activeTab === "terminal" && (
-              <TerminalSettingsContent settings={terminalSettings} onChange={setTerminalSettings} />
             )}
             {activeTab === "publish" && (
               <PublishSettings />
