@@ -328,6 +328,7 @@
         "paddingCodeInlineY": "行内代码上下内边距",
         "paddingCodeInlineX": "行内代码左右内边距",
         "radiusMetadata": "Metadata 圆角",
+        "marginMetadataBottom": "Metadata 下方间距",
         "blockquoteBorderWidth": "引用左边色块宽度",
         "paddingBlockquoteY": "引用块上下内边距",
         "paddingBlockquoteX": "引用块左右内边距",

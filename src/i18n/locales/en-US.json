@@ -328,6 +328,7 @@
         "paddingCodeInlineY": "Inline code padding (vertical)",
         "paddingCodeInlineX": "Inline code padding (horizontal)",
         "radiusMetadata": "Metadata radius",
+        "marginMetadataBottom": "Metadata bottom spacing",
         "blockquoteBorderWidth": "Blockquote bar width",
         "paddingBlockquoteY": "Blockquote padding (vertical)",
         "paddingBlockquoteX": "Blockquote padding (horizontal)",

@@ -1457,11 +1457,19 @@ html.platform-macos .tiptap-editor .tiptap {
   background: var(--metadata-bg, var(--bg-secondary, #f5f5f5));
   border: 1px solid var(--metadata-border, var(--border, #e0e0e0));
   border-radius: var(--radius-metadata, 8px);
-  margin: 0;
+  margin-top: 0;
+  /* 下方空隙必须用 margin：后继若是代码块等带边框元素，padding-top 会落在框内 */
+  margin-bottom: var(--margin-metadata-bottom, 16px);
   font-size: 0.85em;
   position: relative;
   overflow: visible;
   clip-path: none;
+}
+
+/* 覆盖 `.tiptap > * { margin-bottom: 0 }`，保证 metadata 下方间距生效 */
+.tiptap-editor .tiptap > [data-type="frontmatter"],
+.tiptap-editor .tiptap > .frontmatter-node {
+  margin-bottom: var(--margin-metadata-bottom, 16px);
 }
 
 html.platform-macos .tiptap-editor [data-type="frontmatter"],
