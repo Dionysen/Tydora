@@ -14,11 +14,16 @@ bootStamp("i18n_imported_init_done");
 import "./themes.css";
 import "./global.css";
 import { applyMenuDensityFromStorage } from "./utils/menuDensity";
+import { applyFontSettingsFromStorage } from "./utils/systemFonts";
 
-// 尽早应用菜单密度，保证各独立窗口（设置/白板/图谱等）启动即生效
+// 尽早应用菜单密度 / 字体，保证各独立窗口（设置/白板/图谱等）启动即生效
 applyMenuDensityFromStorage();
+applyFontSettingsFromStorage();
 window.addEventListener("storage", (e) => {
-  if (e.key === "inimark-general-settings") applyMenuDensityFromStorage();
+  if (e.key === "inimark-general-settings") {
+    applyMenuDensityFromStorage();
+    applyFontSettingsFromStorage();
+  }
 });
 
 // macOS Overlay 标题栏：给布局留出红绿灯空间，并隐藏自定义红黄绿按钮

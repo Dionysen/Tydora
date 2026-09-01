@@ -33,7 +33,12 @@ import { useLanguage } from "./i18n/LanguageContext";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "./i18n";
 import { FontPicker } from "./components/FontPicker";
 import { SettingsSelect } from "./components/SettingsSelect";
-import { normalizeCodeFontValue, normalizeEditorFontValue } from "./utils/systemFonts";
+import {
+  applyFontSettings,
+  normalizeCodeFontValue,
+  normalizeEditorFontValue,
+  normalizeUiFontValue,
+} from "./utils/systemFonts";
 import {
   applyMenuDensity,
   applyEditorSpacingFromSettings,
@@ -81,6 +86,8 @@ type CodeBlockToolbarStyle = "minimal" | "classic";
 interface GeneralSettings {
   appearance: "system" | "light" | "dark";
   fontSize: number;
+  /** 界面 UI 字体（`system` 或系统字体族名 / 内置 id） */
+  uiFont: string;
   editorFont: string;
   /** 代码 / 等宽字体（`system` 或系统字体族名） */
   codeFont: string;
@@ -111,6 +118,7 @@ interface GeneralSettings {
 const DEFAULT_GENERAL: GeneralSettings = {
   appearance: "system",
   fontSize: 16,
+  uiFont: "system",
   editorFont: "system",
   codeFont: "system",
   codeFontSize: 14,
@@ -145,6 +153,7 @@ function GeneralSettingsContent({
 
   return (
     <div className="canvas-settings-page">
+      <div className="settings-section-title">{t("settings.appearance.groupTitleInterface")}</div>
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
@@ -162,24 +171,18 @@ function GeneralSettingsContent({
         </div>
       </div>
 
+      <div className="settings-section-title">{t("settings.appearance.groupTitleAppearance")}</div>
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.appearance.previewMaxWidth")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.appearance.previewMaxWidthDesc")}</span>
+            <span className="canvas-settings-row-title">{t("settings.appearance.uiFont")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.uiFontDesc")}</span>
           </div>
-          <div className="canvas-settings-row-control">
-            <input
-              type="range"
-              className="canvas-settings-slider"
-              min={600}
-              max={1200}
-              step={20}
-              value={settings.previewMaxWidth}
-              onChange={(e) => onChange({ ...settings, previewMaxWidth: Number(e.target.value) })}
-            />
-            <span className="canvas-settings-unit">{settings.previewMaxWidth}px</span>
-          </div>
+          <FontPicker
+            mode="editor"
+            value={normalizeUiFontValue(settings.uiFont)}
+            onChange={(uiFont) => onChange({ ...settings, uiFont })}
+          />
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
@@ -295,8 +298,27 @@ function GeneralSettingsContent({
             <span className="canvas-settings-unit">{settings.codeLineHeight.toFixed(1)}</span>
           </div>
         </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.previewMaxWidth")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.previewMaxWidthDesc")}</span>
+          </div>
+          <div className="canvas-settings-row-control">
+            <input
+              type="range"
+              className="canvas-settings-slider"
+              min={600}
+              max={1200}
+              step={20}
+              value={settings.previewMaxWidth}
+              onChange={(e) => onChange({ ...settings, previewMaxWidth: Number(e.target.value) })}
+            />
+            <span className="canvas-settings-unit">{settings.previewMaxWidth}px</span>
+          </div>
+        </div>
       </div>
 
+      <div className="settings-section-title">{t("settings.appearance.groupTitleEditor")}</div>
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
@@ -367,6 +389,7 @@ function GeneralSettingsContent({
         </div>
       </div>
 
+      <div className="settings-section-title">{t("settings.appearance.groupTitleSave")}</div>
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
@@ -483,6 +506,7 @@ function GeneralSettingsContent({
         </div>
       </div>
 
+      <div className="settings-section-title">{t("settings.appearance.groupTitleWindow")}</div>
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
@@ -514,6 +538,7 @@ function GeneralSettingsContent({
         </div>
       </div>
 
+      <div className="settings-section-title">{t("settings.appearance.groupTitleSidebar")}</div>
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
@@ -2992,6 +3017,7 @@ export default function Settings() {
         ...DEFAULT_GENERAL,
         ...parsed,
         editorFont: normalizeEditorFontValue(parsed.editorFont),
+        uiFont: normalizeUiFontValue(parsed.uiFont),
         codeFont: normalizeCodeFontValue(parsed.codeFont),
         codeFontSize:
           typeof parsed.codeFontSize === "number"
@@ -3020,11 +3046,21 @@ export default function Settings() {
     }
   });
 
-  // 保存通用设置到 localStorage，并立即应用菜单密度 / 间距相关 CSS 变量
+  // 保存通用设置到 localStorage，并立即应用菜单密度 / 间距 / 字体相关 CSS 变量
   useEffect(() => {
     localStorage.setItem(GENERAL_SETTINGS_KEY, JSON.stringify(generalSettings));
     applyMenuDensity(generalSettings.menuDensity);
     applyEditorSpacingFromSettings(generalSettings);
+    applyFontSettings({
+      uiFont: generalSettings.uiFont,
+      editorFont: generalSettings.editorFont,
+      codeFont: generalSettings.codeFont,
+      codeFontSize: generalSettings.codeFontSize,
+    });
+    document.documentElement.style.setProperty(
+      "--editor-font-size",
+      generalSettings.fontSize + "px",
+    );
   }, [generalSettings]);
 
   // 思维导图设置状态

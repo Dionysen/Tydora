@@ -453,6 +453,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         const raw = localStorage.getItem("inimark-general-settings");
         const settings = raw ? JSON.parse(raw) : {};
         applyFontSettings({
+          uiFont: settings.uiFont ?? "system",
           editorFont: settings.editorFont ?? "system",
           codeFont: settings.codeFont ?? "system",
           codeFontSize:
