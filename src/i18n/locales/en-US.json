@@ -68,7 +68,12 @@
       "autoHideTopbarOnCollapse": "Auto-hide Top Bar When Sidebar Collapsed",
       "autoHideTopbarOnCollapseDesc": "When enabled, the top bar auto-hides when the sidebar is collapsed. When disabled, the top bar remains visible.",
       "expandOutlineOnOpen": "Expand Outline on Launch",
-      "expandOutlineOnOpenDesc": "When enabled, opening a .md file via OS file association expands the sidebar and switches to the Outline view. When disabled, the sidebar stays collapsed.",
+      "expandOutlineOnOpenDesc": "When enabled, opening a .md file via OS file association opens the sidebar that hosts Outline and switches to it. When disabled, the left sidebar stays collapsed.",
+      "sidebarPanels": "Sidebar Panels",
+      "sidebarPanelsDesc": "Choose whether each panel appears in the left sidebar, right sidebar, or is hidden.",
+      "sidebarPanelLeft": "Left sidebar",
+      "sidebarPanelRight": "Right sidebar",
+      "sidebarPanelHidden": "Hidden",
       "language": "Language",
       "languageDesc": "Interface display language.",
       "analytics": "Together, we'll go the distance 🌿",
@@ -503,6 +508,8 @@
     "toolbar": {
       "collapseSidebar": "Collapse Sidebar",
       "expandSidebar": "Expand Sidebar",
+      "collapseRightSidebar": "Collapse Right Sidebar",
+      "expandRightSidebar": "Expand Right Sidebar",
       "mindmap": "Mind Map",
       "graph": "Graph",
       "exportAndCopy": "Copy & Export",
@@ -617,6 +624,7 @@
         "undo": "Undo",
         "redo": "Redo",
         "toggleSidebar": "Toggle Sidebar",
+        "toggleRightSidebar": "Toggle Right Sidebar",
         "toggleEditMode": "Toggle Edit Mode",
         "toggleTypewriter": "Toggle Typewriter Mode",
         "openMindmap": "Open Mind Map",
@@ -784,6 +792,12 @@
       "untitled": "Untitled",
       "hint": "Use # heading syntax to create an outline"
     },
+    "tabs": {
+      "files": "Files",
+      "search": "Search",
+      "outline": "Outline",
+      "bookmarks": "Bookmarks"
+    },
     "vault": {
       "manage": "Manage Vaults",
       "settings": "Settings",
@@ -796,7 +810,9 @@
     },
     "empty": {
       "noVault": "No vault opened",
-      "openVaultHint": "Click the button below to open a folder"
+      "openVaultHint": "Click the button below to open a folder",
+      "noPanels": "No panels configured",
+      "noPanelsHint": "Choose which panels to show for this sidebar in Settings"
     },
     "dialog": {
       "deleteConfirmTitle": "Confirm Delete",

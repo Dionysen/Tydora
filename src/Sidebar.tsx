@@ -12,16 +12,21 @@ import { FolderPicker } from "./components";
 import { LinkIndexService } from "./wikilink";
 import { resolveRelativePath } from "./services";
 import { relativePath as computeRelativePath } from "./services/ImageManager";
-import { BookmarksPanel } from "./Bookmarks";
 import { OpenFilesPanel } from "./OpenFiles";
+import { BookmarksPanel } from "./Bookmarks";
+import {
+  activatePanel,
+  type ColumnLayout,
+  type PanelId,
+  type Side,
+} from "./Sidebar/columnLayout";
+import { OutlinePanel } from "./Sidebar/OutlinePanel";
+import { SidebarColumn } from "./Sidebar/SidebarColumn";
+import { SidebarPanelHost } from "./Sidebar/SidebarPanelHost";
+import type { VaultInfo } from "./Sidebar/types";
 import "./Sidebar.css";
 
-// ── Types ────────────────────────────────────────────────────────────
-
-export interface VaultInfo {
-  name: string;
-  path: string;
-}
+export type { VaultInfo };
 
 interface TreeNode {
   name: string;
@@ -71,6 +76,8 @@ function saveSortSettings(settings: FileSortSettings): void {
 let currentSortSettings: FileSortSettings = loadSortSettings();
 
 interface SidebarProps {
+  side: Side;
+  pool: readonly PanelId[];
   vaults: VaultInfo[];
   activeVaultIndex: number;
   currentFilePath: string | null;
@@ -88,12 +95,13 @@ interface SidebarProps {
   width: number;
   onWidthChange: (width: number) => void;
   onBookmark: (filePath: string, isDirectory: boolean) => void;
-  outlineTrigger?: number;
   openFiles: string[];
   activeOpenFilePath: string | null;
   modifiedOpenPaths: Set<string>;
   onSelectOpenFile: (path: string) => void;
   onCloseOpenFile: (path: string) => void;
+  layout: ColumnLayout;
+  onLayoutChange: (layout: ColumnLayout) => void;
 }
 
 interface ContextMenuItem {
@@ -2208,206 +2216,6 @@ function FileTree({
   );
 }
 
-// ── Outline Component ───────────────────────────────────────────────
-
-interface OutlineItem {
-  level: number;
-  text: string;
-  line: number;
-}
-
-interface OutlineNode {
-  item: OutlineItem;
-  children: OutlineNode[];
-  hasChildren: boolean;
-}
-
-function parseOutline(markdown: string): OutlineItem[] {
-  const items: OutlineItem[] = [];
-  const lines = markdown.split("\n");
-  let inCodeBlock = false;
-  let codeFence: { char: string; length: number } | null = null;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const fenceMatch = line.match(/^(`{3,}|~{3,})/);
-
-    if (fenceMatch) {
-      const fence = fenceMatch[1];
-      if (!inCodeBlock) {
-        inCodeBlock = true;
-        codeFence = { char: fence[0], length: fence.length };
-      } else if (
-        codeFence &&
-        fence[0] === codeFence.char &&
-        fence.length >= codeFence.length
-      ) {
-        inCodeBlock = false;
-        codeFence = null;
-      }
-      continue;
-    }
-
-    if (inCodeBlock) continue;
-
-    const m = line.match(/^(#{1,6})\s+(.+)/);
-    if (m) {
-      items.push({ level: m[1].length, text: m[2].trim(), line: i + 1 });
-    }
-  }
-  return items;
-}
-
-function buildOutlineTree(items: OutlineItem[]): OutlineNode[] {
-  const root: OutlineNode[] = [];
-  const stack: { node: OutlineNode; level: number }[] = [];
-
-  for (const item of items) {
-    const node: OutlineNode = { item, children: [], hasChildren: false };
-
-    while (stack.length > 0 && stack[stack.length - 1].level >= item.level) {
-      stack.pop();
-    }
-
-    if (stack.length === 0) {
-      root.push(node);
-    } else {
-      const parent = stack[stack.length - 1].node;
-      parent.children.push(node);
-      parent.hasChildren = true;
-    }
-
-    stack.push({ node, level: item.level });
-  }
-
-  return root;
-}
-
-function OutlineNodeComp({
-  node,
-  depth,
-  collapsedLines,
-  activeLine,
-  onToggle,
-  onSelectHeading,
-}: {
-  node: OutlineNode;
-  depth: number;
-  collapsedLines: Set<number>;
-  activeLine: number;
-  onToggle: (line: number) => void;
-  onSelectHeading: (level: number, text: string, line: number) => void;
-}) {
-  const isCollapsed = collapsedLines.has(node.item.line);
-  const showChildren = node.hasChildren && !isCollapsed;
-  const isActive = activeLine === node.item.line;
-
-  return (
-    <div className="outline-branch">
-      <div
-        className={`outline-node${isActive ? " active" : ""}`}
-        style={{ paddingLeft: `${12 + depth * 20}px` }}
-        title={node.item.text}
-      >
-        {node.hasChildren ? (
-          <span
-            className={`outline-chevron${isCollapsed ? "" : " expanded"}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle(node.item.line);
-            }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
-          </span>
-        ) : (
-          <span className="outline-icon-spacer" />
-        )}
-        <span className="outline-level">H{node.item.level}</span>
-        <span
-          className="outline-text"
-          onClick={() => onSelectHeading(node.item.level, node.item.text, node.item.line)}
-        >
-          {node.item.text}
-        </span>
-      </div>
-
-      {showChildren && node.children.length > 0 && (
-        <div className="outline-children" style={{ '--outline-depth': depth } as React.CSSProperties}>
-          {node.children.map((child) => (
-            <OutlineNodeComp
-              key={child.item.line}
-              node={child}
-              depth={depth + 1}
-              collapsedLines={collapsedLines}
-              activeLine={activeLine}
-              onToggle={onToggle}
-              onSelectHeading={onSelectHeading}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Outline({
-  content,
-  onSelectHeading,
-}: {
-  content: string;
-  onSelectHeading: (level: number, text: string, line: number) => void;
-}) {
-  const items = parseOutline(content);
-  const [collapsedLines, setCollapsedLines] = useState<Set<number>>(new Set());
-  const [activeLine, setActiveLine] = useState<number>(0);
-
-  const handleToggle = useCallback((line: number) => {
-    setCollapsedLines((prev) => {
-      const next = new Set(prev);
-      if (next.has(line)) {
-        next.delete(line);
-      } else {
-        next.add(line);
-      }
-      return next;
-    });
-  }, []);
-
-  const handleSelectHeading = useCallback((level: number, text: string, line: number) => {
-    setActiveLine(line);
-    onSelectHeading(level, text, line);
-  }, [onSelectHeading]);
-
-  if (items.length === 0) {
-    return (
-      <div className="sidebar-tree">
-        <div className="tree-empty">{i18n.t("sidebar.outline.untitled")}</div>
-        <div className="tree-empty-hint">{i18n.t("sidebar.outline.hint")}</div>
-      </div>
-    );
-  }
-
-  const tree = buildOutlineTree(items);
-
-  return (
-    <div className="sidebar-tree">
-      {tree.map((node) => (
-        <OutlineNodeComp
-          key={node.item.line}
-          node={node}
-          depth={0}
-          collapsedLines={collapsedLines}
-          activeLine={activeLine}
-          onToggle={handleToggle}
-          onSelectHeading={handleSelectHeading}
-        />
-      ))}
-    </div>
-  );
-}
-
 // ── VaultSwitcher ────────────────────────────────────────────────────
 
 function VaultSwitcher({
@@ -2596,6 +2404,8 @@ function VaultSwitcher({
 // ── Sidebar Main ─────────────────────────────────────────────────────
 
 export default function Sidebar({
+  side,
+  pool,
   vaults,
   activeVaultIndex,
   currentFilePath,
@@ -2613,20 +2423,18 @@ export default function Sidebar({
   width,
   onWidthChange,
   onBookmark,
-  outlineTrigger,
   openFiles,
   activeOpenFilePath,
   modifiedOpenPaths,
   onSelectOpenFile,
   onCloseOpenFile,
+  layout,
+  onLayoutChange,
 }: SidebarProps) {
   bootStart("sidebar_component_render");
   bootStamp("sidebar_component_entered");
   const activeVault = activeVaultIndex >= 0 ? vaults[activeVaultIndex] : null;
-  const [isResizing, setIsResizing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"files" | "openFiles" | "search" | "outline" | "bookmarks">("files");
   const [searchQuery, setSearchQuery] = useState("");
-  // Trigger re-render on language change
   useTranslation();
 
   const handleSelectFile = useCallback(
@@ -2634,32 +2442,9 @@ export default function Sidebar({
     [onSelectFile],
   );
 
-  const switchTab = useCallback((tab: "files" | "openFiles" | "search" | "outline" | "bookmarks") => {
-    setActiveTab(tab);
-    if (tab !== "search") {
-      setSearchQuery("");
-    }
-  }, []);
-
-  const sidebarTabs = ["files", "openFiles", "search", "outline", "bookmarks"] as const;
-
-  // Alt+1~5：切换侧栏页签
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
-      const num = Number(e.key);
-      if (num >= 1 && num <= sidebarTabs.length) {
-        e.preventDefault();
-        switchTab(sidebarTabs[num - 1]);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [switchTab]);
+  const openFilesVisible = layout.active === "openFiles";
 
   // 打开的文件页签：Ctrl+Tab 切换文件
-  // 单次 Ctrl+Tab（本轮 Ctrl 下第一次 Tab）：当前文件 ↔ 上一个文件
-  // 按住 Ctrl 连续按 Tab：按打开列表顺序循环切换
   const prevOpenFileRef = useRef<string | null>(null);
   const lastActiveOpenFileRef = useRef<string | null>(null);
   const ctrlTabPressCountRef = useRef(0);
@@ -2679,7 +2464,7 @@ export default function Sidebar({
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (activeTab !== "openFiles" || openFilesForTabRef.current.length === 0) return;
+      if (!openFilesVisible || openFilesForTabRef.current.length === 0) return;
       if (!(e.ctrlKey || e.metaKey) || e.altKey || e.key !== "Tab") return;
       e.preventDefault();
 
@@ -2721,189 +2506,131 @@ export default function Sidebar({
       window.removeEventListener("keydown", onKeyDown, { capture: true });
       window.removeEventListener("keyup", onKeyUp, { capture: true });
     };
-  }, [activeTab, onSelectOpenFile]);
+  }, [openFilesVisible, onSelectOpenFile]);
 
-  // Ctrl+Shift+F to toggle search tab
+  const searchVisible = layout.active === "search";
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "F") {
-        e.preventDefault();
-        setActiveTab((prev) => {
-          const next = prev === "search" ? "files" : "search";
-          if (next !== "search") setSearchQuery("");
-          return next;
-        });
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+    if (!searchVisible) setSearchQuery("");
+  }, [searchVisible]);
 
+  const panelTitles = useMemo(
+    () => ({
+      files: i18n.t("sidebar.tabs.files"),
+      openFiles: i18n.t("openFiles.tabTitle"),
+      search: i18n.t("sidebar.tabs.search"),
+      outline: i18n.t("sidebar.tabs.outline"),
+      bookmarks: i18n.t("sidebar.tabs.bookmarks"),
+    }),
+    // re-read titles when language changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [i18n.language],
+  );
 
-  // 外部触发切换到大纲（如双击 .md 文件时按设置自动展开大纲）
-  const prevOutlineTriggerRef = useRef<number | undefined>(outlineTrigger);
-  useEffect(() => {
-    if (outlineTrigger === undefined) return;
-    if (prevOutlineTriggerRef.current === outlineTrigger) return;
-    prevOutlineTriggerRef.current = outlineTrigger;
-    switchTab("outline");
-  }, [outlineTrigger, switchTab]);
-
-  // Resize logic
-  const [startX, setStartX] = useState(0);
-  const [startWidth, setStartWidth] = useState(0);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-    setStartX(e.clientX);
-    setStartWidth(width);
-  }, [width]);
-
-  useEffect(() => {
-    if (!isResizing) return;
-    const handleMouseMove = (e: MouseEvent) => {
-      const deltaX = e.clientX - startX;
-      const newWidth = startWidth + deltaX;
-      const clampedWidth = Math.max(180, Math.min(800, newWidth));
-      onWidthChange(clampedWidth);
-    };
-    const handleMouseUp = () => { setIsResizing(false); };
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing, onWidthChange, startX, startWidth]);
-
-  bootStamp("sidebar_component_rendered");
-  bootEnd("sidebar_component_render");
-  return (
-    <div
-      className={`sidebar${collapsed ? " collapsed" : ""}${isResizing ? " resizing" : ""}`}
-      style={{ width: collapsed ? 0 : width }}
-    >
-      <div className="sidebar-topbar" data-tauri-drag-region="deep" />
-
-      <div className="sidebar-header">
-        <div className="sidebar-tabs-wrapper">
-          <button
-            className={`sidebar-tab${activeTab === "files" ? " active" : ""}`}
-            onClick={() => switchTab("files")}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-            </svg>
-          </button>
-          <button
-            className={`sidebar-tab${activeTab === "openFiles" ? " active" : ""}`}
-            onClick={() => switchTab("openFiles")}
-            title={i18n.t("openFiles.tabTitle")}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="18" rx="1" />
-              <rect x="14" y="3" width="7" height="18" rx="1" />
-            </svg>
-          </button>
-          <button
-            className={`sidebar-tab${activeTab === "search" ? " active" : ""}`}
-            onClick={() => switchTab("search")}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" />
-            </svg>
-          </button>
-          <button
-            className={`sidebar-tab${activeTab === "outline" ? " active" : ""}`}
-            onClick={() => switchTab("outline")}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="8" y1="6" x2="21" y2="6" />
-              <line x1="8" y1="12" x2="21" y2="12" />
-              <line x1="8" y1="18" x2="21" y2="18" />
-              <line x1="3" y1="6" x2="3.01" y2="6" />
-              <line x1="3" y1="12" x2="3.01" y2="12" />
-              <line x1="3" y1="18" x2="3.01" y2="18" />
-            </svg>
-          </button>
-          <button
-            className={`sidebar-tab${activeTab === "bookmarks" ? " active" : ""}`}
-            onClick={() => switchTab("bookmarks")}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {activeTab === "files" && (
-        activeVault ? (
-          <FileTree
-            key={activeVault.path}
-            rootPath={activeVault.path}
-            activePath={currentFilePath}
-            onSelect={handleSelectFile}
-            refreshKey={refreshKey}
-            onNewWindow={onNewWindow}
-            onOpenInNewPanel={onOpenInNewPanel}
-            canOpenInNewPanel={canOpenInNewPanel}
-            onBookmark={onBookmark}
-          />
-        ) : (
+  const renderPanel = useCallback(
+    (panel: PanelId) => {
+      if (pool.length === 0) {
+        return (
           <div className="sidebar-tree">
-            <div className="tree-empty">{i18n.t("sidebar.empty.noVault")}</div>
-            <div className="tree-empty-hint">{i18n.t("sidebar.empty.openVaultHint")}</div>
+            <div className="tree-empty">{i18n.t("sidebar.empty.noPanels")}</div>
+            <div className="tree-empty-hint">{i18n.t("sidebar.empty.noPanelsHint")}</div>
           </div>
-        )
-      )}
-
-      {activeTab === "openFiles" && (
-        <OpenFilesPanel
-          openFiles={openFiles}
-          activeFilePath={activeOpenFilePath}
-          modifiedPaths={modifiedOpenPaths}
-          onSelectFile={onSelectOpenFile}
-          onCloseFile={onCloseOpenFile}
-        />
-      )}
-
-      {activeTab === "search" && (
-        <>
-          <SearchBar
-            query={searchQuery}
-            onQueryChange={setSearchQuery}
-            onClose={() => switchTab("files")}
-          />
-          {searchQuery.trim() ? (
-            <SearchResults
-              vaultPath={activeVault?.path ?? ""}
-              query={searchQuery}
-              onSelectFile={handleSelectFile}
+        );
+      }
+      switch (panel) {
+        case "files":
+          return activeVault ? (
+            <FileTree
+              key={activeVault.path}
+              rootPath={activeVault.path}
+              activePath={currentFilePath}
+              onSelect={handleSelectFile}
+              refreshKey={refreshKey}
+              onNewWindow={onNewWindow}
+              onOpenInNewPanel={onOpenInNewPanel}
+              canOpenInNewPanel={canOpenInNewPanel}
+              onBookmark={onBookmark}
             />
           ) : (
             <div className="sidebar-tree">
-              <div className="tree-empty">{i18n.t("sidebar.search.hint")}</div>
+              <div className="tree-empty">{i18n.t("sidebar.empty.noVault")}</div>
+              <div className="tree-empty-hint">{i18n.t("sidebar.empty.openVaultHint")}</div>
             </div>
-          )}
-        </>
-      )}
+          );
+        case "openFiles":
+          return (
+            <OpenFilesPanel
+              openFiles={openFiles}
+              activeFilePath={activeOpenFilePath}
+              modifiedPaths={modifiedOpenPaths}
+              onSelectFile={onSelectOpenFile}
+              onCloseFile={onCloseOpenFile}
+            />
+          );
+        case "search":
+          return (
+            <>
+              <SearchBar
+                query={searchQuery}
+                onQueryChange={setSearchQuery}
+                onClose={() => {
+                  const fallback = pool.find((p) => p !== "search") ?? "files";
+                  onLayoutChange(activatePanel(layout, pool, fallback));
+                }}
+              />
+              {searchQuery.trim() ? (
+                <SearchResults
+                  vaultPath={activeVault?.path ?? ""}
+                  query={searchQuery}
+                  onSelectFile={handleSelectFile}
+                />
+              ) : (
+                <div className="sidebar-tree">
+                  <div className="tree-empty">{i18n.t("sidebar.search.hint")}</div>
+                </div>
+              )}
+            </>
+          );
+        case "outline":
+          return <OutlinePanel content={content} onSelectHeading={onSelectHeading} />;
+        case "bookmarks":
+          return (
+            <BookmarksPanel
+              vaultPath={activeVault?.path ?? null}
+              vaults={vaults}
+              onSelectFile={handleSelectFile}
+              onNewWindow={onNewWindow}
+            />
+          );
+        default:
+          return null;
+      }
+    },
+    [
+      pool,
+      activeVault,
+      currentFilePath,
+      handleSelectFile,
+      refreshKey,
+      onNewWindow,
+      onOpenInNewPanel,
+      canOpenInNewPanel,
+      onBookmark,
+      openFiles,
+      activeOpenFilePath,
+      modifiedOpenPaths,
+      onSelectOpenFile,
+      onCloseOpenFile,
+      searchQuery,
+      layout,
+      onLayoutChange,
+      content,
+      onSelectHeading,
+      vaults,
+    ],
+  );
 
-      {activeTab === "outline" && (
-        <Outline content={content} onSelectHeading={onSelectHeading} />
-      )}
-
-      {activeTab === "bookmarks" && (
-        <BookmarksPanel
-          vaultPath={activeVault?.path ?? null}
-          vaults={vaults}
-          onSelectFile={handleSelectFile}
-          onNewWindow={onNewWindow}
-        />
-      )}
-
+  const footer =
+    side === "left" ? (
       <VaultSwitcher
         vaults={vaults}
         activeIndex={activeVaultIndex}
@@ -2911,10 +2638,27 @@ export default function Sidebar({
         onPublish={onPublish}
         onSelectVault={onSelectVault}
       />
+    ) : null;
 
-      {!collapsed && (
-        <div className="sidebar-resize-handle" onMouseDown={handleMouseDown} />
-      )}
-    </div>
+  bootStamp("sidebar_component_rendered");
+  bootEnd("sidebar_component_render");
+  return (
+    <SidebarColumn
+      side={side}
+      collapsed={collapsed}
+      width={width}
+      onWidthChange={onWidthChange}
+      className={side === "left" ? "sidebar--with-footer" : undefined}
+    >
+      <SidebarPanelHost
+        layout={layout}
+        pool={pool}
+        onLayoutChange={onLayoutChange}
+        renderPanel={renderPanel}
+        panelTitles={panelTitles}
+        bodyClassName={side === "left" ? "sidebar-slot-body--footer-pad" : undefined}
+        footer={footer}
+      />
+    </SidebarColumn>
   );
 }

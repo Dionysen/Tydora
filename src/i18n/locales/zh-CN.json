@@ -68,7 +68,12 @@
       "autoHideTopbarOnCollapse": "折叠侧栏时隐藏顶部栏",
       "autoHideTopbarOnCollapseDesc": "开启后，折叠侧栏时顶部栏也会自动隐藏。关闭后，折叠侧栏时顶部栏保持可见。",
       "expandOutlineOnOpen": "启动时展开大纲",
-      "expandOutlineOnOpenDesc": "开启后，双击 .md 文件用本应用打开时，侧栏自动展开并切换到大纲视图。关闭后保持折叠侧栏的原行为。",
+      "expandOutlineOnOpenDesc": "开启后，双击 .md 文件用本应用打开时，自动打开大纲所在侧栏并切换到大纲视图。关闭后保持折叠侧栏的原行为。",
+      "sidebarPanels": "侧栏面板",
+      "sidebarPanelsDesc": "选择每个面板显示在左侧栏、右侧栏，或隐藏。",
+      "sidebarPanelLeft": "左侧栏",
+      "sidebarPanelRight": "右侧栏",
+      "sidebarPanelHidden": "隐藏",
       "language": "语言",
       "languageDesc": "界面显示语言。",
       "analytics": "陪你走得更远 🌿",
@@ -503,6 +508,8 @@
     "toolbar": {
       "collapseSidebar": "折叠侧栏",
       "expandSidebar": "展开侧栏",
+      "collapseRightSidebar": "折叠右侧栏",
+      "expandRightSidebar": "展开右侧栏",
       "mindmap": "思维导图",
       "graph": "关系图谱",
       "exportAndCopy": "复制和导出",
@@ -616,6 +623,7 @@
         "undo": "撤销",
         "redo": "重做",
         "toggleSidebar": "切换侧栏",
+        "toggleRightSidebar": "切换右侧栏",
         "toggleEditMode": "切换编辑模式",
         "toggleTypewriter": "切换打字机模式",
         "openMindmap": "打开思维导图",
@@ -783,6 +791,12 @@
       "untitled": "无标题",
       "hint": "使用 # 标题语法来创建大纲"
     },
+    "tabs": {
+      "files": "文件",
+      "search": "搜索",
+      "outline": "大纲",
+      "bookmarks": "收藏"
+    },
     "vault": {
       "manage": "管理仓库",
       "settings": "设置",
@@ -795,7 +809,9 @@
     },
     "empty": {
       "noVault": "尚未打开仓库",
-      "openVaultHint": "点击底部按钮打开一个文件夹"
+      "openVaultHint": "点击底部按钮打开一个文件夹",
+      "noPanels": "未配置面板",
+      "noPanelsHint": "在设置中为此侧栏选择要显示的面板"
     },
     "dialog": {
       "deleteConfirmTitle": "删除确认",

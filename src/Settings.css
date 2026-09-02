@@ -2325,6 +2325,14 @@
   border-top: 1px solid var(--border);
 }
 
+.canvas-settings-row--block {
+  align-items: flex-start;
+}
+
+.canvas-settings-row--block .canvas-settings-row-label {
+  max-width: none;
+}
+
 .canvas-settings-row-nested {
   padding-left: 36px;
   background: color-mix(in srgb, var(--bg-secondary) 60%, var(--bg-primary));

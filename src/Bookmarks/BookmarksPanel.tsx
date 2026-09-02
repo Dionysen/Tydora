@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import type { Bookmark, BookmarkGroup } from "./BookmarksService";
 import * as BookmarksService from "./BookmarksService";
 import { BookmarkDialog } from "./BookmarkDialog";
-import type { VaultInfo } from "../Sidebar";
+import type { VaultInfo } from "../Sidebar/types";
 import "./BookmarksPanel.css";
 
 interface BookmarksPanelProps {

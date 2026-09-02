@@ -13,6 +13,27 @@ import { MODE_LABELS } from "./Editor/types";
 const Editor = lazy(() => import("./Editor/TipTapEditor").then(m => ({ default: m.default })));
 const CodeMirrorEditor = lazy(() => import("./Editor/CodeMirrorEditor").then(m => ({ default: m.default })));
 import Sidebar, { VaultInfo } from "./Sidebar";
+import {
+  LEFT_PANELS,
+  RIGHT_PANELS,
+  DEFAULT_LEFT_LAYOUT,
+  DEFAULT_RIGHT_LAYOUT,
+  LEFT_LAYOUT_KEY,
+  RIGHT_LAYOUT_KEY,
+  RIGHT_SIDEBAR_WIDTH_KEY,
+  RIGHT_SIDEBAR_OPEN_KEY,
+  LEFT_SIDEBAR_OPEN_KEY,
+  loadColumnLayout,
+  saveColumnLayout,
+  activatePanel,
+  clampLayoutToPool,
+  normalizeSidebarPanelSides,
+  panelsForSide,
+  sideOfPanel,
+  type ColumnLayout,
+  type PanelId,
+  type SidebarPanelSides,
+} from "./Sidebar/index";
 import { FilePreview } from "./components";
 import { QuickOpen } from "./components";
 import { CommandPalette } from "./components";
@@ -400,8 +421,11 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const [irLineNumbers, setIrLineNumbers] = useState(() => s.irLineNumbers ?? true);
   // 双击 .md 文件外部打开时，是否展开侧栏并自动切换到大纲视图（默认开启）
   const [expandOutlineOnOpen, setExpandOutlineOnOpen] = useState(() => s.expandOutlineOnOpen ?? true);
-  // 传递给 Sidebar 的"切到大纲"触发器（每次自增促使 Sidebar 切 tab）
-  const [outlineTrigger, setOutlineTrigger] = useState(0);
+  const [sidebarPanelSides, setSidebarPanelSides] = useState<SidebarPanelSides>(() =>
+    normalizeSidebarPanelSides(s.sidebarPanelSides),
+  );
+  const leftPool = useMemo(() => panelsForSide(sidebarPanelSides, "left"), [sidebarPanelSides]);
+  const rightPool = useMemo(() => panelsForSide(sidebarPanelSides, "right"), [sidebarPanelSides]);
   // Ctrl+滚轮调整字号时的右上角提示（停止滚动 1.5s 后自动消失）
   const [fontSizeToast, setFontSizeToast] = useState<number | null>(null);
   const fontSizeToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -490,6 +514,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         if (typeof settings.expandOutlineOnOpen === 'boolean') {
           setExpandOutlineOnOpen(settings.expandOutlineOnOpen);
         }
+        setSidebarPanelSides(normalizeSidebarPanelSides(settings.sidebarPanelSides));
         document.documentElement.dataset.codeBlockToolbar =
           settings.codeBlockToolbarStyle === "classic" ? "classic" : "minimal";
         applyMenuDensity(normalizeMenuDensity(settings.menuDensity));
@@ -671,7 +696,24 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       return -1;
     }
   });
-  const [sidebarOpen, setSidebarOpen] = useState(!initialFilePath);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (initialFilePath) return false;
+    try {
+      const saved = localStorage.getItem(LEFT_SIDEBAR_OPEN_KEY);
+      if (saved === "0") return false;
+      if (saved === "1") return true;
+    } catch {}
+    return true;
+  });
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem(RIGHT_SIDEBAR_OPEN_KEY);
+      if (saved === "0") return false;
+      if (saved === "1") return true;
+    } catch {}
+    return true;
+  });
+  const rightSidebarOpenBeforeXhsRef = useRef<boolean | null>(null);
   // 外部启动（双击 .md 文件）解析状态：settled = 外部文件二次拉取兜底已完成，
   // 可以最终决定主窗口可见性（避免竞态提前关闭）
   const [externalLaunchSettled, setExternalLaunchSettled] = useState(false);
@@ -686,6 +728,28 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       return 260;
     }
   });
+  const [rightSidebarWidth, setRightSidebarWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(RIGHT_SIDEBAR_WIDTH_KEY);
+      return saved ? parseInt(saved) : 240;
+    } catch {
+      return 240;
+    }
+  });
+  const [leftLayout, setLeftLayout] = useState<ColumnLayout>(() =>
+    loadColumnLayout(LEFT_LAYOUT_KEY, LEFT_PANELS, DEFAULT_LEFT_LAYOUT),
+  );
+  const [rightLayout, setRightLayout] = useState<ColumnLayout>(() =>
+    loadColumnLayout(RIGHT_LAYOUT_KEY, RIGHT_PANELS, DEFAULT_RIGHT_LAYOUT),
+  );
+
+  // Keep active panel valid when user changes which tabs belong to each side
+  useEffect(() => {
+    setLeftLayout((prev) => clampLayoutToPool(prev, leftPool, DEFAULT_LEFT_LAYOUT.active));
+  }, [leftPool]);
+  useEffect(() => {
+    setRightLayout((prev) => clampLayoutToPool(prev, rightPool, DEFAULT_RIGHT_LAYOUT.active));
+  }, [rightPool]);
   const [treeRefreshKey, setTreeRefreshKey] = useState(0);
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
   const [pendingFilePath, setPendingFilePath] = useState<string | null>(null);
@@ -1014,6 +1078,26 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   }, [sidebarWidth]);
 
   useEffect(() => {
+    localStorage.setItem(RIGHT_SIDEBAR_WIDTH_KEY, String(rightSidebarWidth));
+  }, [rightSidebarWidth]);
+
+  useEffect(() => {
+    localStorage.setItem(LEFT_SIDEBAR_OPEN_KEY, sidebarOpen ? "1" : "0");
+  }, [sidebarOpen]);
+
+  useEffect(() => {
+    localStorage.setItem(RIGHT_SIDEBAR_OPEN_KEY, rightSidebarOpen ? "1" : "0");
+  }, [rightSidebarOpen]);
+
+  useEffect(() => {
+    saveColumnLayout(LEFT_LAYOUT_KEY, leftLayout);
+  }, [leftLayout]);
+
+  useEffect(() => {
+    saveColumnLayout(RIGHT_LAYOUT_KEY, rightLayout);
+  }, [rightLayout]);
+
+  useEffect(() => {
     localStorage.setItem(XHS_PREVIEW_WIDTH_KEY, String(xhsPreviewWidth));
   }, [xhsPreviewWidth]);
 
@@ -1070,6 +1154,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   useEffect(() => { notifyResize(); }, [sidebarOpen]);
   useEffect(() => { notifyResize(); }, [sidebarWidth]);
+  useEffect(() => { notifyResize(); }, [rightSidebarOpen]);
+  useEffect(() => { notifyResize(); }, [rightSidebarWidth]);
 
   // 激活窗格变化后自动聚焦该窗格的编辑器（统一处理分屏/关闭/导航/点击等所有场景）。
   // —— 实现思路：不用 React 的 handle，直接模拟 Tab 键的原生焦点遍历：
@@ -1665,11 +1751,17 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   handleSelectFileRef.current = handleSelectFile;
 
   // 处理系统文件关联打开（双击 .md 文件）：
-  // 默认折叠侧栏（与新窗口打开体验一致）；若开启"启动时展开大纲"，则展开侧栏并切到大纲
+  // 默认折叠左侧栏；若开启"启动时展开大纲"，则打开大纲所在侧栏并激活大纲
   const handleExternalOpenFile = useCallback((filePath: string) => {
     if (expandOutlineOnOpen) {
-      setSidebarOpen(true);
-      setOutlineTrigger((n) => n + 1);
+      const outlineSide = sideOfPanel(sidebarPanelSides, "outline");
+      if (outlineSide === "left") {
+        setSidebarOpen(true);
+        setLeftLayout((prev) => activatePanel(prev, leftPool, "outline"));
+      } else if (outlineSide === "right") {
+        setRightSidebarOpen(true);
+        setRightLayout((prev) => activatePanel(prev, rightPool, "outline"));
+      }
     } else {
       setSidebarOpen(false);
     }
@@ -1686,7 +1778,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     }
 
     handleSelectFile(filePath);
-  }, [vaults, handleSelectFile, expandOutlineOnOpen]);
+  }, [vaults, handleSelectFile, expandOutlineOnOpen, sidebarPanelSides, leftPool, rightPool]);
 
   // 拉取并处理外部打开文件队列（双击 .md 文件），返回是否处理了文件。
   // 后端不再定时发事件，改为前端就绪后拉取，彻底消除事件竞态导致的"打开为空"问题
@@ -1992,6 +2084,73 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const handleSidebarToggle = useCallback(() => {
     setSidebarOpen((prev) => !prev);
   }, []);
+
+  const handleRightSidebarToggle = useCallback(() => {
+    setRightSidebarOpen((prev) => !prev);
+  }, []);
+
+  const activateLeftPanel = useCallback((panel: PanelId) => {
+    setSidebarOpen(true);
+    setLeftLayout((prev) => activatePanel(prev, leftPool, panel));
+  }, [leftPool]);
+
+  const activateRightPanel = useCallback((panel: PanelId) => {
+    setRightSidebarOpen(true);
+    setRightLayout((prev) => activatePanel(prev, rightPool, panel));
+  }, [rightPool]);
+
+  const activatePanelById = useCallback((panel: PanelId) => {
+    const side = sideOfPanel(sidebarPanelSides, panel);
+    if (side === "left") activateLeftPanel(panel);
+    else if (side === "right") activateRightPanel(panel);
+  }, [sidebarPanelSides, activateLeftPanel, activateRightPanel]);
+
+  // Alt+1..n 左栏可见面板；继续 Alt 编号切右栏；Ctrl+Shift+F 搜索；Ctrl+Alt+B 右栏
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.altKey && !e.shiftKey && (e.key === "b" || e.key === "B")) {
+        e.preventDefault();
+        handleRightSidebarToggle();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "f" || e.key === "F")) {
+        e.preventDefault();
+        if (sideOfPanel(sidebarPanelSides, "search") === "hidden") return;
+        const searchSide = sideOfPanel(sidebarPanelSides, "search");
+        if (searchSide === "left") {
+          setSidebarOpen(true);
+          setLeftLayout((prev) =>
+            prev.active === "search"
+              ? activatePanel(prev, leftPool, leftPool.find((p) => p !== "search") ?? "files")
+              : activatePanel(prev, leftPool, "search"),
+          );
+        } else if (searchSide === "right") {
+          setRightSidebarOpen(true);
+          setRightLayout((prev) =>
+            prev.active === "search"
+              ? activatePanel(prev, rightPool, rightPool.find((p) => p !== "search") ?? "outline")
+              : activatePanel(prev, rightPool, "search"),
+          );
+        }
+        return;
+      }
+      if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const num = Number(e.key);
+      if (!Number.isFinite(num) || num < 1) return;
+      const combined = [...leftPool, ...rightPool];
+      if (num > combined.length) return;
+      e.preventDefault();
+      activatePanelById(combined[num - 1]);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [
+    handleRightSidebarToggle,
+    activatePanelById,
+    sidebarPanelSides,
+    leftPool,
+    rightPool,
+  ]);
 
   const handleNewWindow = useCallback(async (filePath: string) => {
     try {
@@ -3063,15 +3222,25 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const handleExportRef = useRef(handleExport);
   handleExportRef.current = handleExport;
 
-  // 打开小红书图文分栏预览（源码模式下自动切到 IR）
+  // 打开小红书图文分栏预览（源码模式下自动切到 IR）；与右栏互斥
   const handleOpenXhs = useCallback(() => {
     if (effectiveMode === "sv") {
       setActiveMode("ir");
     }
     setShowExportFormatPicker(false);
+    rightSidebarOpenBeforeXhsRef.current = rightSidebarOpen;
+    setRightSidebarOpen(false);
     setXhsPreviewOpen(true);
     track(ANALYTICS_EVENTS.EXPORT_XHS);
-  }, [effectiveMode, setActiveMode]);
+  }, [effectiveMode, setActiveMode, rightSidebarOpen]);
+
+  const handleCloseXhs = useCallback(() => {
+    setXhsPreviewOpen(false);
+    if (rightSidebarOpenBeforeXhsRef.current !== null) {
+      setRightSidebarOpen(rightSidebarOpenBeforeXhsRef.current);
+      rightSidebarOpenBeforeXhsRef.current = null;
+    }
+  }, []);
 
   // 复制为 Markdown — 直接获取编辑器 Markdown 源码并写入剪贴板，无需预览
   const [markdownCopied, setMarkdownCopied] = useState(false);
@@ -3125,6 +3294,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
     // 视图操作
     { id: "toggle-sidebar", label: t("app.command.labels.toggleSidebar"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("toggle-sidebar"), action: handleSidebarToggle },
+    { id: "toggle-right-sidebar", label: t("app.command.labels.toggleRightSidebar"), category: t("app.command.categories.view"), shortcut: "Ctrl+Alt+B", action: handleRightSidebarToggle },
     { id: "toggle-mode", label: t("app.command.labels.toggleEditMode"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("toggle-mode"), action: cycleMode },
     { id: "toggle-typewriter", label: t("app.command.labels.toggleTypewriter"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("toggle-typewriter"), action: toggleTypewriterMode },
     { id: "split-lr", label: t("app.menu.splitLeftRight"), category: t("app.command.categories.view"), shortcut: getCommandShortcut("split-lr"), aliases: t("app.command.aliases.splitLeftRight").split(", "), action: () => { if (fileName && isCurrentFileMarkdown) handleSplit("lr"); } },
@@ -3231,7 +3401,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "settings-image", label: t("app.command.labels.imageSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.imageSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "image"); invoke("open_settings_window"); } },
     { id: "settings-canvas", label: t("app.command.labels.canvasSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.canvasSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "canvas"); invoke("open_settings_window"); } },
     { id: "settings-about", label: t("app.command.labels.about"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.about").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "about"); invoke("open_settings_window"); } },
-  ], [t, handleSave, handleFormatDocument, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, closeOpenFile, closeAllOpenFiles, getActiveOpenPath, setViewMode, setActiveMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings, handleOpenXhs, handlePublish]);
+  ], [t, handleSave, handleFormatDocument, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, handleRightSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, closeOpenFile, closeAllOpenFiles, getActiveOpenPath, setViewMode, setActiveMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings, handleOpenXhs, handlePublish]);
 
   const modifiedOpenPaths = useMemo(() => {
     const set = new Set<string>();
@@ -3252,6 +3422,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       <div className="main-container">
         {/* 左侧栏 */}
         <Sidebar
+          side="left"
+          pool={leftPool}
           vaults={vaults}
           activeVaultIndex={activeVaultIndex}
           currentFilePath={fileName}
@@ -3269,12 +3441,13 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           width={sidebarWidth}
           onWidthChange={setSidebarWidth}
           onBookmark={handleShowBookmarkDialog}
-          outlineTrigger={outlineTrigger}
           openFiles={openFiles}
           activeOpenFilePath={activeOpenFilePath}
           modifiedOpenPaths={modifiedOpenPaths}
           onSelectOpenFile={handleSelectOpenFile}
           onCloseOpenFile={closeOpenFile}
+          layout={leftLayout}
+          onLayoutChange={setLeftLayout}
         />
 
         {/* 编辑区域 */}
@@ -3693,6 +3866,26 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                 )}
               </div>
               <div className="window-controls-divider window-controls-native" />
+              <button
+                className="sidebar-toggle-btn"
+                onClick={handleRightSidebarToggle}
+                title={rightSidebarOpen ? t("app.toolbar.collapseRightSidebar") : t("app.toolbar.expandRightSidebar")}
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {rightSidebarOpen ? (
+                    <>
+                      <rect x="1.5" y="1.5" width="15" height="15" rx="2" stroke="currentColor" strokeWidth="1.4" />
+                      <rect x="10.5" y="2.5" width="5" height="13" rx="1" fill="currentColor" opacity="0.25" />
+                      <line x1="10.5" y1="2.5" x2="10.5" y2="15.5" stroke="currentColor" strokeWidth="1.2" />
+                    </>
+                  ) : (
+                    <>
+                      <rect x="1.5" y="1.5" width="15" height="15" rx="2" stroke="currentColor" strokeWidth="1.4" />
+                      <line x1="10.5" y1="2.5" x2="10.5" y2="15.5" stroke="currentColor" strokeWidth="1.2" />
+                    </>
+                  )}
+                </svg>
+              </button>
               <button className="window-control-btn window-controls-native" onClick={handleMinimize} title={t("app.toolbar.minimize")}>
                 <svg width="10" height="10" viewBox="0 0 10 10">
                   <line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" strokeWidth="1.2" />
@@ -3865,7 +4058,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
               editorTheme={theme}
               width={xhsPreviewWidth}
               onWidthChange={setXhsPreviewWidth}
-              onClose={() => setXhsPreviewOpen(false)}
+              onClose={handleCloseXhs}
             />
           )}
           </div>
@@ -3902,6 +4095,35 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           </div>
           )}
         </main>
+
+        <Sidebar
+          side="right"
+          pool={rightPool}
+          vaults={vaults}
+          activeVaultIndex={activeVaultIndex}
+          currentFilePath={fileName}
+          content={content}
+          onSelectFile={handleSelectFile}
+          onSelectHeading={handleSelectHeading}
+          onRemoveVault={handleRemoveVault}
+          onNewWindow={handleNewWindow}
+          onOpenInNewPanel={handleOpenInNewPanel}
+          canOpenInNewPanel={!!fileName && isCurrentFileMarkdown && !canvasFilePath && !previewFilePath && !graphViewOpen}
+          onPublish={handlePublish}
+          onSelectVault={setActiveVaultIndex}
+          collapsed={!rightSidebarOpen || xhsPreviewOpen}
+          refreshKey={treeRefreshKey}
+          width={rightSidebarWidth}
+          onWidthChange={setRightSidebarWidth}
+          onBookmark={handleShowBookmarkDialog}
+          openFiles={openFiles}
+          activeOpenFilePath={activeOpenFilePath}
+          modifiedOpenPaths={modifiedOpenPaths}
+          onSelectOpenFile={handleSelectOpenFile}
+          onCloseOpenFile={closeOpenFile}
+          layout={rightLayout}
+          onLayoutChange={setRightLayout}
+        />
       </div>
 
       {/* 快速打开文件弹窗 */}

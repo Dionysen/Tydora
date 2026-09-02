@@ -62,6 +62,13 @@ import {
   type GraphSettings,
   type ShortcutItem,
 } from "./settings-store";
+import {
+  ALL_PANELS,
+  DEFAULT_SIDEBAR_PANEL_SIDES,
+  normalizeSidebarPanelSides,
+  type PanelSide,
+  type SidebarPanelSides,
+} from "./Sidebar/index";
 import "./Settings.css";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -105,6 +112,8 @@ interface GeneralSettings {
   codeLineHeight: number;
   irLineNumbers: boolean;
   expandOutlineOnOpen: boolean;
+  /** 各侧栏面板归属：左栏 / 右栏 / 隐藏 */
+  sidebarPanelSides: SidebarPanelSides;
   /** 代码块工具栏样式 */
   codeBlockToolbarStyle: CodeBlockToolbarStyle;
   /** 菜单项高度密度 */
@@ -132,6 +141,7 @@ const DEFAULT_GENERAL: GeneralSettings = {
   codeLineHeight: 1.5,
   irLineNumbers: true,
   expandOutlineOnOpen: true,
+  sidebarPanelSides: { ...DEFAULT_SIDEBAR_PANEL_SIDES },
   codeBlockToolbarStyle: "minimal",
   menuDensity: "compact",
   markdownFormat: { ...DEFAULT_MARKDOWN_FORMAT_OPTIONS },
@@ -554,6 +564,38 @@ function GeneralSettingsContent({
             <span className="settings-switch-slider" />
           </label>
         </div>
+        <div className="canvas-settings-row canvas-settings-row--block">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.sidebarPanels")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.sidebarPanelsDesc")}</span>
+          </div>
+        </div>
+        {ALL_PANELS.map((panel) => (
+          <div key={panel} className="canvas-settings-row">
+            <div className="canvas-settings-row-label">
+              <span className="canvas-settings-row-title">
+                {panel === "openFiles" ? t("openFiles.tabTitle") : t(`sidebar.tabs.${panel}`)}
+              </span>
+            </div>
+            <SettingsSelect
+              value={settings.sidebarPanelSides[panel]}
+              onChange={(v) =>
+                onChange({
+                  ...settings,
+                  sidebarPanelSides: {
+                    ...settings.sidebarPanelSides,
+                    [panel]: v as PanelSide,
+                  },
+                })
+              }
+              options={[
+                { value: "left", label: t("settings.appearance.sidebarPanelLeft") },
+                { value: "right", label: t("settings.appearance.sidebarPanelRight") },
+                { value: "hidden", label: t("settings.appearance.sidebarPanelHidden") },
+              ]}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -3040,6 +3082,7 @@ export default function Settings() {
             ? parsed.markdownFormat
             : {}),
         },
+        sidebarPanelSides: normalizeSidebarPanelSides(parsed.sidebarPanelSides),
       };
     } catch {
       return DEFAULT_GENERAL;
