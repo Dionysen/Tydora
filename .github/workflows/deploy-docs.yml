@@ -6,7 +6,6 @@ on:
     paths:
       - 'website/**'
       - 'scripts/copy-landing.mjs'
-      - 'scripts/inject-analytics.mjs'
       - 'package.json'
       - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:

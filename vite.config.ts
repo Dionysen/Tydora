@@ -5,6 +5,8 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
 
+  publicDir: "src/public",
+
   // 防止 Vite 遮盖 Rust 的错误信息
   clearScreen: false,
 

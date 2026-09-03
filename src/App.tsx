@@ -3,7 +3,7 @@ import { bootStart, bootEnd, bootStamp, bootSummary } from "./boot-timing";
 bootStamp("App_module_imported");
 import { useTranslation } from "react-i18next";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { readTextFile, writeTextFile, rename, exists } from "@tauri-apps/plugin-fs";
+import { readTextFile, writeTextFile, rename } from "@tauri-apps/plugin-fs";
 import { save } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import type { EditorHandle, EditorMode, EditorViewState } from "./Editor/types";
@@ -62,9 +62,6 @@ import { WikiLinkAutocomplete } from "./wikilink";
 import { WikiLinkPreview } from "./wikilink";
 import { TagAutocomplete, TagIndexService } from "./tags";
 import { useCanvasStore } from "./Canvas/canvas-store";
-import PublishPanel from "./publish/PublishPanel";
-import PublishConfigDialog from "./publish/PublishConfigDialog";
-import { CONFIG_FILE } from "./publish/PublishService";
 import { buildIndexesTogether, persistIndexesToStorage, restoreIndexesFromCache } from "./services/index-builder";
 
 // 关系图谱 / 白板仅在打开时渲染，按需加载（避免 d3、@xyflow 进入首屏 bundle）
@@ -93,9 +90,6 @@ import "./tags/TagAutocomplete.css";
 import "./components/FindReplaceDialog.css";
 import shortcutsConfig from "./config/shortcuts.json";
 import { matchShortcut, formatShortcutDisplay, formatShortcutKey, loadShortcuts, getShortcutKeys } from "./Editor/shortcuts";
-import { track, trackPageview, hasConsentChoice, isAnalyticsEnabled, setAnalyticsEnabled, ANALYTICS_EVENTS } from "./analytics";
-import { ConsentDialog } from "./analytics/ConsentDialog";
-
 // 错误边界：防止编辑器错误导致整个页面空白
 class EditorErrorBoundary extends Component<
   { children: React.ReactNode },
@@ -431,28 +425,10 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const [isCurrentFileMarkdown, setIsCurrentFileMarkdown] = useState(true);
   const codeMirrorRef = useRef<CodeMirrorEditorHandle>(null);
 
-  // 匿名统计：首次启动弹窗征得同意后才会上报（未选择前不发送任何数据）
-  const [consentVisible, setConsentVisible] = useState<boolean>(() => !hasConsentChoice());
-
   // 启动埋点：App 组件进入第一个 useEffect = React 完成首次 commit 后
   useEffect(() => {
     bootStamp("App_first_useEffect_fired");
     bootEnd("App_body_to_first_effect");
-  }, []);
-
-  // 用户已同意时，上报应用启动事件（仅统计使用情况，不含文件路径/内容等任何数据）
-  useEffect(() => {
-    if (!consentVisible && isAnalyticsEnabled()) {
-      track(ANALYTICS_EVENTS.LAUNCH, {
-        language: navigator.language,
-      });
-      trackPageview("/app/launch");
-    }
-  }, [consentVisible]);
-
-  const handleConsentDecision = useCallback((granted: boolean) => {
-    setAnalyticsEnabled(granted);
-    setConsentVisible(false);
   }, []);
 
   // 书签弹窗状态
@@ -640,34 +616,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     };
   }, []);
 
-  // 滚动条自动隐藏：滚动时立即显示，停止滚动 400ms 后快速隐藏
-  // 将 data-scrolling 设置在具体的滚动容器上，避免侧栏和编辑器滚动条互相干扰
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    let currentTarget: HTMLElement | null = null;
-
-    const handleScroll = (e: Event) => {
-      const target = e.target as HTMLElement;
-      // 如果滚动目标变了，清除旧目标的属性
-      if (currentTarget && currentTarget !== target) {
-        currentTarget.removeAttribute('data-scrolling');
-      }
-      currentTarget = target;
-      target.setAttribute('data-scrolling', '');
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        if (currentTarget) {
-          currentTarget.removeAttribute('data-scrolling');
-          currentTarget = null;
-        }
-      }, 400);
-    };
-    document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
-    return () => {
-      document.removeEventListener('scroll', handleScroll, { capture: true });
-      clearTimeout(timer);
-    };
-  }, []);
+  // 滚动条 data-scrolling 由 main.tsx 全局监听（所有窗口共用）
 
   // 监听编辑器设置变化（设置窗口保存后实时生效）
   useEffect(() => {
@@ -776,16 +725,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const [pendingCloseAll, setPendingCloseAll] = useState(false);
   const keyboardChordRef = useRef<number | null>(null);
 
-  // 统计：进入白板视图（主窗口内嵌模式；仅 null → 有值 的转换，切换画布文件不重复上报）
-  const prevCanvasPathRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (canvasFilePath && !prevCanvasPathRef.current) {
-      track(ANALYTICS_EVENTS.CANVAS_OPEN);
-      trackPageview("/app/canvas");
-    }
-    prevCanvasPathRef.current = canvasFilePath;
-  }, [canvasFilePath]);
-
   // 加载白板文件并同步保存状态到顶部红绿灯
   useEffect(() => {
     if (!canvasFilePath) return;
@@ -835,18 +774,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   // 知识图谱状态
   const [graphViewOpen, setGraphViewOpen] = useState(false);
-
-  // 统计：打开关系图谱（主窗口内嵌模式；新窗口模式由 GraphWindow 上报）
-  useEffect(() => {
-    if (graphViewOpen) {
-      track(ANALYTICS_EVENTS.GRAPH_OPEN);
-      trackPageview("/app/graph");
-    }
-  }, [graphViewOpen]);
-
-  // 发布状态
-  const [publishOpen, setPublishOpen] = useState(false);
-  const [publishConfigOpen, setPublishConfigOpen] = useState(false);
 
   // 更新状态（主窗口与设置窗口共享）
   const { updateInfo, downloading: updateDownloading, progress: updateProgress } = useUpdateStore();
@@ -1861,10 +1788,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       setCanvasFilePath(null); // 关闭白板模式
       setIsCurrentFileMarkdown(isMarkdownFile(path));
 
-      // 匿名统计：打开文档计为一次页面浏览（不含文件名等隐私信息）
-      track(ANALYTICS_EVENTS.FILE_OPEN);
-      trackPageview("/file");
-
       const activePaneObj = panesRef.current.find((p) => p.id === activePaneIdRef.current) ?? panesRef.current[0];
       const targetPaneId = activePaneObj.id;
       const targetBufferId: string | undefined = activePaneObj.bufferId;
@@ -2261,9 +2184,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         focusPaneId = newPane.id;
       }
 
-      // 匿名统计 + 更新最近访问文件列表
-      track(ANALYTICS_EVENTS.FILE_OPEN);
-      trackPageview("/file");
+      // 更新最近访问文件列表
       const activeVault = activeVaultIndex >= 0 ? vaults[activeVaultIndex] : null;
       if (activeVault) {
         setRecentFiles((prev) => {
@@ -2325,9 +2246,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
       setActivePaneId(newPane.id);
 
-      // 匿名统计 + 更新最近访问文件列表
-      track(ANALYTICS_EVENTS.FILE_OPEN);
-      trackPageview("/file");
+      // 更新最近访问文件列表
       const activeVault = activeVaultIndex >= 0 ? vaults[activeVaultIndex] : null;
       if (activeVault) {
         setRecentFiles((prev) => {
@@ -3208,7 +3127,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   // ── 导出 ──
   const handleExport = async (format: ExportFormat) => {
     if (exporting || effectiveMode === "sv") return;
-    track(`export.${format}`);
     setShowExportFormatPicker(false);
     setExporting(true);
     try {
@@ -3237,7 +3155,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     rightSidebarOpenBeforeXhsRef.current = rightSidebarOpen;
     setRightSidebarOpen(false);
     setXhsPreviewOpen(true);
-    track(ANALYTICS_EVENTS.EXPORT_XHS);
   }, [effectiveMode, setActiveMode, rightSidebarOpen]);
 
   const handleCloseXhs = useCallback(() => {
@@ -3255,7 +3172,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     if (!markdown) return;
     try {
       await navigator.clipboard.writeText(markdown);
-      track(ANALYTICS_EVENTS.EXPORT_MARKDOWN);
       setMarkdownCopied(true);
       // 短暂显示"已复制"反馈后关闭弹框
       setTimeout(() => {
@@ -3266,25 +3182,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       alert(t("app.export.copyFailed"));
     }
   }, []);
-
-  // 点击"发布网站"：仓库缺少 markdown-publish.config.json 时先弹出配置窗口
-  const handlePublish = useCallback(async () => {
-    const path = activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null;
-    if (!path) {
-      setPublishOpen(true);
-      return;
-    }
-    try {
-      const configExists = await exists(`${path}/${CONFIG_FILE}`);
-      if (configExists) {
-        setPublishOpen(true);
-      } else {
-        setPublishConfigOpen(true);
-      }
-    } catch {
-      setPublishOpen(true);
-    }
-  }, [activeVaultIndex, vaults]);
 
   // ── 命令面板命令列表 ──
   const commands = useMemo(() => [
@@ -3330,7 +3227,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         invoke("open_vault_in_new_window", { vaultPath: vault.path, width: size.width / scale, height: size.height / scale });
       },
     })),
-    { id: "publish", label: t("app.command.labels.publishWebsite"), category: t("app.command.categories.tools"), action: handlePublish },
     // 复制和导出 — 通过命令面板直接触发各格式导出/复制
     { id: "copy-markdown", label: t("app.command.labels.copyMarkdown"), category: t("app.command.categories.export"), aliases: t("app.command.aliases.copyMarkdown").split(", "), action: handleCopyAsMarkdown },
     { id: "copy-wechat", label: t("app.command.labels.copyWechat"), category: t("app.command.categories.export"), aliases: t("app.command.aliases.copyWechat").split(", "), action: () => handleExportRef.current("wechat") },
@@ -3409,9 +3305,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     { id: "settings-graph", label: t("app.command.labels.graphSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.graphSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "graph"); invoke("open_settings_window"); } },
     { id: "settings-image", label: t("app.command.labels.imageSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.imageSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "image"); invoke("open_settings_window"); } },
     { id: "settings-canvas", label: t("app.command.labels.canvasSettings"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.canvasSettings").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "canvas"); invoke("open_settings_window"); } },
-    { id: "settings-publish", label: t("settings.tabs.publish"), category: t("app.command.categories.settings"), aliases: ["发布", "publish", "网站", "部署"].flatMap((s) => s.split(", ")), action: () => { localStorage.setItem("inimark-settings-initial-tab", "publish"); invoke("open_settings_window"); } },
     { id: "settings-about", label: t("app.command.labels.about"), category: t("app.command.categories.settings"), aliases: t("app.command.aliases.about").split(", "), action: () => { localStorage.setItem("inimark-settings-initial-tab", "about"); invoke("open_settings_window"); } },
-  ], [t, handleSave, handleFormatDocument, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, handleRightSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, closeOpenFile, closeAllOpenFiles, getActiveOpenPath, setViewMode, setActiveMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings, handleOpenXhs, handlePublish]);
+  ], [t, handleSave, handleFormatDocument, activeVaultIndex, fileName, handleNewWindow, handleSidebarToggle, handleRightSidebarToggle, cycleMode, toggleTypewriterMode, handleMinimize, handleToggleMaximize, handleClose, closeOpenFile, closeAllOpenFiles, getActiveOpenPath, setViewMode, setActiveMode, viewMode, vaults, handleCopyAsMarkdown, content, getGraphSettings, handleOpenXhs]);
 
   const modifiedOpenPaths = useMemo(() => {
     const set = new Set<string>();
@@ -3444,7 +3339,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           onNewWindow={handleNewWindow}
           onOpenInNewPanel={handleOpenInNewPanel}
           canOpenInNewPanel={!!fileName && isCurrentFileMarkdown && !canvasFilePath && !previewFilePath && !graphViewOpen}
-          onPublish={handlePublish}
           onSelectVault={setActiveVaultIndex}
           collapsed={!sidebarOpen}
           refreshKey={treeRefreshKey}
@@ -3547,7 +3441,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                   disabled={effectiveMode === "sv" || exporting}
                   onClick={() => {
                     if (effectiveMode === "sv" || exporting) return;
-                    track(ANALYTICS_EVENTS.EXPORT_OPEN);
                     setMarkdownCopied(false);
                     setShowExportFormatPicker(true);
                   }}
@@ -3846,7 +3739,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                       className={`editor-topbar-more-menu-item${effectiveMode === "sv" || exporting ? ' disabled' : ''}`}
                       onClick={() => {
                         if (effectiveMode === "sv" || exporting) return;
-                        track(ANALYTICS_EVENTS.EXPORT_OPEN);
                         setMoreMenuOpen(false);
                         setMarkdownCopied(false);
                         setShowExportFormatPicker(true);
@@ -3897,22 +3789,24 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
                   )}
                 </svg>
               </button>
-              <button className="window-control-btn window-controls-native" onClick={handleMinimize} title={t("app.toolbar.minimize")}>
-                <svg width="10" height="10" viewBox="0 0 10 10">
-                  <line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" strokeWidth="1.2" />
-                </svg>
-              </button>
-              <button className="window-control-btn window-controls-native" onClick={handleToggleMaximize} title={t("app.toolbar.maximize")}>
-                <svg width="10" height="10" viewBox="0 0 10 10">
-                  <rect x="1" y="1" width="8" height="8" rx="0.5" fill="none" stroke="currentColor" strokeWidth="1.2" />
-                </svg>
-              </button>
-              <button className="window-control-btn window-control-close window-controls-native" onClick={handleClose} title={t("app.toolbar.close")}>
-                <svg width="10" height="10" viewBox="0 0 10 10">
-                  <line x1="1.5" y1="1.5" x2="8.5" y2="8.5" stroke="currentColor" strokeWidth="1.2" />
-                  <line x1="8.5" y1="1.5" x2="1.5" y2="8.5" stroke="currentColor" strokeWidth="1.2" />
-                </svg>
-              </button>
+              <div className="window-caption-controls window-controls-native">
+                <button className="window-control-btn window-controls-native" onClick={handleMinimize} title={t("app.toolbar.minimize")}>
+                  <svg width="10" height="10" viewBox="0 0 10 10">
+                    <line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" strokeWidth="1.2" />
+                  </svg>
+                </button>
+                <button className="window-control-btn window-controls-native" onClick={handleToggleMaximize} title={t("app.toolbar.maximize")}>
+                  <svg width="10" height="10" viewBox="0 0 10 10">
+                    <rect x="1" y="1" width="8" height="8" rx="0.5" fill="none" stroke="currentColor" strokeWidth="1.2" />
+                  </svg>
+                </button>
+                <button className="window-control-btn window-control-close window-controls-native" onClick={handleClose} title={t("app.toolbar.close")}>
+                  <svg width="10" height="10" viewBox="0 0 10 10">
+                    <line x1="1.5" y1="1.5" x2="8.5" y2="8.5" stroke="currentColor" strokeWidth="1.2" />
+                    <line x1="8.5" y1="1.5" x2="1.5" y2="8.5" stroke="currentColor" strokeWidth="1.2" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -4146,7 +4040,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           onNewWindow={handleNewWindow}
           onOpenInNewPanel={handleOpenInNewPanel}
           canOpenInNewPanel={!!fileName && isCurrentFileMarkdown && !canvasFilePath && !previewFilePath && !graphViewOpen}
-          onPublish={handlePublish}
           onSelectVault={setActiveVaultIndex}
           collapsed={!rightSidebarOpen || xhsPreviewOpen}
           refreshKey={treeRefreshKey}
@@ -4422,28 +4315,6 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         />
       ))}
 
-      {/* 发布面板 */}
-      {publishOpen && (
-        <PublishPanel
-          vaultPath={activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null}
-          onClose={() => setPublishOpen(false)}
-        />
-      )}
-
-      {/* 发布配置弹窗：配置文件缺失时先完成配置 */}
-      {publishConfigOpen && (
-        <PublishConfigDialog
-          vaultPath={activeVaultIndex >= 0 ? vaults[activeVaultIndex]?.path : null}
-          onClose={() => setPublishConfigOpen(false)}
-          onSaved={() => {
-            setPublishConfigOpen(false);
-            setPublishOpen(true);
-          }}
-        />
-      )}
-
-      {/* 首次启动：匿名统计同意弹窗 */}
-      {consentVisible && <ConsentDialog onDecide={handleConsentDecision} />}
     </div>
   );
 }

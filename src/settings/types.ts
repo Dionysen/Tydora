@@ -11,7 +11,6 @@ export type SettingsTab =
   | "graph"
   | "image"
   | "canvas"
-  | "publish"
   | "about";
 
 export interface NavItem {

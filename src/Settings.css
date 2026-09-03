@@ -1707,25 +1707,6 @@
   text-decoration: underline;
 }
 
-/* ── Scrollbar ─────────────────────────────────────────────────────── */
-
-.settings-window ::-webkit-scrollbar {
-  width: var(--scrollbar-size, 8px);
-}
-
-.settings-window ::-webkit-scrollbar-track {
-  background: var(--scrollbar-track, transparent);
-}
-
-.settings-window ::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb, color-mix(in srgb, var(--text-secondary) 30%, transparent));
-  border-radius: var(--radius-scrollbar, 4px);
-}
-
-.settings-window ::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover, color-mix(in srgb, var(--text-secondary) 50%, transparent));
-}
-
 /* ── Path Input ──────────────────────────────────────────────────── */
 
 .settings-path-wrapper {

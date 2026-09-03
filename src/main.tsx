@@ -15,16 +15,41 @@ import "./themes.css";
 import "./global.css";
 import { applyMenuDensityFromStorage } from "./utils/menuDensity";
 import { applyFontSettingsFromStorage } from "./utils/systemFonts";
+import { initGlobalTooltip } from "./utils/globalTooltip";
 
 // 尽早应用菜单密度 / 字体，保证各独立窗口（设置/白板/图谱等）启动即生效
 applyMenuDensityFromStorage();
 applyFontSettingsFromStorage();
+initGlobalTooltip();
 window.addEventListener("storage", (e) => {
   if (e.key === "inimark-general-settings") {
     applyMenuDensityFromStorage();
     applyFontSettingsFromStorage();
   }
 });
+
+// 滚动条自动隐藏：滚动时立即显示，停止滚动 400ms 后淡出（所有窗口共用）
+{
+  let timer: ReturnType<typeof setTimeout>;
+  let currentTarget: HTMLElement | null = null;
+  const handleScroll = (e: Event) => {
+    const target = e.target as HTMLElement;
+    if (!(target instanceof HTMLElement)) return;
+    if (currentTarget && currentTarget !== target) {
+      currentTarget.removeAttribute("data-scrolling");
+    }
+    currentTarget = target;
+    target.setAttribute("data-scrolling", "");
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (currentTarget) {
+        currentTarget.removeAttribute("data-scrolling");
+        currentTarget = null;
+      }
+    }, 400);
+  };
+  document.addEventListener("scroll", handleScroll, { capture: true, passive: true });
+}
 
 // 平台 class：驱动各端窗口圆角策略（见 global.css）
 if (typeof navigator !== "undefined") {

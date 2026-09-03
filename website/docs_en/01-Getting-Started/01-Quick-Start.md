@@ -80,8 +80,6 @@ After writing your first note, explore further:
 - Use `<a data-note="Another Note">Another Note</a>` to create bidirectional links → [[03-Knowledge-Management/01-Wiki-Links]]
 - Open the backlinks panel on the right to see who references the current note → [[03-Knowledge-Management/03-Backlinks]]
 - Press `Ctrl+G` to see your knowledge graph → [[03-Knowledge-Management/04-Knowledge-Graph]]
-- Want to share? Publish as a website with one click → [[08-Advanced-Features/01-Publish-Website]]
-
 ## Related Documents
 
 - [[04-File-Management/01-Vaults]] — Vault (multi-folder) management
