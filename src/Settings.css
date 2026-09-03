@@ -1273,6 +1273,7 @@
   font-size: 12px;
   font-family: var(--font-mono);
   text-align: center;
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 
@@ -1478,7 +1479,7 @@
 .settings-shortcuts-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
 }
 
 .settings-shortcut-group {
@@ -1494,8 +1495,6 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 8px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--border);
 }
 
 .settings-shortcut-item {
