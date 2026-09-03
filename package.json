@@ -18,7 +18,7 @@
     "replace-icon": "node scripts/replace-icon.js",
     "docs:build": "node scripts/build-docs.mjs",
     "deploy:edgeone": "node scripts/deploy-edgeone.mjs",
-    "docs:serve": "node website/site/__preview_server.cjs",
+    "docs:serve": "node scripts/docs-serve.mjs",
     "docs:clean": "rimraf website/site",
     "copy-landing": "node scripts/copy-landing.mjs",
     "postdocs:build": "node scripts/copy-landing.mjs",
