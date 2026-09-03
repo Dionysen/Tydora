@@ -81,12 +81,24 @@ fn is_main_window_alive(app: &tauri::AppHandle) -> bool {
     app.get_webview_window("main").is_some()
 }
 
+/// 销毁主窗口以外的常驻辅助窗口（设置、管理仓库等）。
+/// 设置窗口关闭时走 hide 复用 WebView，必须用 destroy 才能真正释放；
+/// 否则主窗口关闭后隐藏的设置窗仍会让进程无法退出。
+fn destroy_auxiliary_windows(app: &tauri::AppHandle) {
+    for label in ["settings", "vault-manager"] {
+        if let Some(win) = app.get_webview_window(label) {
+            let _ = win.destroy();
+        }
+    }
+}
+
 /// 前端关闭主窗口前调用，通知后端"主窗口即将销毁"。
 #[tauri::command]
 fn notify_main_closing(app: tauri::AppHandle) {
     if let Some(state) = app.try_state::<MainWindowClosing>() {
         state.0.store(true, std::sync::atomic::Ordering::SeqCst);
     }
+    destroy_auxiliary_windows(&app);
 }
 
 /// 过滤命令行参数中的 Markdown 文件路径
@@ -1930,6 +1942,19 @@ pub fn run() {
                     }
                     finish_platform_window(&window);
                     let _ = window.show();
+
+                    // 主窗口关闭时同步销毁隐藏的辅助窗口（设置窗 hide 复用场景）
+                    let app_handle = app.handle().clone();
+                    window.on_window_event(move |event| {
+                        if let tauri::WindowEvent::CloseRequested { .. } = event {
+                            if let Some(state) = app_handle.try_state::<MainWindowClosing>() {
+                                state
+                                    .0
+                                    .store(true, std::sync::atomic::Ordering::SeqCst);
+                            }
+                            destroy_auxiliary_windows(&app_handle);
+                        }
+                    });
                 }
                 emit_boot_timing(app, "main_window_shown");
             } else {
