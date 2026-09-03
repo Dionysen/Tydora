@@ -548,6 +548,9 @@
       "enabled": "Typewriter mode enabled, click to disable",
       "disabled": "Click to enable typewriter mode"
     },
+    "scrollJump": "Scroll to edge",
+    "scrollToTop": "Scroll to top",
+    "scrollToBottom": "Scroll to bottom",
     "fontSizeToast": "Font size",
     "wordCount": "{{count}} words",
     "welcome": {

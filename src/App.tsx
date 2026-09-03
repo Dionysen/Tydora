@@ -2768,6 +2768,25 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     setTypewriterMode((prev: boolean) => !prev);
   }, []);
 
+  /** 滚动当前激活窗格到顶部 / 底部 */
+  const scrollEditorToEdge = useCallback((edge: "top" | "bottom") => {
+    const paneId = activePaneIdRef.current;
+    const root =
+      (document.querySelector(
+        `[data-pane-id="${paneId}"] .tiptap-editor`
+      ) as HTMLElement | null) ??
+      (document.querySelector(
+        `[data-pane-id="${paneId}"] .cm-scroller`
+      ) as HTMLElement | null) ??
+      (document.querySelector(".tiptap-editor") as HTMLElement | null) ??
+      (document.querySelector(".cm-scroller") as HTMLElement | null);
+    if (!root) return;
+    root.scrollTo({
+      top: edge === "top" ? 0 : root.scrollHeight,
+      behavior: "smooth",
+    });
+  }, []);
+
   // 打字机模式快捷键（配置见 src/config/shortcuts.json 的 app.typewriter）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -4072,6 +4091,32 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
             >
               {MODE_LABELS[effectiveMode]}
             </button>
+          )}
+          {!canvasFilePath && !graphViewOpen && isCurrentFileMarkdown && (
+            <div className="editor-scroll-jump" role="group" aria-label={t("app.scrollJump")}>
+              <button
+                type="button"
+                className="editor-scroll-jump-btn"
+                onClick={() => scrollEditorToEdge("top")}
+                title={t("app.scrollToTop")}
+                aria-label={t("app.scrollToTop")}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="editor-scroll-jump-btn"
+                onClick={() => scrollEditorToEdge("bottom")}
+                title={t("app.scrollToBottom")}
+                aria-label={t("app.scrollToBottom")}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            </div>
           )}
           {!canvasFilePath && !graphViewOpen && (
           <div className="editor-bottom-controls editor-bottom-right">

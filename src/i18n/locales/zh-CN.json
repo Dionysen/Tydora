@@ -548,6 +548,9 @@
       "enabled": "打字机模式已开启，点击关闭",
       "disabled": "点击开启打字机模式"
     },
+    "scrollJump": "滚动到边缘",
+    "scrollToTop": "到最顶端",
+    "scrollToBottom": "到最低端",
     "fontSizeToast": "字号",
     "wordCount": "{{count}} 字",
     "welcome": {
