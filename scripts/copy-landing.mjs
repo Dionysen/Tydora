@@ -61,8 +61,43 @@ try {
   console.log("⚠️ Icon file not found, skipping");
 }
 
-// Copy favicon (prefer PNG for browser tabs; keep SVG if present)
-for (const name of ["favicon.png", "favicon.svg", "favicon.ico"]) {
+// Sync favicon for landing + docs. Docs HTML from markdown-publish links to
+// favicon.svg (per-locale base href), so overwrite SVG in zh/en roots — not only PNG at site root.
+function writeFaviconSvgFromPng(pngBytes, destPath) {
+  const b64 = pngBytes.toString("base64");
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">` +
+    `<image width="32" height="32" href="data:image/png;base64,${b64}"/></svg>`;
+  writeFileSync(destPath, svg);
+}
+
+const faviconCandidates = [
+  resolve(landingDir, "favicon.png"),
+  resolve(__dirname, "../src-tauri/icons/icon.png"),
+];
+let faviconPng = null;
+for (const src of faviconCandidates) {
+  if (!existsSync(src)) continue;
+  try {
+    faviconPng = readFileSync(src);
+    break;
+  } catch {
+    // try next candidate
+  }
+}
+
+if (faviconPng) {
+  for (const dir of [siteDir, resolve(siteDir, "en")]) {
+    if (!existsSync(dir)) continue;
+    writeFileSync(resolve(dir, "favicon.png"), faviconPng);
+    writeFaviconSvgFromPng(faviconPng, resolve(dir, "favicon.svg"));
+    console.log(`✅ favicon synced to ${relative(root, dir)}/`);
+  }
+} else {
+  console.log("⚠️ favicon.png not found, skipping");
+}
+
+for (const name of ["favicon.ico"]) {
   const src = resolve(landingDir, name);
   if (!existsSync(src)) continue;
   try {
