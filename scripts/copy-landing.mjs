@@ -1,6 +1,6 @@
 /**
  * 将落地页写入 website/site/index.html 和 website/site/en/index.html
- * 复制落地页素材、注入文档站顶栏（Ink/Silver）、隐藏明暗切换
+ * 复制落地页素材、注入文档站顶栏、站点明暗主题
  * 在 markdown-publish 构建后运行此脚本
  */
 import {
@@ -11,6 +11,7 @@ import {
   existsSync,
   readdirSync,
   statSync,
+  rmSync,
 } from "node:fs";
 import { resolve, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,6 +28,19 @@ const SKIP_PREFIX = BASE_HREF === "/";
 const base = SKIP_PREFIX ? "/" : BASE_HREF.endsWith("/") ? BASE_HREF : `${BASE_HREF}/`;
 
 mkdirSync(siteDir, { recursive: true });
+
+// Copy shared site theme assets (landing + docs)
+for (const name of ["site-theme.css", "site-theme.js"]) {
+  const src = resolve(landingDir, name);
+  if (!existsSync(src)) continue;
+  try {
+    writeFileSync(resolve(siteDir, name), readFileSync(src));
+    console.log(`✅ ${name} written to website/site/${name}`);
+  } catch {
+    console.log(`⚠️ Failed to copy ${name}`);
+  }
+}
+
 
 // Copy app icon
 const iconSrc = resolve(__dirname, "../src-tauri/icons/icon.png");
@@ -52,6 +66,9 @@ for (const name of ["favicon.png", "favicon.svg", "favicon.ico"]) {
 // Copy landing screenshots used by zh/en landing pages
 if (existsSync(assetsSrc)) {
   const assetsDest = resolve(siteDir, "assets");
+  if (existsSync(assetsDest)) {
+    rmSync(assetsDest, { recursive: true, force: true });
+  }
   mkdirSync(assetsDest, { recursive: true });
   cpSync(assetsSrc, assetsDest, { recursive: true });
   console.log("✅ Landing assets copied to website/site/assets/");
@@ -134,15 +151,22 @@ function buildTopbar({ isEn }) {
   const zhHref = base;
   const enHref = `${base}en/`;
   const iconHref = `${base}icon.png`;
+  const themeCssHref = `${base}site-theme.css`;
+  const themeJsHref = `${base}site-theme.js`;
   const homeLabel = isEn ? "Home" : "主页";
   const docsLabel = isEn ? "Docs" : "文档";
+  const themeLabel = isEn ? "Toggle theme" : "切换主题";
+  const themeTitle = isEn ? "Dark mode" : "深色模式";
+  const labelLight = isEn ? "Light mode" : "浅色模式";
+  const labelDark = isEn ? "Dark mode" : "深色模式";
   const activeHome = "";
   const activeDocs = "active";
 
   return `<!-- inimark-site-chrome -->
+<link rel="stylesheet" href="${themeCssHref}">
+<script src="${themeJsHref}"></script>
 <style id="inimark-site-chrome-css">
   app-theme-toggle, .theme-toggle { display: none !important; }
-  html { color-scheme: light !important; }
   .inimark-topbar {
     position: fixed; top: 0; left: 0; right: 0; z-index: 10050;
     height: 56px;
@@ -153,6 +177,10 @@ function buildTopbar({ isEn }) {
     border-bottom: 1px solid #e0e0e0;
     font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   }
+  html[data-site-theme="dark"] .inimark-topbar {
+    background: rgba(10, 10, 10, 0.92);
+    border-bottom-color: #2a2a2a;
+  }
   .inimark-topbar-inner {
     width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 16px;
     display: flex; align-items: center; gap: 20px; height: 100%;
@@ -162,14 +190,18 @@ function buildTopbar({ isEn }) {
     font-weight: 700; font-size: 1.05rem; color: #0a0a0a; text-decoration: none;
     letter-spacing: -0.02em;
   }
+  html[data-site-theme="dark"] .inimark-topbar-logo { color: #f0f0f0; }
   .inimark-topbar-logo img { width: 24px; height: 24px; border-radius: 6px; }
   .inimark-topbar-links { display: flex; gap: 4px; }
   .inimark-topbar-links a {
     padding: 6px 10px; border-radius: 8px; font-size: 0.9rem; font-weight: 500;
     color: #5c5c5c; text-decoration: none;
   }
+  html[data-site-theme="dark"] .inimark-topbar-links a { color: #a3a3a3; }
   .inimark-topbar-links a:hover,
   .inimark-topbar-links a.active { color: #0a0a0a; background: #e8e8e8; }
+  html[data-site-theme="dark"] .inimark-topbar-links a:hover,
+  html[data-site-theme="dark"] .inimark-topbar-links a.active { color: #f0f0f0; background: #262626; }
   .inimark-topbar-right {
     margin-left: auto; display: flex; align-items: center; gap: 10px;
   }
@@ -177,17 +209,35 @@ function buildTopbar({ isEn }) {
     display: flex; gap: 2px; font-size: 0.82rem; color: #8a8a8a;
     padding-left: 10px; border-left: 1px solid #e0e0e0;
   }
+  html[data-site-theme="dark"] .inimark-topbar-lang { color: #737373; border-left-color: #2a2a2a; }
   .inimark-topbar-lang a {
     padding: 3px 7px; border-radius: 6px; color: inherit; text-decoration: none; font-weight: 500;
   }
   .inimark-topbar-lang a.active,
   .inimark-topbar-lang a:hover { color: #0a0a0a; background: #e8e8e8; }
+  html[data-site-theme="dark"] .inimark-topbar-lang a.active,
+  html[data-site-theme="dark"] .inimark-topbar-lang a:hover { color: #f0f0f0; background: #262626; }
+  .inimark-topbar-theme {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid #e0e0e0; background: #fff;
+    display: grid; place-items: center; color: #5c5c5c; cursor: pointer; padding: 0;
+  }
+  html[data-site-theme="dark"] .inimark-topbar-theme {
+    border-color: #2a2a2a; background: #161616; color: #a3a3a3;
+  }
+  .inimark-topbar-theme:hover { color: #0a0a0a; border-color: #c8c8c8; }
+  html[data-site-theme="dark"] .inimark-topbar-theme:hover { color: #f0f0f0; border-color: #3d3d3d; }
+  .inimark-topbar-theme svg { width: 16px; height: 16px; }
   .inimark-topbar-github {
     width: 32px; height: 32px; border-radius: 50%;
     border: 1px solid #e0e0e0; background: #fff;
     display: grid; place-items: center; color: #5c5c5c;
   }
+  html[data-site-theme="dark"] .inimark-topbar-github {
+    border-color: #2a2a2a; background: #161616; color: #a3a3a3;
+  }
   .inimark-topbar-github:hover { color: #0a0a0a; border-color: #c8c8c8; }
+  html[data-site-theme="dark"] .inimark-topbar-github:hover { color: #f0f0f0; border-color: #3d3d3d; }
   .inimark-topbar-github svg { width: 16px; height: 16px; }
   body { padding-top: 56px !important; }
   .nav-toggle { top: 64px !important; }
@@ -207,23 +257,26 @@ function buildTopbar({ isEn }) {
         <a href="${zhHref}" class="${isEn ? "" : "active"}">中文</a>
         <a href="${enHref}" class="${isEn ? "active" : ""}">EN</a>
       </div>
+      <button type="button" class="inimark-topbar-theme nav-theme-btn" data-theme-toggle data-theme-pref
+        aria-label="${themeLabel}" title="${themeTitle}"
+        data-label-light="${labelLight}" data-label-dark="${labelDark}" data-label-system="${labelDark}">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </button>
       <a class="inimark-topbar-github" href="https://github.com/Dionysen/Inimark" target="_blank" rel="noopener" aria-label="GitHub">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
       </a>
     </div>
   </div>
-</nav>
-<script id="inimark-site-chrome-js">
-(function () {
-  try {
-    localStorage.setItem("theme", "light");
-    localStorage.setItem("color-scheme", "light");
-    document.documentElement.classList.remove("theme-dark", "dark");
-    document.documentElement.dataset.theme = "light";
-  } catch (_) {}
-})();
-</script>
-`;
+</nav>`;
 }
 
 function injectDocsChrome() {
@@ -240,7 +293,7 @@ function injectDocsChrome() {
       continue;
     }
     // Fresh docs build — strip prior injection if re-run without rebuild
-    html = html.replace(/<!-- inimark-site-chrome -->[\s\S]*?<script id="inimark-site-chrome-js">[\s\S]*?<\/script>\n?/g, "");
+    html = html.replace(/<!-- inimark-site-chrome -->[\s\S]*?<\/nav>\n?/g, "");
 
     const rel = relative(siteDir, file).replace(/\\/g, "/");
     const isEn = rel === "en" || rel.startsWith("en/");
@@ -254,7 +307,7 @@ function injectDocsChrome() {
     writeFileSync(file, html, "utf-8");
     injected += 1;
   }
-  console.log(`✅ Docs topbar injected into ${injected} pages (theme toggle hidden, light fixed)`);
+  console.log(`✅ Docs topbar injected into ${injected} pages (theme toggle in topbar)`);
 }
 
 injectDocsChrome();

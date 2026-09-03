@@ -9,7 +9,7 @@
 
 [中文](README_ZH.md) | English
 
-![image.png](website/assets/image-20260815-221141.png)
+![image.png](website/assets/image-20260815-171029.png)
 
 ---
 

@@ -44,6 +44,41 @@
       --ease: cubic-bezier(0.4, 0, 0.2, 1);
     }
 
+    html[data-site-theme="dark"] {
+      --ink: #0a0a0a;
+      --ink-soft: #262626;
+      --plate-top: #1c1c1c;
+      --plate: #262626;
+      --plate-mid: #303030;
+      --plate-bottom: #3a3a3a;
+      --bg: #0a0a0a;
+      --bg-alt: #111111;
+      --surface: #161616;
+      --border: #2a2a2a;
+      --border-strong: #3d3d3d;
+      --text: #f0f0f0;
+      --text-muted: #a3a3a3;
+      --text-faint: #737373;
+      --text-on-ink: #f5f5f5;
+      --focus-ring: rgba(255, 255, 255, 0.24);
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+      --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.5);
+    }
+
+    html[data-site-theme="dark"] .navbar {
+      background: rgba(10, 10, 10, 0.9);
+    }
+
+    html[data-site-theme="dark"] .hero-badge .dot,
+    html[data-site-theme="dark"] .feature-list li::before {
+      background: var(--text-muted);
+    }
+
+    html[data-site-theme="dark"] .section-link:hover,
+    html[data-site-theme="dark"] .btn-secondary:hover {
+      border-color: var(--text-muted);
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -505,7 +540,7 @@
 
     .cta .btn-primary {
       background: var(--surface);
-      color: var(--ink);
+      color: var(--text);
     }
 
     .cta .btn-primary:hover {
@@ -696,6 +731,8 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="../site-theme.css">
+  <script src="../site-theme.js"></script>
 </head>
 
 <body>
@@ -715,6 +752,20 @@
           <a href="../">中文</a>
           <a href="./" class="active">EN</a>
         </div>
+        <button type="button" class="nav-theme-btn" data-theme-toggle data-theme-pref
+          aria-label="Toggle theme" title="Dark mode"
+          data-label-light="Light mode" data-label-dark="Dark mode" data-label-system="Dark mode">
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+        </button>
         <a href="https://github.com/Dionysen/Inimark" class="nav-github" target="_blank" rel="noopener"
           aria-label="GitHub">
           <svg viewBox="0 0 24 24" fill="currentColor">
@@ -758,8 +809,9 @@
         <span>Cross-platform</span>
       </div>
     </div>
-    <div class="hero-shot">
-      <img src="../assets/image-20260815-171029.png" alt="Inimark editor" width="1920" height="1080" loading="eager" />
+    <div class="hero-shot theme-shot">
+      <img class="theme-img-light" src="../assets/image-20260815-171029.png" alt="Inimark editor" width="1920" height="1080" loading="eager" />
+      <img class="theme-img-dark" src="../assets/image-20260815-171029-dark.png" alt="Inimark editor" width="1920" height="1080" loading="eager" />
     </div>
   </section>
 
@@ -782,9 +834,9 @@
           </svg>
         </a>
       </div>
-      <div class="split-media media-frame">
-        <img src="../assets/image-20260815-171029.png" alt="Writing experience" width="1920" height="1080"
-          loading="lazy" />
+      <div class="split-media media-frame theme-shot">
+        <img class="theme-img-light" src="../assets/image-20260815-171029.png" alt="Writing experience" width="1920" height="1080" loading="lazy" />
+        <img class="theme-img-dark" src="../assets/image-20260815-171029-dark.png" alt="Writing experience" width="1920" height="1080" loading="lazy" />
       </div>
     </div>
   </section>
@@ -808,9 +860,9 @@
           </svg>
         </a>
       </div>
-      <div class="split-media media-frame">
-        <img src="../assets/image-20260815-171200.png" alt="Bidirectional links" width="1920" height="1080"
-          loading="lazy" />
+      <div class="split-media media-frame theme-shot">
+        <img class="theme-img-light" src="../assets/image-20260815-171200.png" alt="Bidirectional links" width="1920" height="1080" loading="lazy" />
+        <img class="theme-img-dark" src="../assets/image-20260815-171200-dark.png" alt="Bidirectional links" width="1920" height="1080" loading="lazy" />
       </div>
     </div>
   </section>
@@ -825,13 +877,14 @@
         <li>Mind maps: heading trees, plus list and task-list transforms</li>
       </ul>
       <div class="dual">
-        <figure class="dual-card">
-          <img src="../assets/image-20260815-171200.png" alt="Knowledge graph" width="1920" height="1080"
-            loading="lazy" />
+        <figure class="dual-card theme-shot">
+          <img class="theme-img-light" src="../assets/image-20260815-171200.png" alt="Knowledge graph" width="1920" height="1080" loading="lazy" />
+          <img class="theme-img-dark" src="../assets/image-20260815-171200-dark.png" alt="Knowledge graph" width="1920" height="1080" loading="lazy" />
           <figcaption>Knowledge graph</figcaption>
         </figure>
-        <figure class="dual-card">
-          <img src="../assets/image-20260815-171446.png" alt="Mind map" width="1920" height="1080" loading="lazy" />
+        <figure class="dual-card theme-shot">
+          <img class="theme-img-light" src="../assets/image-20260815-171446.png" alt="Mind map" width="1920" height="1080" loading="lazy" />
+          <img class="theme-img-dark" src="../assets/image-20260815-171446-dark.png" alt="Mind map" width="1920" height="1080" loading="lazy" />
           <figcaption>Mind map</figcaption>
         </figure>
       </div>
@@ -857,9 +910,9 @@
           </svg>
         </a>
       </div>
-      <div class="split-media media-frame">
-        <img src="../assets/image-20260815-171856.png" alt="Whiteboard canvas" width="1920" height="1080"
-          loading="lazy" />
+      <div class="split-media media-frame theme-shot">
+        <img class="theme-img-light" src="../assets/image-20260815-171446.png" alt="Whiteboard canvas" width="1920" height="1080" loading="lazy" />
+        <img class="theme-img-dark" src="../assets/image-20260815-171446-dark.png" alt="Whiteboard canvas" width="1920" height="1080" loading="lazy" />
       </div>
     </div>
   </section>
