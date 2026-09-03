@@ -4,8 +4,10 @@
  * 因此 html/body/#root 的全局样式必须放在这里，保证所有窗口
  * 在任何 chunk 加载完成前就有正确的背景色与重置样式。
  *
- * 窗口使用 transparent；非 macOS 由 #root 的 border-radius + overflow 裁剪圆角。
- * macOS：用 clip-path 做视觉圆角（不用 overflow，也不用原生 masksToBounds），
+ * 圆角策略：
+ * - Windows：窗口不透明 + shadow，由 Win11 DWM 裁系统原生圆角；#root 不再假圆角
+ * - Linux：透明窗口 + #root border-radius/overflow 裁剪
+ * - macOS：透明窗口 + clip-path 视觉圆角（不用 overflow，也不用原生 masksToBounds）
  * 禁止在 contenteditable 祖先上使用 overflow + border-radius（会触发 WKWebView 幽灵选区）。
  */
 
@@ -31,11 +33,17 @@ body {
 
 #root {
   height: 100%;
+  background: var(--bg-primary);
+  /* Windows：交给 DWM；默认不加 CSS 圆角 */
+  border-radius: 0;
+  overflow: hidden;
+}
+
+/* Linux：无统一 DWM 圆角，继续用透明窗口 + CSS 裁剪 */
+html.platform-linux #root {
   border-radius: 12px;
-  /* Windows/Linux：用 overflow 裁剪圆角。勿在 macOS 对编辑器祖先恢复此组合。 */
   overflow: hidden;
   overflow: clip;
-  background: var(--bg-primary);
 }
 
 /* macOS：不用 overflow 裁剪（会幽灵选区）；用 clip-path 做视觉圆角。
@@ -44,6 +52,12 @@ html.platform-macos #root {
   border-radius: 12px;
   overflow: visible;
   clip-path: inset(0 round 12px);
+}
+
+/* Windows：窗口本身不透明，body 跟主题底色，避免 DWM 边缘露白/露黑 */
+html.platform-windows,
+html.platform-windows body {
+  background: var(--bg-primary);
 }
 
 /* macOS 原生红绿灯占位（与 trafficLightPosition y=11、约 36px 顶栏对齐） */

@@ -26,13 +26,17 @@ window.addEventListener("storage", (e) => {
   }
 });
 
-// macOS Overlay 标题栏：给布局留出红绿灯空间，并隐藏自定义红黄绿按钮
-if (
-  typeof navigator !== "undefined" &&
-  (/Mac|iPhone|iPod|iPad/i.test(navigator.platform) ||
-    navigator.userAgent.includes("Mac OS"))
-) {
-  document.documentElement.classList.add("platform-macos");
+// 平台 class：驱动各端窗口圆角策略（见 global.css）
+if (typeof navigator !== "undefined") {
+  const ua = navigator.userAgent;
+  const platform = navigator.platform || "";
+  if (/Mac|iPhone|iPod|iPad/i.test(platform) || ua.includes("Mac OS")) {
+    document.documentElement.classList.add("platform-macos");
+  } else if (/Win/i.test(platform) || ua.includes("Windows")) {
+    document.documentElement.classList.add("platform-windows");
+  } else {
+    document.documentElement.classList.add("platform-linux");
+  }
 }
 
 // 开始接收 Rust boot-timing 事件（异步：不阻塞当前模块解析）
