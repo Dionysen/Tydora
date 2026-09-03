@@ -6,6 +6,7 @@
   height: 100%;
   background: var(--bg-primary);
   color: var(--text-primary);
+  font-family: var(--font-ui);
   overflow: hidden;
   /* 设置页默认禁选（标签/说明），避免点开关时误选文字 */
   user-select: none;
@@ -2621,6 +2622,7 @@
   right: auto;
   left: auto;
   z-index: 10000;
+  font-family: var(--font-ui);
 }
 
 .font-picker-search {
