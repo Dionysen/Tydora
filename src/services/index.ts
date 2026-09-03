@@ -1,6 +1,13 @@
 export { checkForUpdate, downloadAndInstall, relaunchApp, exitApp, isStoreVersion, isPortableVersion } from "./Updater";
 export type { UpdateInfo } from "./Updater";
 export {
+  useUpdateStore,
+  checkForUpdateAndStore,
+  startUpdateDownload,
+  formatUpdateProgressPercent,
+} from "./update-store";
+export type { UpdateProgress, UpdateStoreState } from "./update-store";
+export {
   loadImageSettings,
   saveImageSettings,
   saveImageToLocal,

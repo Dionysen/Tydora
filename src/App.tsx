@@ -46,12 +46,10 @@ import { emit, listen } from "@tauri-apps/api/event";
 import {
   loadImageSettings,
   type ImageSettings,
-  checkForUpdate,
-  downloadAndInstall,
-  relaunchApp,
-  exitApp,
-  isPortableVersion,
-  type UpdateInfo,
+  checkForUpdateAndStore,
+  startUpdateDownload,
+  formatUpdateProgressPercent,
+  useUpdateStore,
   useVaultWatcher,
   formatMarkdown,
   readMarkdownFormatOptions,
@@ -850,10 +848,8 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishConfigOpen, setPublishConfigOpen] = useState(false);
 
-  // 更新状态
-  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
-  const [updateDownloading, setUpdateDownloading] = useState(false);
-  const [updateProgress, setUpdateProgress] = useState<{ downloaded: number; total: number | null }>({ downloaded: 0, total: null });
+  // 更新状态（主窗口与设置窗口共享）
+  const { updateInfo, downloading: updateDownloading, progress: updateProgress } = useUpdateStore();
 
   // 文件导航历史（前进/后退）
   const [fileHistory, setFileHistory] = useState<string[]>([]);
@@ -1108,9 +1104,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   // 启动后延迟检查更新（不阻塞首屏渲染）
   useEffect(() => {
     const timer = setTimeout(() => {
-      checkForUpdate().then((info) => {
-        if (info) setUpdateInfo(info);
-      }).catch(() => {});
+      checkForUpdateAndStore().catch(() => {});
     }, 2000);
     return () => clearTimeout(timer);
   }, []);
@@ -1276,23 +1270,12 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   const handleUpdateDownload = useCallback(async () => {
     if (!updateInfo) return;
-    setUpdateDownloading(true);
-    setUpdateProgress({ downloaded: 0, total: null });
     try {
-      await downloadAndInstall((downloaded, contentLength) => {
-        setUpdateProgress({ downloaded, total: contentLength });
-      });
-      // 便携版：后台 cmd 脚本已替换 exe 并接管重启，这里只需退出
-      if (await isPortableVersion()) {
-        await exitApp();
-      } else {
-        await relaunchApp();
-      }
+      await startUpdateDownload();
     } catch (e) {
       console.error(t("settings.about.updateFailed"), e);
-      setUpdateDownloading(false);
     }
-  }, [updateInfo]);
+  }, [updateInfo, t]);
 
   // Debounced mindmap sync to avoid flooding IPC on every keystroke
   const mindmapSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3513,7 +3496,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
               {updateDownloading && (
                 <div className="update-progress">
                   <div className="update-progress-text">
-                    {t("app.update.downloading")}{updateProgress.total ? ` ${Math.round(updateProgress.downloaded / updateProgress.total * 100)}%` : ""}
+                    {t("app.update.downloading")}{formatUpdateProgressPercent(updateProgress)}
                   </div>
                   {updateProgress.total && (
                     <div className="update-progress-bar">
