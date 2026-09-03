@@ -9,7 +9,6 @@ import {
   isStoreVersion,
   useUpdateStore,
 } from "../../services";
-import { isAnalyticsEnabled, setAnalyticsEnabled } from "../../analytics";
 import appIcon from "../../assets/icon.png";
 
 export function AboutSettingsContent() {
@@ -19,8 +18,6 @@ export function AboutSettingsContent() {
   const [storeVersion, setStoreVersion] = useState(false);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [checkedLatest, setCheckedLatest] = useState(false);
-  const [analyticsEnabled, setAnalyticsState] = useState<boolean>(() => isAnalyticsEnabled());
-
   useEffect(() => {
     invoke<string>("get_app_version").then(setVersion).catch(() => setVersion(""));
     // 是否为微软商店版本：商店版检测 GitHub 更高版本，切换通道更新
@@ -72,25 +69,6 @@ export function AboutSettingsContent() {
           <span className="settings-about-value">{t("settings.about.storeVersionHint")}</span>
         </div>
       )}
-
-      <div className="settings-item-vertical">
-        <label className="settings-label">{t("settings.appearance.analytics")}</label>
-        <div className="settings-item-inline">
-          <span className="canvas-settings-row-desc">{t("settings.appearance.analyticsDesc")}</span>
-          <label className="settings-switch">
-            <input
-              type="checkbox"
-              checked={analyticsEnabled}
-              onChange={(e) => {
-                const enabled = e.target.checked;
-                setAnalyticsEnabled(enabled);
-                setAnalyticsState(enabled);
-              }}
-            />
-            <span className="settings-switch-slider" />
-          </label>
-        </div>
-      </div>
 
       <div className="settings-item">
         <label className="settings-item-label">{t("settings.about.checkUpdate")}</label>

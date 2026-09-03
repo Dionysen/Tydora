@@ -5,7 +5,6 @@ import { availableMonitors } from "@tauri-apps/api/window";
 import { clampWindowToMonitor } from "../services/windowState";
 import { useTranslation } from "react-i18next";
 import { loadImageSettings, saveImageSettings, type ImageSettings } from "../services";
-import { PublishSettings } from "../publish";
 import { loadCanvasSettings, saveCanvasSettings, type CanvasSettings } from "../Canvas/canvas-settings";
 import {
   applyFontSettings,
@@ -15,7 +14,6 @@ import {
   applyEditorSpacingFromSettings,
 } from "../utils/menuDensity";
 import { matchShortcut, loadShortcuts, getShortcutKeys } from "../Editor/shortcuts";
-import { track, trackPageview, ANALYTICS_EVENTS } from "../analytics";
 import shortcutsConfig from "../config/shortcuts.json";
 import {
   loadEditorSettings,
@@ -51,7 +49,7 @@ const SETTINGS_NAV_WIDTH_DEFAULT = 260;
 const SETTINGS_NAV_WIDTH_MIN = 180;
 const SETTINGS_NAV_WIDTH_MAX = 420;
 const SETTINGS_TABS: SettingsTab[] = [
-  "general", "editor", "markdown", "appearance", "theme", "shortcuts", "mindmap", "graph", "image", "canvas", "publish", "about",
+  "general", "editor", "markdown", "appearance", "theme", "shortcuts", "mindmap", "graph", "image", "canvas", "about",
 ];
 
 function consumeInitialSettingsTab(): SettingsTab | null {
@@ -112,19 +110,12 @@ export default function Settings() {
     };
   }, [isNavResizing]);
 
-  // 统计：设置窗口打开（所有入口最终都会挂载此窗口，窗口已打开时只聚焦不重复上报）
-  useEffect(() => {
-    track(ANALYTICS_EVENTS.SETTINGS_OPEN);
-    trackPageview("/app/settings");
-  }, []);
-
   // hide 复用后再次打开：切换到命令面板指定的 tab
   useEffect(() => {
     const win = getCurrentWebviewWindow();
     const unlisten = win.listen("settings-reactivate", () => {
       const tab = consumeInitialSettingsTab();
       if (tab) setActiveTab(tab);
-      track(ANALYTICS_EVENTS.SETTINGS_OPEN);
     });
     return () => {
       unlisten.then((fn) => fn()).catch(() => { });
@@ -436,14 +427,6 @@ export default function Settings() {
             </svg>
           ), searchTerms: ["白板", "canvas", "画布", "卡片"]
         },
-        {
-          id: "publish", label: t("settings.tabs.publish"), icon: (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 2L11 13" />
-              <path d="M22 2l-7 20-4-9-9-4 20-7z" />
-            </svg>
-          ), searchTerms: ["发布", "publish", "导出", "部署", "网站"]
-        },
       ]
     },
     {
@@ -601,9 +584,6 @@ export default function Settings() {
             )}
             {activeTab === "canvas" && (
               <CanvasSettingsContent settings={canvasSettings} onChange={setCanvasSettings} />
-            )}
-            {activeTab === "publish" && (
-              <PublishSettings />
             )}
             {activeTab === "about" && <AboutSettingsContent />}
           </main>

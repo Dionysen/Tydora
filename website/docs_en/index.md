@@ -21,7 +21,6 @@ If you're new to Inimark, we recommend reading in the following order — about 
 4. [[03-Knowledge-Management/01-Wiki-Links]] — Use `<a data-note="03-Knowledge-Management/01-Wiki-Links">03-Knowledge-Management/01-Wiki-Links</a>` to connect scattered notes into a knowledge network
 5. [[03-Knowledge-Management/04-Knowledge-Graph]] — View your knowledge universe in a force-directed graph
 6. [[08-Advanced-Features/03-Whiteboard-Canvas]] — Organize ideas, notes, and media on an infinite canvas
-7. [[08-Advanced-Features/01-Publish-Website]] — Turn your vault into a shareable static website with one click
 
 ## Documentation Map
 
@@ -103,7 +102,6 @@ Creation and distribution tools for advanced users.
 
 - [[08-Advanced-Features/02-Mind-Map]] — Interactive mind map
 - [[08-Advanced-Features/03-Whiteboard-Canvas]] — Infinite canvas creation
-- [[08-Advanced-Features/01-Publish-Website]] — One-click publish to static site
 - [[09-blog/Publish-to-Microsoft-Store]] — Full MSIX packaging and Microsoft Store listing process
 - [[09-blog/Auto-Update-Configuration]] — Set up auto-update signing (for contributors)
 

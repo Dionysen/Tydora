@@ -7,7 +7,6 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { mkdir, exists } from "@tauri-apps/plugin-fs";
 import { emit } from "@tauri-apps/api/event";
 import { clampWindowToMonitor } from "../services/windowState";
-import { track, trackPageview, ANALYTICS_EVENTS } from "../analytics";
 import { useLanguage } from "../i18n/LanguageContext";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "../i18n";
 import { SettingsSelect } from "../components/SettingsSelect";
@@ -69,11 +68,6 @@ export default function VaultManagerWindow() {
   }, []);
 
   // 统计：仓库管理窗口打开（含启动时无仓库自动打开、侧栏和命令面板入口）
-  useEffect(() => {
-    track(ANALYTICS_EVENTS.VAULT_MANAGER_OPEN);
-    trackPageview("/app/vault-manager");
-  }, []);
-
   // ── 窗口位置/大小记忆 ──
   const saveWindowStateRef = useRef<() => Promise<void>>(async () => {});
   useEffect(() => {

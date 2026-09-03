@@ -8,8 +8,6 @@ import { ReactFlowProvider } from '@xyflow/react';
 import CanvasView from './CanvasView';
 import { useCanvasStore } from './canvas-store';
 import { ConfirmDialog } from '../components';
-import { track, trackPageview, ANALYTICS_EVENTS } from '../analytics';
-
 const CANVAS_STORAGE_KEY = 'inimark-canvas-file-path';
 
 export default function CanvasWindow() {
@@ -20,12 +18,6 @@ export default function CanvasWindow() {
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   const closeConfirmOpenRef = useRef(false);
   const closeAllowRef = useRef(false);
-
-  // 统计：白板窗口打开（主窗口内嵌打开 .canvas 时由 App.tsx 上报）
-  useEffect(() => {
-    track(ANALYTICS_EVENTS.CANVAS_OPEN);
-    trackPageview("/app/canvas");
-  }, []);
 
   // 显示窗口（Rust 端以 visible(false) 创建，加载完成后才显示，避免白屏）
   useEffect(() => {

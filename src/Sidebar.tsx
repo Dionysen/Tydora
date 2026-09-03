@@ -88,7 +88,6 @@ interface SidebarProps {
   onNewWindow: (filePath: string) => void;
   onOpenInNewPanel: (filePath: string) => void;
   canOpenInNewPanel: boolean;
-  onPublish: () => void;
   onSelectVault: (index: number) => void;
   collapsed: boolean;
   refreshKey: number;
@@ -2224,13 +2223,11 @@ function VaultSwitcher({
   vaults,
   activeIndex,
   onRemove,
-  onPublish,
   onSelectVault,
 }: {
   vaults: VaultInfo[];
   activeIndex: number;
   onRemove: (index: number) => void;
-  onPublish: () => void;
   onSelectVault: (index: number) => void;
 }) {
   const { t } = useTranslation();
@@ -2369,22 +2366,6 @@ function VaultSwitcher({
             </svg>
             <span>{t("sidebar.vault.manage")}</span>
           </div>
-          {activeIndex >= 0 && (
-            <div
-              className="vault-menu-item vault-menu-manage"
-              onClick={() => {
-                setMenuOpen(false);
-                onPublish();
-              }}
-            >
-              <svg className="vault-menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                <polyline points="16 6 12 2 8 6" />
-                <line x1="12" y1="2" x2="12" y2="15" />
-              </svg>
-              <span>{t("sidebar.vault.publishWebsite")}</span>
-            </div>
-          )}
         </div>
       )}
 
@@ -2418,7 +2399,6 @@ export default function Sidebar({
   onNewWindow,
   onOpenInNewPanel,
   canOpenInNewPanel,
-  onPublish,
   onSelectVault,
   collapsed,
   refreshKey,
@@ -2638,7 +2618,6 @@ export default function Sidebar({
         vaults={vaults}
         activeIndex={activeVaultIndex}
         onRemove={onRemoveVault}
-        onPublish={onPublish}
         onSelectVault={onSelectVault}
       />
     ) : null;
