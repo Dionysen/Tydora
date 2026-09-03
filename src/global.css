@@ -221,6 +221,58 @@ html.platform-windows .settings-titlebar-controls .settings-titlebar-close:activ
   color: #ffffff;
 }
 
+/* ========== 全局 Tooltip（与菜单/弹层一致的主题样式） ========== */
+#app-tooltip {
+  position: fixed;
+  z-index: 100000;
+  display: none;
+  max-width: 320px;
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  word-break: break-word;
+}
+
+/* data-tooltip 伪元素 tooltip（白板工具栏、右键菜单图标等） */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  transition-delay: 0s;
+  z-index: 10001;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+[data-tooltip]:hover::after {
+  opacity: 1;
+  transition-delay: 0.45s;
+}
+
 /* ========== 滚动条（全局：所有窗口、portal 下拉、侧栏、编辑器共用主题变量） ========== */
 ::-webkit-scrollbar {
   width: var(--scrollbar-size, 8px);

@@ -15,10 +15,12 @@ import "./themes.css";
 import "./global.css";
 import { applyMenuDensityFromStorage } from "./utils/menuDensity";
 import { applyFontSettingsFromStorage } from "./utils/systemFonts";
+import { initGlobalTooltip } from "./utils/globalTooltip";
 
 // 尽早应用菜单密度 / 字体，保证各独立窗口（设置/白板/图谱等）启动即生效
 applyMenuDensityFromStorage();
 applyFontSettingsFromStorage();
+initGlobalTooltip();
 window.addEventListener("storage", (e) => {
   if (e.key === "inimark-general-settings") {
     applyMenuDensityFromStorage();

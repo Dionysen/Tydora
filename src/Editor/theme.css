@@ -2227,22 +2227,25 @@ html[data-code-block-toolbar="classic"] .code-block-content {
   left: 50%;
   transform: translateX(-50%);
   margin-bottom: 6px;
-  padding: 5px 10px;
-  background: rgba(0, 0, 0, 0.8);
-  color: #fff;
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 500;
-  border-radius: 4px;
+  border-radius: 8px;
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.15s;
+  transition-delay: 0s;
   z-index: 10001;
-  letter-spacing: 0.3px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }
 
 .context-menu-icon-btn-wrapper:hover::after {
   opacity: 1;
+  transition-delay: 0.45s;
 }
 
 .context-menu-item-wrapper {
