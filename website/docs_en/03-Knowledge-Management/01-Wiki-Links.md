@@ -5,7 +5,7 @@ tags: [knowledge]
 
 # Wiki Links
 
-Wiki links are the core of Inimark's knowledge management: using `[[Note Name]]` you can establish **bidirectional links** between notes, weaving scattered notes into a network. The syntax is consistent with Obsidian.
+Wiki links are the core of Inimark's knowledge management: using `[[Note Name]]` you establish **bidirectional links** between notes, weaving scattered ideas into a network.
 
 > [!NOTE]
 > Typing `[[` triggers autocomplete, and you can filter target notes by entering keywords. Link resolution relies on [[03-Knowledge-Management/05-Link-Index]].

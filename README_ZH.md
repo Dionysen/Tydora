@@ -13,55 +13,37 @@
 
 ---
 
-我曾长久地在 **Typora** 里安放专注，在 **Obsidian** 的图谱前整理思绪。但心底始终觉得，还缺少些什么——
-少一些指尖触及思想时的<mark>绝对顺滑</mark>，少一些让知识直接铺展成画布的<mark>自由</mark>。
+**Inimark** — 无限书写，思维无界。
 
-于是，我决定自己写一个。它的名字叫 **Inimark**。
+它不试图成为什么都有的工具箱，只是一张安静的书桌：先把字写好，再在需要时，让想法彼此相连、脉络显现。
 
-这是我用无数个安静的深夜独自打磨出的 **Markdown 编辑器**，有平替 **Typora** 的底气，也有叫板 **Obsidian** 的野心。它不只是工具，更像是一张递给<mark>同路人的书桌</mark>——**干净、安静，却暗藏山河**。
+🔗 [官网与文档](https://zuorn.github.io/Inimark/)
 
 ---
 
-## **✒️书写，应如呼吸**
+## 专注编辑
 
-<mark>极致的书写体验</mark>，所见即所得，界面<mark>纯净</mark>到只剩文字本身。没有一丝多余的**干扰**，光标所至，**思绪**便直接落在屏幕上。我把自己对“<mark>写作手感</mark>”的所有**执念**都写了进去，让工具彻底**隐退**，只留你与<mark>思想的河流</mark>。
+所见即所得，源码随切随用。界面干净到只剩文字——工具退到幕后，光标所至，思绪便落在纸上。
 
 ![image.png](website/assets/image-20260815-171029.png)
 
 ---
 
-## **🪐知识不是孤岛，是星座**
+## 专注思维
 
-笔记之间生成**关系图谱**，那是<mark>思想的引力线</mark>。而**无限白板画布**，则允许你亲手牵引这些<mark>星辰</mark>，<mark>自由连线</mark>、<mark>重组逻辑</mark>。比图谱更进一步 —— 在这里，<mark>你的认知可以不设边界</mark>。
+笔记可以彼此相连；需要整理时，展开图谱与导图；思绪铺不开时，还有无限白板。它们是思考的延伸，而不是另一套臃肿的系统。
 
 ![image.png](website/assets/image-20260815-171200.png)
-
----
-
-## **🌳从线到树，一步见林**
-
-一键将文档转为**思维导图**。线性文字倏然展开成枝干分明的**结构**，层级、脉络一览无余。写大纲、拆书、复盘思考，无需切换任何工具，<mark>心流</mark>始终不断。你看见的，即是<mark>思维本身的形状</mark>**。**
 
 ![image.png](website/assets/image-20260815-171446.png)
 
 ---
 
-## **📚一张书桌，静候同路人**
-
-它是我交出的答案，也是递给同路人的一份邀请。
-如果你也在寻找更懂你的<mark>书写伴侣</mark>，不妨来 **Inimark** 坐坐。
-
-🔗 [https://zuorn.github.io/Inimark](https://zuorn.github.io/Inimark)
-
-有任何想让它做到的事，请告诉我——我继续打磨，直到它成为我们<mark>心中理想的样子</mark>。
-
----
-
 ## 快速开始
 
-1. 请从 [Release ](https://github.com/zuorn/Inimark/releases)下载并安装Inimark
+1. 从 [Releases](https://github.com/zuorn/Inimark/releases) 下载并安装 Inimark
 
-## **从源码运行**
+## 从源码运行
 
 ```bash
 git clone https://github.com/zuorn/Inimark.git
@@ -79,7 +61,7 @@ npm run tauri build
 | 前端   | React 19 + TypeScript + Vite 6                              |
 | 编辑器 | TipTap 3.x (WYSIWYG) + CodeMirror 6 (源码)                  |
 | 后端   | Rust (Tauri v2)                                             |
-| 可视化 | D3.js (图谱) + markmap (思维导图) + React Flow (画布)       |
+| 可视化 | D3.js (图谱) + markmap (思维导图) + React Flow (白板)       |
 | 插件   | tauri-plugin-fs / dialog / window-state / updater / process |
 
 ## 贡献
@@ -89,7 +71,6 @@ npm run tauri build
 ## 许可证
 
 本项目使用 [Apache License 2.0](LICENSE) 许可证。
-
 
 ## Star History
 
