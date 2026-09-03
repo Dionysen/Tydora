@@ -139,3 +139,109 @@ html.platform-macos .graph-window-titlebar,
 html.platform-macos .canvas-window-titlebar {
   padding-left: var(--mac-traffic-lights-width);
 }
+
+/* ========== 滚动条（全局：所有窗口、portal 下拉、侧栏、编辑器共用主题变量） ========== */
+::-webkit-scrollbar {
+  width: var(--scrollbar-size, 8px);
+  height: var(--scrollbar-size, 8px);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, transparent);
+}
+
+::-webkit-scrollbar-thumb {
+  /* 极低透明度保证滚动条槽可命中；真正显色由 :hover / [data-scrolling] 控制 */
+  background-color: color-mix(in srgb, var(--scrollbar-thumb, var(--border)) 1%, transparent);
+  border-radius: var(--radius-scrollbar, 4px);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  transition: background-color 0.15s ease;
+}
+
+/* 滚动中，或鼠标悬停在可滚动容器上时显示滑块 */
+[data-scrolling]::-webkit-scrollbar-thumb,
+*:hover::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb, var(--border));
+  transition: background-color 0s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover, var(--text-secondary));
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+*:hover,
+[data-scrolling] {
+  scrollbar-color: var(--scrollbar-thumb, var(--border)) var(--scrollbar-track, transparent);
+}
+
+/* WebKit 对部分编辑器/下拉列表不套用全局伪元素，需在同一元素上重复声明 */
+.tiptap-editor::-webkit-scrollbar,
+.cm-editor .cm-scroller::-webkit-scrollbar,
+.font-picker-list::-webkit-scrollbar,
+.settings-select-list::-webkit-scrollbar {
+  width: var(--scrollbar-size, 8px);
+  height: var(--scrollbar-size, 8px);
+}
+
+.tiptap-editor::-webkit-scrollbar-track,
+.cm-editor .cm-scroller::-webkit-scrollbar-track,
+.font-picker-list::-webkit-scrollbar-track,
+.settings-select-list::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, transparent);
+}
+
+.tiptap-editor::-webkit-scrollbar-thumb,
+.cm-editor .cm-scroller::-webkit-scrollbar-thumb,
+.font-picker-list::-webkit-scrollbar-thumb,
+.settings-select-list::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--scrollbar-thumb, var(--border)) 1%, transparent);
+  border-radius: var(--radius-scrollbar, 4px);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  transition: background-color 0.15s ease;
+}
+
+.tiptap-editor[data-scrolling]::-webkit-scrollbar-thumb,
+.tiptap-editor:hover::-webkit-scrollbar-thumb,
+.cm-editor .cm-scroller[data-scrolling]::-webkit-scrollbar-thumb,
+.cm-editor .cm-scroller:hover::-webkit-scrollbar-thumb,
+.font-picker-list[data-scrolling]::-webkit-scrollbar-thumb,
+.font-picker-list:hover::-webkit-scrollbar-thumb,
+.settings-select-list[data-scrolling]::-webkit-scrollbar-thumb,
+.settings-select-list:hover::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb, var(--border));
+  transition: background-color 0s;
+}
+
+.tiptap-editor::-webkit-scrollbar-thumb:hover,
+.cm-editor .cm-scroller::-webkit-scrollbar-thumb:hover,
+.font-picker-list::-webkit-scrollbar-thumb:hover,
+.settings-select-list::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover, var(--text-secondary));
+}
+
+.tiptap-editor,
+.cm-editor .cm-scroller,
+.font-picker-list,
+.settings-select-list {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.tiptap-editor:hover,
+.tiptap-editor[data-scrolling],
+.cm-editor .cm-scroller:hover,
+.cm-editor .cm-scroller[data-scrolling],
+.font-picker-list:hover,
+.font-picker-list[data-scrolling],
+.settings-select-list:hover,
+.settings-select-list[data-scrolling] {
+  scrollbar-color: var(--scrollbar-thumb, var(--border)) var(--scrollbar-track, transparent);
+}

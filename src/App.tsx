@@ -640,34 +640,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
     };
   }, []);
 
-  // 滚动条自动隐藏：滚动时立即显示，停止滚动 400ms 后快速隐藏
-  // 将 data-scrolling 设置在具体的滚动容器上，避免侧栏和编辑器滚动条互相干扰
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    let currentTarget: HTMLElement | null = null;
-
-    const handleScroll = (e: Event) => {
-      const target = e.target as HTMLElement;
-      // 如果滚动目标变了，清除旧目标的属性
-      if (currentTarget && currentTarget !== target) {
-        currentTarget.removeAttribute('data-scrolling');
-      }
-      currentTarget = target;
-      target.setAttribute('data-scrolling', '');
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        if (currentTarget) {
-          currentTarget.removeAttribute('data-scrolling');
-          currentTarget = null;
-        }
-      }, 400);
-    };
-    document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
-    return () => {
-      document.removeEventListener('scroll', handleScroll, { capture: true });
-      clearTimeout(timer);
-    };
-  }, []);
+  // 滚动条 data-scrolling 由 main.tsx 全局监听（所有窗口共用）
 
   // 监听编辑器设置变化（设置窗口保存后实时生效）
   useEffect(() => {
