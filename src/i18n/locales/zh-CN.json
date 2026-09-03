@@ -105,7 +105,7 @@
         "controlTitle": "5. 如何关闭",
         "controlBody": "你可以随时在「设置 → 关于 → 陪你走得更远」中关闭统计。关闭后应用将不再发送任何数据，但已产生的历史统计数据不会追溯删除。",
         "contactTitle": "6. 联系我们",
-        "contactBody": "如果你对本隐私策略有任何疑问，欢迎写信到 [zuorn@qq.com](mailto:zuorn@qq.com)，或在 [GitHub 仓库 zuorn/Inimark](https://github.com/zuorn/Inimark) 中提出 issue。"
+        "contactBody": "如果你对本隐私策略有任何疑问，欢迎在 [GitHub 仓库 Dionysen/Inimark](https://github.com/Dionysen/Inimark) 中提出 issue。"
       }
     },
     "tabs": {

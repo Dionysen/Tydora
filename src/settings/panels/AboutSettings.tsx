@@ -138,7 +138,7 @@ export function AboutSettingsContent() {
         <span
           className="settings-link"
           style={{ cursor: "pointer" }}
-          onClick={() => invoke("open_url", { url: "https://github.com/zuorn/Inimark" })}
+          onClick={() => invoke("open_url", { url: "https://github.com/Dionysen/Inimark" })}
         >
           {t("settings.about.visitRepo")}
         </span>
@@ -149,7 +149,7 @@ export function AboutSettingsContent() {
         <span
           className="settings-link"
           style={{ cursor: "pointer" }}
-          onClick={() => invoke("open_url", { url: "https://github.com/zuorn/Inimark/issues" })}
+          onClick={() => invoke("open_url", { url: "https://github.com/Dionysen/Inimark/issues" })}
         >
           Report an Issue
         </span>

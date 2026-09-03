@@ -1386,7 +1386,7 @@ fn github_http_client() -> Result<reqwest::Client, String> {
 async fn check_github_update() -> Result<Option<GithubUpdateInfo>, String> {
     let client = github_http_client()?;
     let resp = client
-        .get("https://api.github.com/repos/zuorn/Inimark/releases/latest")
+        .get("https://api.github.com/repos/Dionysen/Inimark/releases/latest")
         .send()
         .await
         .map_err(|e| format!("请求 GitHub 失败: {e}"))?;
@@ -1566,7 +1566,7 @@ fn is_portable_version() -> bool {
 async fn check_portable_update() -> Result<Option<GithubUpdateInfo>, String> {
     let client = github_http_client()?;
     let resp = client
-        .get("https://api.github.com/repos/zuorn/Inimark/releases/latest")
+        .get("https://api.github.com/repos/Dionysen/Inimark/releases/latest")
         .send()
         .await
         .map_err(|e| format!("请求 GitHub 失败: {e}"))?;
@@ -1605,7 +1605,7 @@ async fn check_portable_update() -> Result<Option<GithubUpdateInfo>, String> {
         Some(a) => a.browser_download_url.clone(),
         // 兜底：按命名规则构造下载地址
         None => format!(
-            "https://github.com/zuorn/Inimark/releases/download/v{version}/Inimark_{version}_x64_portable.zip"
+            "https://github.com/Dionysen/Inimark/releases/download/v{version}/Inimark_{version}_x64_portable.zip"
         ),
     };
 
