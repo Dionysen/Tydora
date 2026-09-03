@@ -492,6 +492,9 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         if (typeof settings.autoHideTopbarOnCollapse === 'boolean') {
           setAutoHideTopbarOnCollapse(settings.autoHideTopbarOnCollapse);
         }
+        if (typeof settings.autoHideVaultFooter === 'boolean') {
+          setAutoHideVaultFooter(settings.autoHideVaultFooter);
+        }
         if (typeof settings.typewriterMode === 'boolean') {
           setTypewriterMode(settings.typewriterMode);
         }
@@ -720,6 +723,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
   const [hasExternalFile, setHasExternalFile] = useState(false);
   const [autoHideTopbar, setAutoHideTopbar] = useState(() => s.autoHideTopbar ?? true);
   const [autoHideTopbarOnCollapse, setAutoHideTopbarOnCollapse] = useState(() => s.autoHideTopbarOnCollapse ?? true);
+  const [autoHideVaultFooter, setAutoHideVaultFooter] = useState(() => s.autoHideVaultFooter ?? true);
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     try {
       const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
@@ -3471,6 +3475,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           onCloseOpenFile={closeOpenFile}
           layout={leftLayout}
           onLayoutChange={setLeftLayout}
+          autoHideVaultFooter={autoHideVaultFooter}
         />
 
         {/* 编辑区域 */}

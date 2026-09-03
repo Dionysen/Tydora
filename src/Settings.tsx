@@ -103,6 +103,8 @@ interface GeneralSettings {
   autoSave: boolean;
   autoHideTopbar: boolean;
   autoHideTopbarOnCollapse: boolean;
+  /** 侧栏底部仓库切换条是否在鼠标移出时自动隐藏 */
+  autoHideVaultFooter: boolean;
   previewMaxWidth: number;
   typewriterMode: boolean;
   lineHeight: number;
@@ -134,6 +136,7 @@ const DEFAULT_GENERAL: GeneralSettings = {
   autoSave: true,
   autoHideTopbar: true,
   autoHideTopbarOnCollapse: true,
+  autoHideVaultFooter: true,
   previewMaxWidth: 800,
   typewriterMode: false,
   lineHeight: 1.6,
@@ -693,6 +696,20 @@ function AppearanceSettingsContent({
 
       <div className="settings-section-title">{t("settings.appearance.groupTitleSidebar")}</div>
       <div className="canvas-settings-card">
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.autoHideVaultFooter")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.autoHideVaultFooterDesc")}</span>
+          </div>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={settings.autoHideVaultFooter}
+              onChange={(e) => onChange({ ...settings, autoHideVaultFooter: e.target.checked })}
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
             <span className="canvas-settings-row-title">{t("settings.appearance.expandOutlineOnOpen")}</span>

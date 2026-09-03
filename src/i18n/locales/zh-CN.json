@@ -69,6 +69,8 @@
       "autoHideTopbarDesc": "开启后，侧栏展开时顶部栏也会自动隐藏，鼠标悬停顶部边缘可临时显示。",
       "autoHideTopbarOnCollapse": "折叠侧栏时隐藏顶部栏",
       "autoHideTopbarOnCollapseDesc": "开启后，折叠侧栏时顶部栏也会自动隐藏。关闭后，折叠侧栏时顶部栏保持可见。",
+      "autoHideVaultFooter": "自动隐藏仓库栏",
+      "autoHideVaultFooterDesc": "开启后，侧栏底部的仓库切换条仅在鼠标悬停侧栏时显示；关闭后始终可见。",
       "expandOutlineOnOpen": "启动时展开大纲",
       "expandOutlineOnOpenDesc": "开启后，双击 .md 文件用本应用打开时，自动打开大纲所在侧栏并切换到大纲视图。关闭后保持折叠侧栏的原行为。",
       "sidebarPanels": "侧栏面板",

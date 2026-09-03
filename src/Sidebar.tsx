@@ -102,6 +102,8 @@ interface SidebarProps {
   onCloseOpenFile: (path: string) => void;
   layout: ColumnLayout;
   onLayoutChange: (layout: ColumnLayout) => void;
+  /** 侧栏底部仓库切换条是否自动隐藏（仅左栏） */
+  autoHideVaultFooter?: boolean;
 }
 
 interface ContextMenuItem {
@@ -2430,6 +2432,7 @@ export default function Sidebar({
   onCloseOpenFile,
   layout,
   onLayoutChange,
+  autoHideVaultFooter = true,
 }: SidebarProps) {
   bootStart("sidebar_component_render");
   bootStamp("sidebar_component_entered");
@@ -2648,7 +2651,11 @@ export default function Sidebar({
       collapsed={collapsed}
       width={width}
       onWidthChange={onWidthChange}
-      className={side === "left" ? "sidebar--with-footer" : undefined}
+      className={
+        side === "left"
+          ? `sidebar--with-footer${!autoHideVaultFooter ? " sidebar--vault-footer-pinned" : ""}`
+          : undefined
+      }
     >
       <SidebarPanelHost
         layout={layout}

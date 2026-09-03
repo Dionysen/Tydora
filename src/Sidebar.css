@@ -377,6 +377,12 @@ html:not(.platform-macos) .sidebar-slot--no-tabs .sidebar-slot-body {
   pointer-events: auto;
 }
 
+/* 关闭「自动隐藏仓库栏」时始终显示 */
+.sidebar--vault-footer-pinned .sidebar-footer {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* 没有打开过仓库时的按钮 */
 .vault-open-btn {
   flex: 1;
