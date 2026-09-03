@@ -11,7 +11,7 @@ const sharp = require('sharp');
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const sourcePath = path.join(__dirname, '../src/assets/icon.png');
 const iconsDir = path.join(__dirname, '../src-tauri/icons');
-const publicIconPath = path.join(__dirname, '../public/icon.png');
+const publicIconPath = path.join(__dirname, '../src/public/icon.png');
 
 // macOS Dock: full-bleed icons look oversized next to system apps.
 const DOCK_OPTICAL_SCALE = 0.82;
