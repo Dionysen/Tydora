@@ -46,14 +46,6 @@ Turn any document into a **mind map** with one click. Linear text instantly unfo
 
 ---
 
-## **🌸 Let Your Knowledge Garden Bloom Quietly on the Web**
-
-**Publish your local knowledge repository as a static website with one click.** Blogs, documentation, personal wikis. Sharing knowledge has finally become <mark>clean and dignified</mark>.
-
-![image.png](website/assets/image-20260815-172124.png)
-
----
-
 ## **📚 A Desk Awaiting Fellow Travelers**
 
 It is the answer I offer — and an invitation to fellow travelers.

@@ -3,7 +3,7 @@ title: About Inimark
 tags: [getting-started]
 ---
 
-1. About Inimark
+# About Inimark
 
 Inimark is a modern desktop Markdown editor built with Tauri v2 + React 19. It supports WYSIWYG & source dual-mode editing, WikiLink bidirectional links, knowledge graph, mind maps, and a whiteboard canvas. The name comes from *Type/Typography* and the Ancient Greek *δῶρον* (gift), meaning "gift at your fingertips."
 
@@ -25,17 +25,17 @@ Inimark supports automatic updates: on startup, it checks for new versions in th
 
 Manual check steps:
 
-1. Open Settings (press `Ctrl+,`).
+1. Open Settings (press`Ctrl+,`).
 2. Switch to the "About" tab.
 3. Click "Check for Updates."
 
-> [!TIP]Automatic updates rely on signed files (.sig and latest.json) on GitHub Releases. See  for contributor setup details.
+> [!TIP]Automatic updates rely on signed files (.sig and latest.json) on GitHub Releases. See for contributor setup details.
 
 ## Feature Overview
 
-- **Dual-Mode Editing**: WYSIWYG (IR) + Source Mode (SV), toggle with `Ctrl+/`
+- **Dual-Mode Editing**: WYSIWYG (IR) + Source Mode (SV), toggle with`Ctrl+/`
 - **Multi-Vault Management**: Folder-based vaults with drag-and-drop file tree
-- **WikiLink Bidirectional Links**: `<a data-note="Note Name">Note Name</a>` syntax, autocomplete + backlinks panel
+- **WikiLink Bidirectional Links**:`<a data-note="Note Name">Note Name</a>` syntax, autocomplete + backlinks panel
 - **Knowledge Graph**: D3.js force-directed graph visualizing note relationships
 - **Mind Map**: Auto-generated from Markdown heading hierarchy, powered by markmap
 - **Whiteboard Canvas**: Infinite React Flow canvas with text / note / image / media / URL / group nodes
@@ -43,7 +43,6 @@ Manual check steps:
 - **Mermaid Diagrams**: Flowcharts, sequence diagrams, Gantt charts — live rendered
 - **Math Formulas**: KaTeX / MathJax dual engine support
 - **Frontmatter Properties Panel**: YAML metadata management
-- **One-Click Publish**: Publish your vault as a static website with built-in preview server
 - **Theme System**: 9 built-in themes + custom/Typora theme import
 - **Code Highlighting**: 11 highlight themes, 36 languages supported
 - **Customizable Shortcuts**: 40+ keyboard shortcuts, all rebindable in settings

@@ -5,7 +5,7 @@ tags: [编辑器]
 
 # Frontmatter（元数据）
 
-Frontmatter 是写在 Markdown 文件**最开头**的一段 YAML 元数据，用 `---` 包裹。它不影响正文显示，却能为笔记添加标题、标签、日期、发布状态等结构化信息。
+Frontmatter 是写在 Markdown 文件**最开头**的一段 YAML 元数据，用 `---` 包裹。它不影响正文显示，却能为笔记添加标题、标签、日期等结构化信息。
 
 > [!NOTE]Inimark 提供专用的 Frontmatter 属性面板，可在编辑器顶部查看与复制元数据，无需切换到源码也能管理。
 
@@ -30,9 +30,8 @@ date: 2024-01-01
 | `title` | string | 文档标题（覆盖文件名显示） |
 | `tags` | string\[\] | 标签列表，如 `[读书, 技术]` |
 | `date` | string | 创建日期，建议 `YYYY-MM-DD` |
-| `publish` | string | 发布状态；`public` 表示允许在「仅公开笔记」模式下发布 |
 | `author` | string | 作者 |
-| `description` | string | 文档描述（用于发布站点的 SEO） |
+| `description` | string | 文档描述 |
 
 > [!TIP]标签会参与 Inimark 的标签索引，可在侧栏按标签筛选笔记。
 
@@ -43,22 +42,6 @@ Inimark 在编辑器顶部提供可折叠的 Frontmatter 属性面板：
 - **可折叠**：点击展开 / 收起，平时不占用写作空间
 - **排序显示**：常用属性（`title`、`tags`、`date` 等）优先展示
 - **一键复制**：复制完整的 YAML 块到剪贴板，方便粘贴到其他文件
-
-## 发布控制
-
-Frontmatter 中的 `publish` 属性决定笔记是否参与「仅公开笔记」发布模式：
-
-```yaml
----
-title: 公开笔记
-publish: public
----
-```
-
-- 设为 `publish: public` → 在「仅公开笔记」模式下会被包含
-- 不写或写其他值 → 仅「完整发布」模式才会包含
-
-> 发布模式差异详见 [[08-高级功能/01-发布网站]]。
 
 ## 编写规范
 
@@ -73,4 +56,3 @@ publish: public
 
 - [[02-编辑器/02-Markdown语法]] — 完整语法支持
 - [[02-编辑器/01-编辑模式]] — 编辑模式介绍
-- [[08-高级功能/01-发布网站]] — 发布与 `publish` 属性

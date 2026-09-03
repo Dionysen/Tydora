@@ -5,7 +5,7 @@ tags: [Editor]
 
 # Frontmatter (Metadata)
 
-Frontmatter is a YAML metadata block placed at the **very beginning** of a Markdown file, wrapped with `---`. It does not affect the display of the body text, but adds structured information such as title, tags, date, and publish status to your notes.
+Frontmatter is a YAML metadata block placed at the **very beginning** of a Markdown file, wrapped with `---`. It does not affect the display of the body text, but adds structured information such as title, tags, and date to your notes.
 
 > [!NOTE]
 > Inimark provides a dedicated Frontmatter property panel at the top of the editor for viewing and copying metadata, allowing management without switching to Source View.
@@ -31,9 +31,8 @@ The body content follows after.
 | `title` | string | Document title (overrides the filename display) |
 | `tags` | string\[\] | Tag list, e.g., `[reading, tech]` |
 | `date` | string | Creation date, recommended format `YYYY-MM-DD` |
-| `publish` | string | Publish status; `public` means the note is included in "Public Notes Only" publish mode |
 | `author` | string | Author |
-| `description` | string | Document description (used for SEO on published sites) |
+| `description` | string | Document description |
 
 > [!TIP]
 > Tags participate in Inimark's tag indexing; you can filter notes by tag in the sidebar.
@@ -45,22 +44,6 @@ Inimark provides a collapsible Frontmatter property panel at the top of the edit
 - **Collapsible**: Click to expand/collapse, taking no writing space when not in use
 - **Sorted Display**: Common properties (`title`, `tags`, `date`, etc.) are shown with priority
 - **One-click Copy**: Copy the complete YAML block to the clipboard for easy pasting into other files
-
-## Publish Control
-
-The `publish` property in Frontmatter determines whether a note participates in the "Public Notes Only" publish mode:
-
-```yaml
----
-title: Public Note
-publish: public
----
-```
-
-- Set `publish: public` → Included in "Public Notes Only" mode
-- Not set or set to other values → Included only in "Full Publish" mode
-
-> See [[08-Advanced-Features/01-Publish-Website]] for differences between publish modes.
 
 ## Writing Guidelines
 
@@ -76,4 +59,3 @@ publish: public
 
 - [[02-Editor/02-Markdown-Syntax]] — Complete syntax support
 - [[02-Editor/01-Editing-Modes]] — Editing mode introduction
-- [[08-Advanced-Features/01-Publish-Website]] — Publishing and the `publish` property

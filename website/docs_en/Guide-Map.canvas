@@ -53,15 +53,6 @@
       "width": 625,
       "height": 425,
       "file": "docs_en/08-Advanced-Features/03-Whiteboard-Canvas.md"
-    },
-    {
-      "id": "node-1786179456858-lkxrwd",
-      "type": "file",
-      "x": -255,
-      "y": 1575,
-      "width": 595,
-      "height": 425,
-      "file": "docs_en/08-Advanced-Features/01-Publish-Website.md"
     }
   ],
   "edges": [
@@ -107,15 +98,6 @@
       "fromSide": "bottom",
       "fromEnd": "none",
       "toNode": "node-1786179348688-shod9g",
-      "toSide": "top",
-      "toEnd": "arrow"
-    },
-    {
-      "id": "edge-1786179753968-2jimpt",
-      "fromNode": "node-1786179290090-x8wtus",
-      "fromSide": "bottom",
-      "fromEnd": "none",
-      "toNode": "node-1786179456858-lkxrwd",
       "toSide": "top",
       "toEnd": "arrow"
     },

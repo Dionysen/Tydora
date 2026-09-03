@@ -98,7 +98,7 @@ Customize every aspect of Inimark, and check the keyboard shortcut reference.
 
 ### 8. Advanced Features
 
-Creation and distribution tools for advanced users.
+Creation tools for advanced users.
 
 - [[08-Advanced-Features/02-Mind-Map]] — Interactive mind map
 - [[08-Advanced-Features/03-Whiteboard-Canvas]] — Infinite canvas creation
