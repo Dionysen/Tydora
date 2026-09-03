@@ -1,0 +1,6 @@
+{
+  "$schema": "./docs-theme.config.schema.md",
+  "light": "white",
+  "dark": "modern-dark",
+  "themePack": null
+}

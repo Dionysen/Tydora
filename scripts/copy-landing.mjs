@@ -16,7 +16,17 @@ import {
 import { resolve, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { spawnSync } from "node:child_process";
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const root = resolve(__dirname, "..");
+
+// Regenerate docs theme CSS from website/docs-theme.config.json
+spawnSync("node", [resolve(__dirname, "generate-docs-theme.mjs")], {
+  cwd: root,
+  stdio: "inherit",
+});
+
 const siteDir = resolve(__dirname, "../website/site");
 const landingDir = resolve(__dirname, "../website/landing");
 const assetsSrc = resolve(__dirname, "../website/assets");
@@ -30,7 +40,7 @@ const base = SKIP_PREFIX ? "/" : BASE_HREF.endsWith("/") ? BASE_HREF : `${BASE_H
 mkdirSync(siteDir, { recursive: true });
 
 // Copy shared site theme assets (landing + docs)
-for (const name of ["site-theme.css", "site-theme.js", "site-topbar.css"]) {
+for (const name of ["site-theme.css", "site-theme.js", "site-topbar.css", "site-docs-theme.css"]) {
   const src = resolve(landingDir, name);
   if (!existsSync(src)) continue;
   try {
@@ -151,6 +161,7 @@ function buildTopbar({ isEn }) {
   const zhHref = base;
   const enHref = `${base}en/`;
   const iconHref = `${base}icon.png`;
+  const docsThemeCssHref = `${base}site-docs-theme.css`;
   const topbarCssHref = `${base}site-topbar.css`;
   const themeCssHref = `${base}site-theme.css`;
   const themeJsHref = `${base}site-theme.js`;
@@ -169,6 +180,7 @@ function buildTopbar({ isEn }) {
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="${topbarCssHref}">
 <link rel="stylesheet" href="${themeCssHref}">
+<link rel="stylesheet" href="${docsThemeCssHref}">
 <script src="${themeJsHref}"></script>
 <style id="inimark-site-chrome-css">
   app-theme-toggle, .theme-toggle { display: none !important; }

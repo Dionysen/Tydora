@@ -16,6 +16,8 @@
     "build:msix": "powershell -ExecutionPolicy Bypass -File scripts/build-msix.ps1",
     "sync-version": "node scripts/sync-version.mjs",
     "replace-icon": "node scripts/replace-icon.js",
+    "generate:docs-theme": "node scripts/generate-docs-theme.mjs",
+    "sync-theme-colors": "node scripts/sync-builtin-theme-colors.mjs",
     "docs:build": "node scripts/build-docs.mjs",
     "deploy:edgeone": "node scripts/deploy-edgeone.mjs",
     "docs:serve": "node scripts/docs-serve.mjs",
