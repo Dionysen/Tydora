@@ -140,6 +140,87 @@ html.platform-macos .canvas-window-titlebar {
   padding-left: var(--mac-traffic-lights-width);
 }
 
+/* Windows 11 原生风格窗口控制按钮（矩形、贴右、无圆角） */
+html.platform-windows {
+  --win-caption-width: 46px;
+  --win-caption-height: 36px;
+  --win-caption-hover: color-mix(in srgb, var(--text-primary) 10%, transparent);
+  --win-caption-close-hover: #e81123;
+}
+
+html.platform-windows .editor-topbar,
+html.platform-windows .graph-window-titlebar,
+html.platform-windows .mindmap-window-titlebar,
+html.platform-windows .canvas-window-titlebar,
+html.platform-windows .vault-manager-titlebar,
+html.platform-windows .settings-main-topbar {
+  padding-right: 0;
+}
+
+html.platform-windows .window-caption-controls,
+html.platform-windows .graph-window-controls,
+html.platform-windows .vault-manager-window-controls {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  height: var(--win-caption-height);
+  flex-shrink: 0;
+}
+
+html.platform-windows .window-caption-controls .window-control-btn,
+html.platform-windows .graph-window-controls .graph-window-btn,
+html.platform-windows .vault-manager-window-controls .vault-manager-window-btn,
+html.platform-windows .canvas-window-controls > .canvas-window-btn:nth-last-child(-n+3),
+html.platform-windows .mindmap-window-controls > .mindmap-window-btn:nth-last-child(-n+3),
+html.platform-windows .settings-titlebar-controls .settings-titlebar-btn {
+  width: var(--win-caption-width);
+  height: var(--win-caption-height);
+  border-radius: 0;
+  padding: 0;
+  transform: none;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+html.platform-windows .window-caption-controls .window-control-btn:hover,
+html.platform-windows .graph-window-controls .graph-window-btn:hover,
+html.platform-windows .vault-manager-window-controls .vault-manager-window-btn:hover,
+html.platform-windows .canvas-window-controls > .canvas-window-btn:nth-last-child(-n+3):hover,
+html.platform-windows .mindmap-window-controls > .mindmap-window-btn:nth-last-child(-n+3):hover,
+html.platform-windows .settings-titlebar-controls .settings-titlebar-btn:hover {
+  background: var(--win-caption-hover);
+  color: var(--text-primary);
+}
+
+html.platform-windows .window-caption-controls .window-control-btn:active,
+html.platform-windows .graph-window-controls .graph-window-btn:active,
+html.platform-windows .vault-manager-window-controls .vault-manager-window-btn:active,
+html.platform-windows .canvas-window-controls > .canvas-window-btn:nth-last-child(-n+3):active,
+html.platform-windows .mindmap-window-controls > .mindmap-window-btn:nth-last-child(-n+3):active,
+html.platform-windows .settings-titlebar-controls .settings-titlebar-btn:active {
+  transform: none;
+  background: color-mix(in srgb, var(--text-primary) 16%, transparent);
+}
+
+html.platform-windows .window-caption-controls .window-control-close:hover,
+html.platform-windows .graph-window-controls .graph-window-close:hover,
+html.platform-windows .vault-manager-window-controls .vault-manager-window-close:hover,
+html.platform-windows .canvas-window-controls > .canvas-window-close:hover,
+html.platform-windows .mindmap-window-controls > .mindmap-window-close:hover,
+html.platform-windows .settings-titlebar-controls .settings-titlebar-close:hover {
+  background: var(--win-caption-close-hover);
+  color: #ffffff;
+}
+
+html.platform-windows .window-caption-controls .window-control-close:active,
+html.platform-windows .graph-window-controls .graph-window-close:active,
+html.platform-windows .vault-manager-window-controls .vault-manager-window-close:active,
+html.platform-windows .canvas-window-controls > .canvas-window-close:active,
+html.platform-windows .mindmap-window-controls > .mindmap-window-close:active,
+html.platform-windows .settings-titlebar-controls .settings-titlebar-close:active {
+  background: #c50f1f;
+  color: #ffffff;
+}
+
 /* ========== 滚动条（全局：所有窗口、portal 下拉、侧栏、编辑器共用主题变量） ========== */
 ::-webkit-scrollbar {
   width: var(--scrollbar-size, 8px);
