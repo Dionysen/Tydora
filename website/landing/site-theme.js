@@ -1,10 +1,17 @@
 (function () {
   var STORAGE_KEY = "inimark-site-theme";
 
+  var DOCS_THEME_KEY = "site-theme";
+
   function getPreference() {
     try {
       var v = localStorage.getItem(STORAGE_KEY);
       if (v === "light" || v === "dark" || v === "system") return v;
+      var docs = localStorage.getItem(DOCS_THEME_KEY);
+      if (docs === "light" || docs === "dark") {
+        localStorage.setItem(STORAGE_KEY, docs);
+        return docs;
+      }
     } catch (_) {}
     return "system";
   }
@@ -17,6 +24,7 @@
 
   function syncDocsTheme(resolved) {
     try {
+      localStorage.setItem(DOCS_THEME_KEY, resolved);
       localStorage.setItem("theme", resolved);
       localStorage.setItem("color-scheme", resolved);
     } catch (_) {}
@@ -24,6 +32,11 @@
     root.classList.toggle("theme-dark", resolved === "dark");
     root.classList.toggle("dark", resolved === "dark");
     root.dataset.theme = resolved;
+    var body = document.body;
+    if (body) {
+      body.classList.toggle("theme-dark", resolved === "dark");
+      body.classList.toggle("theme-light", resolved !== "dark");
+    }
   }
 
   function applyTheme() {
