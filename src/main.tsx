@@ -52,7 +52,7 @@ const App = lazy(() =>
     return m;
   })
 );
-const Settings = lazy(() => import("./Settings"));
+const Settings = lazy(() => import("./settings/index"));
 const VaultManagerWindow = lazy(() => import("./VaultManager/VaultManagerWindow"));
 const MindmapWindow = lazy(() => import("./mindmap").then((m) => ({ default: m.MindmapWindow })));
 const GraphWindow = lazy(() => import("./graph").then((m) => ({ default: m.GraphWindow })));
