@@ -1,4 +1,4 @@
-﻿---
+---
 title: Code Blocks
 tags: [Editor]
 ---
@@ -13,20 +13,17 @@ Inimark provides full syntax highlighting support for code, covering **36 progra
 
 Use three backticks to wrap code, and specify the language name for corresponding highlighting:
 
-````markdown
 ```javascript
 function hello() {
   console.log("Hello, Inimark!");
 }
 ```
-````
 
-> [!TIP]
-> Specifying a language (e.g., `js`, `python`, `rust`) enables the corresponding syntax highlighting; leaving it blank displays as plain text.
+> [!TIP]Specifying a language (e.g., js, python, rust) enables the corresponding syntax highlighting; leaving it blank displays as plain text.
 
 ### Method 2: Shortcut
 
-Press `Ctrl+U` to directly insert a code block.
+Press`Ctrl+U` to directly insert a code block.
 
 ### Method 3: Context Menu
 
@@ -48,7 +45,7 @@ Use a single backtick to wrap code snippets, suitable for variable names, comman
 Use `console.log()` to output logs
 ```
 
-> Shortcut: `Ctrl+E`.
+> Shortcut:`Ctrl+E`.
 
 ## Line Numbers
 
