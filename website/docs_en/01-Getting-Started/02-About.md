@@ -3,11 +3,23 @@ title: About Inimark
 tags: [getting-started]
 ---
 
-1. About Inimark
+# About Inimark
 
-Inimark is a modern desktop Markdown editor built with Tauri v2 + React 19. It supports WYSIWYG & source dual-mode editing, WikiLink bidirectional links, knowledge graph, mind maps, and a whiteboard canvas. The name comes from *Type/Typography* and the Ancient Greek *δῶρον* (gift), meaning "gift at your fingertips."
+**Inimark** — write without end, think without bounds.
 
-> [!NOTE]Inimark is open-source software licensed under the Apache License 2.0. Issues, discussions, and code contributions are welcome on GitHub.
+A quiet desk, built with Tauri v2 + React 19. Local-first, open source, and free. Writing need not end; thinking need not be fenced in. We made it small and beautiful — just enough room for ideas that keep unfolding.
+
+## Product Philosophy
+
+Inimark is not a feature checklist. It does two things:
+
+- **Focus on editing**: WYSIWYG and source, one keystroke apart. A restrained interface. The tool steps back; the words stay.
+- **Focus on thinking**: Bidirectional links, knowledge graphs, mind maps, and a whiteboard — see patterns when you need to, without building another bloated system.
+
+All notes and files live in your local folders. No personal data collected, no cloud required.
+
+> [!NOTE]
+> Inimark is open source under the Apache License 2.0. Issues, discussions, and contributions are welcome on GitHub.
 
 ## Version Info
 
@@ -21,33 +33,37 @@ Inimark is a modern desktop Markdown editor built with Tauri v2 + React 19. It s
 
 ## Check for Updates
 
-Inimark supports automatic updates: on startup, it checks for new versions in the background and prompts you to download if one is available.
+Inimark supports automatic updates: on startup it checks for new versions in the background and prompts you to download if one is available.
 
-Manual check steps:
+Manual check:
 
-1. Open Settings (press `Ctrl+,`).
-2. Switch to the "About" tab.
-3. Click "Check for Updates."
+1. Open Settings (`Ctrl+,`)
+2. Switch to the "About" tab
+3. Click "Check for Updates"
 
-> [!TIP]Automatic updates rely on signed files (.sig and latest.json) on GitHub Releases. See  for contributor setup details.
+> [!TIP]
+> Automatic updates rely on signed files on GitHub Releases. See [[09-blog/Auto-Update-Configuration]] for contributor setup.
 
 ## Feature Overview
 
-- **Dual-Mode Editing**: WYSIWYG (IR) + Source Mode (SV), toggle with `Ctrl+/`
-- **Multi-Vault Management**: Folder-based vaults with drag-and-drop file tree
-- **WikiLink Bidirectional Links**: `<a data-note="Note Name">Note Name</a>` syntax, autocomplete + backlinks panel
-- **Knowledge Graph**: D3.js force-directed graph visualizing note relationships
-- **Mind Map**: Auto-generated from Markdown heading hierarchy, powered by markmap
-- **Whiteboard Canvas**: Infinite React Flow canvas with text / note / image / media / URL / group nodes
-- **Callout Blocks**: 15 GitHub-style callout types
-- **Mermaid Diagrams**: Flowcharts, sequence diagrams, Gantt charts — live rendered
-- **Math Formulas**: KaTeX / MathJax dual engine support
-- **Frontmatter Properties Panel**: YAML metadata management
-- **One-Click Publish**: Publish your vault as a static website with built-in preview server
-- **Theme System**: 9 built-in themes + custom/Typora theme import
-- **Code Highlighting**: 11 highlight themes, 36 languages supported
-- **Customizable Shortcuts**: 40+ keyboard shortcuts, all rebindable in settings
-- **Multimedia Preview**: Images, video, audio, PDF
+**Editing**
+
+- WYSIWYG (IR) and Source (SV) dual modes, toggle with `Ctrl+/`
+- Typewriter mode, Frontmatter property panel
+- Code blocks, math, Mermaid, callouts, tables
+
+**Thinking**
+
+- WikiLink bidirectional links and backlinks
+- Knowledge graph (D3.js force-directed)
+- Mind maps (from Markdown headings / lists)
+- Whiteboard canvas (JSON Canvas format)
+
+**Basics**
+
+- Multi-vault, drag-and-drop file tree, multimedia preview
+- Built-in themes and code highlighting, customizable shortcuts
+- Quick open, command palette, outline panel
 
 ## Tech Stack
 
@@ -55,26 +71,24 @@ Manual check steps:
 | --- | --- |
 | Backend | Rust (Tauri v2) |
 | Frontend | React 19 + TypeScript + Vite 6 |
-| Editor | TipTap 3.x (WYSIWYG) + CodeMirror 6 (Source) |
-| Visualization | D3.js (Graph), markmap (Mind Map), Mermaid (Diagrams), React Flow (Canvas) |
+| Editor | TipTap 3.x + CodeMirror 6 |
+| Visualization | D3.js, markmap, Mermaid, React Flow |
 | Plugins | tauri-plugin-fs / dialog / window-state / updater / process |
 
 ## Open Source License
 
-Inimark is licensed under the [Apache License 2.0](LICENSE). You are free to use, modify, and redistribute, subject to the license terms (preserving copyright and license notices).
+Inimark is licensed under the [Apache License 2.0](LICENSE).
 
 ## Feedback
 
-Encountered an issue or have a suggestion? Reach out through:
+- **GitHub Issues**: Bug reports and feature requests
+- **GitHub Discussions**: Usage discussions and experience sharing
 
-- **GitHub Issues**: Submit bug reports and feature requests
-- **GitHub Discussions**: Participate in usage discussions and experience sharing
-
-> [!TIP]When submitting an issue, include your OS version, Inimark version, and reproduction steps — it helps us locate the problem faster.
+> [!TIP]
+> When submitting an issue, include your OS version, Inimark version, and reproduction steps.
 
 ## Related Documents
 
 - [[01-Getting-Started/01-Quick-Start]] — Getting started guide
 - [[index]] — Documentation home
-- [[09-blog/Auto-Update-Configuration]] — Auto-update signing setup (contributor-oriented)
 - [[01-Getting-Started/03-FAQ]] — Frequently asked questions

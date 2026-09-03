@@ -9,65 +9,41 @@
 
 [中文](README_ZH.md) | English
 
-![image.png](website/assets/image-20260815-221141.png)
+![image.png](website/assets/image-20260815-171029.png)
 
 ---
 
-I spent a long time settling into focused writing in **Typora**, organizing my thoughts before the graphs of **Obsidian**. Yet somewhere deep down, I always felt something was missing —
-a touch of <mark>absolute smoothness</mark> when your fingertips meet your thoughts, and the <mark>freedom</mark> to let knowledge unfold directly onto a canvas.
+**Inimark** — write without end, think without bounds.
 
-So I decided to build one myself. Its name is **Inimark**.
+Not a toolbox that tries to do everything — a quiet desk. Write well first; when you need to, let ideas find each other and patterns emerge.
 
-It's a **Markdown editor** I crafted alone through countless quiet nights — confident enough to stand in for **Typora**, ambitious enough to challenge **Obsidian**. It's more than a tool; it's a <mark>desk for fellow travelers</mark> — **clean and quiet, yet holding a world within**.
+🔗 [Website & docs](https://zuorn.github.io/Inimark/)
 
 ---
 
-## **✒️ Writing Should Flow Like Breathing**
+## Focus on editing
 
-The <mark>ultimate writing experience</mark>: WYSIWYG, with an interface so <mark>clean</mark> that only the words remain. Not a single unnecessary **distraction**; wherever the cursor lands, your **thoughts** land directly on the screen. I poured every ounce of my obsession with "<mark>the feel of writing</mark>" into it, letting the tool fully **recede** — leaving only you and the <mark>river of thought</mark>.
+WYSIWYG and source, one keystroke apart. An interface pared to the words — the tool steps back; wherever the cursor lands, your thought lands on the page.
 
 ![image.png](website/assets/image-20260815-171029.png)
 
 ---
 
-## **🪐 Knowledge Is Not an Island — It's a Constellation**
+## Focus on thinking
 
-**Relationship graphs** form between notes — the <mark>gravitational lines of thought</mark>. And the **infinite whiteboard canvas** lets you personally guide these <mark>stars</mark>, <mark>connecting them freely</mark>, <mark>restructuring logic</mark>. Going beyond the graph — here, <mark>your cognition knows no bounds</mark>.
+Notes can link to each other. Unfold a graph or mind map when structure calls. Spread out on a canvas when lines aren't enough. Extensions for thinking — not another bloated system.
 
 ![image.png](website/assets/image-20260815-171200.png)
-
----
-
-## **🌳 From Line to Tree, See the Forest in One Step**
-
-Turn any document into a **mind map** with one click. Linear text instantly unfolds into a **structure** of clear branches — hierarchy and connections at a glance. Outlining, dissecting books, reviewing ideas — no need to switch tools, the <mark>flow</mark> never breaks. What you see is <mark>the very shape of thought</mark>.
 
 ![image.png](website/assets/image-20260815-171446.png)
 
 ---
 
-## **🌸 Let Your Knowledge Garden Bloom Quietly on the Web**
-
-**Publish your local knowledge repository as a static website with one click.** Blogs, documentation, personal wikis. Sharing knowledge has finally become <mark>clean and dignified</mark>.
-
-![image.png](website/assets/image-20260815-172124.png)
-
----
-
-## **📚 A Desk Awaiting Fellow Travelers**
-
-It is the answer I offer — and an invitation to fellow travelers.
-If you're also looking for a <mark>writing companion</mark> that understands you better, come and sit with **Inimark**.
-
-🔗 [Inimark — Let Your Ideas Flow](https://zuorn.github.io/Inimark/)
-
-If there's anything you'd like it to do, tell me — I'll keep refining it, until it becomes the <mark>ideal version in our hearts</mark>.
-
 ## Quick Start
 
-1. Download and install Inimark from the [Release](https://github.com/zuorn/Inimark/releases) page.
+1. Download and install Inimark from [Releases](https://github.com/zuorn/Inimark/releases)
 
-## **Run from Source**
+## Run from Source
 
 ```bash
 git clone https://github.com/zuorn/Inimark.git
@@ -95,7 +71,6 @@ Issues and pull requests are welcome!
 ## License
 
 This project is licensed under the [Apache License 2.0](LICENSE).
-
 
 ## Star History
 

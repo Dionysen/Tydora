@@ -79,7 +79,6 @@ Since the App **does not collect any personal information**, there is no "use" o
 
 ## 7. Scope Exceptions
 
-- **Publish to Website**: If you use Inimark's built-in "Publish Website" feature, the generated static HTML is saved to your specified local directory; you may then upload these files to any hosting service you control. **Inimark itself does not upload any files on your behalf.**
 - **External Links**: Links to external websites within the app (e.g., documentation, license pages, GitHub links) are governed by those external sites' privacy policies, unrelated to this policy.
 
 ## 8. Your Rights

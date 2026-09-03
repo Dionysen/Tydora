@@ -74,15 +74,7 @@ Try "Clear Cache" in [[07-Settings/02-Editor-Settings]] and restart the app — 
 - App themes: [[06-Themes-Appearance/01-Built-in-Themes]] (9 themes) or import [[06-Themes-Appearance/02-Typora-Themes]]
 - Code themes: [[06-Themes-Appearance/03-Code-Highlight-Themes]] (11 themes)
 
-## Publishing & Updates
-
-### Resources return 404 after publishing to GitHub Pages?
-
-Most likely the Base Path is incorrect. In publish settings, set "Base Path" to `/<repo-name>/` and "Site URL" to `https://<username>.github.io/<repo-name>/`. See [[08-Advanced-Features/01-Publish-Website]].
-
-### How do I publish only some notes?
-
-Use "Public Notes Only" mode and add `publish: public` to the Frontmatter of notes you want to make public. See [[08-Advanced-Features/01-Publish-Website]] and [[02-Editor/07-Frontmatter]].
+## Updates
 
 ### Auto-update fails / keeps showing signature errors?
 

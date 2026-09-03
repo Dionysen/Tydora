@@ -1,4 +1,4 @@
-﻿---
+---
 title: Built-in Themes
 tags: [Themes]
 ---
@@ -7,8 +7,7 @@ tags: [Themes]
 
 Inimark provides **9** carefully designed built-in themes covering a range of styles — fresh, understated, vibrant, futuristic, and more — all supporting both light and dark appearances. You can switch themes with a single click in settings, or import your own CSS themes (see [[06-Themes-Appearance/02-Typora-Themes]]).
 
-> [!NOTE]
-> The default theme is **Mint**. Code block color schemes can be set independently from the app theme; see [[06-Themes-Appearance/03-Code-Highlight-Themes]] for details.
+> [!NOTE]The default theme is Mint. Code block color schemes can be set independently from the app theme; see  for details.
 
 ## Theme List
 

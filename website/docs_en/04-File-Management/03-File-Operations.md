@@ -59,7 +59,7 @@ Inimark provides complete file management capabilities in the file tree and edit
 
 1. Right-click the file.
 2. Select "Copy path".
-3. The file's full absolute path is copied to the clipboard, making it convenient to reference in the terminal, publish configurations, or conversations.
+3. The file's full absolute path is copied to the clipboard, making it convenient to reference in the terminal or conversations.
 
 ## Related Documents
 

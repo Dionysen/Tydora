@@ -1,62 +1,128 @@
 /**
  * 将落地页写入 website/site/index.html 和 website/site/en/index.html
- * 从 website/landing/index.html 与 website/landing/en/index.html 读取最新 HTML
+ * 复制落地页素材、注入文档站顶栏、站点明暗主题
  * 在 markdown-publish 构建后运行此脚本
  */
-import { writeFileSync, readFileSync, mkdirSync, cpSync, existsSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import {
+  writeFileSync,
+  readFileSync,
+  mkdirSync,
+  cpSync,
+  existsSync,
+  readdirSync,
+  statSync,
+  rmSync,
+} from "node:fs";
+import { resolve, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { spawnSync } from "node:child_process";
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const root = resolve(__dirname, "..");
+
+// Regenerate docs theme CSS from website/docs-theme.config.json
+spawnSync("node", [resolve(__dirname, "generate-docs-theme.mjs")], {
+  cwd: root,
+  stdio: "inherit",
+});
+
 const siteDir = resolve(__dirname, "../website/site");
 const landingDir = resolve(__dirname, "../website/landing");
+const assetsSrc = resolve(__dirname, "../website/assets");
 
 // Link prefix root. Default is /Inimark/ (GitHub Pages project page, see baseHref in
 // markdown-publish config). For EdgeOne root-path deployment, set BASE_HREF=/ to skip prefixing.
 const BASE_HREF = process.env.BASE_HREF || "/Inimark/";
 const SKIP_PREFIX = BASE_HREF === "/";
+const base = SKIP_PREFIX ? "/" : BASE_HREF.endsWith("/") ? BASE_HREF : `${BASE_HREF}/`;
 
-// Ensure the site directory exists
 mkdirSync(siteDir, { recursive: true });
 
-// Copy icon files to site directory
+// Copy shared site theme assets (landing + docs)
+for (const name of ["site-theme.css", "site-theme.js", "site-topbar.css", "site-docs-theme.css"]) {
+  const src = resolve(landingDir, name);
+  if (!existsSync(src)) continue;
+  try {
+    writeFileSync(resolve(siteDir, name), readFileSync(src));
+    console.log(`✅ ${name} written to website/site/${name}`);
+  } catch {
+    console.log(`⚠️ Failed to copy ${name}`);
+  }
+}
+
+
+// Copy app icon
 const iconSrc = resolve(__dirname, "../src-tauri/icons/icon.png");
 const iconDest = resolve(siteDir, "icon.png");
 try {
   writeFileSync(iconDest, readFileSync(iconSrc));
-} catch (e) {
+} catch {
   console.log("⚠️ Icon file not found, skipping");
 }
 
-// Copy favicon to site directory
-const faviconSrc = resolve(landingDir, "favicon.svg");
-const faviconDest = resolve(siteDir, "favicon.svg");
-try {
-  writeFileSync(faviconDest, readFileSync(faviconSrc));
-} catch (e) {
-  console.log("⚠️ Favicon file not found, skipping");
+// Sync favicon for landing + docs. Docs HTML from markdown-publish links to
+// favicon.svg (per-locale base href), so overwrite SVG in zh/en roots — not only PNG at site root.
+function writeFaviconSvgFromPng(pngBytes, destPath) {
+  const b64 = pngBytes.toString("base64");
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">` +
+    `<image width="32" height="32" href="data:image/png;base64,${b64}"/></svg>`;
+  writeFileSync(destPath, svg);
 }
 
-// Copy zjm.png (English landing page hero screenshot)
-const zjmSrc = resolve(landingDir, "zjm.png");
-const zjmDest = resolve(siteDir, "zjm.png");
-try {
-  writeFileSync(zjmDest, readFileSync(zjmSrc));
-  console.log("✅ zjm.png written to website/site/zjm.png");
-} catch (e) {
-  console.log("⚠️ zjm.png not found, skipping");
+const faviconCandidates = [
+  resolve(landingDir, "favicon.png"),
+  resolve(__dirname, "../src-tauri/icons/icon.png"),
+];
+let faviconPng = null;
+for (const src of faviconCandidates) {
+  if (!existsSync(src)) continue;
+  try {
+    faviconPng = readFileSync(src);
+    break;
+  } catch {
+    // try next candidate
+  }
+}
+
+if (faviconPng) {
+  for (const dir of [siteDir, resolve(siteDir, "en")]) {
+    if (!existsSync(dir)) continue;
+    writeFileSync(resolve(dir, "favicon.png"), faviconPng);
+    writeFaviconSvgFromPng(faviconPng, resolve(dir, "favicon.svg"));
+    console.log(`✅ favicon synced to ${relative(root, dir)}/`);
+  }
+} else {
+  console.log("⚠️ favicon.png not found, skipping");
+}
+
+for (const name of ["favicon.ico"]) {
+  const src = resolve(landingDir, name);
+  if (!existsSync(src)) continue;
+  try {
+    writeFileSync(resolve(siteDir, name), readFileSync(src));
+    console.log(`✅ ${name} written to website/site/${name}`);
+  } catch {
+    console.log(`⚠️ Failed to copy ${name}`);
+  }
+}
+
+// Copy landing screenshots used by zh/en landing pages
+if (existsSync(assetsSrc)) {
+  const assetsDest = resolve(siteDir, "assets");
+  if (existsSync(assetsDest)) {
+    rmSync(assetsDest, { recursive: true, force: true });
+  }
+  mkdirSync(assetsDest, { recursive: true });
+  cpSync(assetsSrc, assetsDest, { recursive: true });
+  console.log("✅ Landing assets copied to website/site/assets/");
+} else {
+  console.log("⚠️ website/assets not found, skipping");
 }
 
 /**
  * Process a landing page: read, fix doc links, write to dest.
- * GitHub Pages deploys under /Inimark/ path (baseHref in markdown-publish config), links like
- * /index/ or /知识管理/wiki链接/ need /Inimark/ prefix. When BASE_HREF=/ (EdgeOne root-path
- * deployment) no prefix is added.
- * But we must NOT modify:
- *   - External URLs (starting with https://)
- *   - Anchor links (starting with #)
- *   - Protocol-relative URLs (starting with //)
- *   - Already-prefixed paths (starting with /Inimark/)
  */
 function processLanding(srcPath, destPath, label) {
   let html;
@@ -71,7 +137,7 @@ function processLanding(srcPath, destPath, label) {
   if (!SKIP_PREFIX) {
     html = html.replace(
       /href="(\/(?!\/|Inimark\/|index\.html)[^"]*)"/g,
-      (match, path) => `href="${BASE_HREF}${path}"`
+      (_match, path) => `href="${BASE_HREF.replace(/\/$/, "")}${path}"`
     );
   }
 
@@ -79,52 +145,167 @@ function processLanding(srcPath, destPath, label) {
   console.log(`✅ ${label} landing page written to ${destPath}`);
 }
 
-// Chinese landing page → site root
 mkdirSync(resolve(siteDir, "en"), { recursive: true });
 processLanding(
   resolve(landingDir, "index.html"),
   resolve(siteDir, "index.html"),
   "Chinese"
 );
-
-// English landing page → site/en
 processLanding(
   resolve(landingDir, "en/index.html"),
   resolve(siteDir, "en/index.html"),
   "English"
 );
 
-// Copy English landing page images
 const enImagesSrc = resolve(__dirname, "../website/images/en");
 const enImagesDest = resolve(siteDir, "en/images");
 if (existsSync(enImagesSrc)) {
   mkdirSync(enImagesDest, { recursive: true });
   cpSync(enImagesSrc, enImagesDest, { recursive: true });
   console.log("✅ English landing images copied to website/site/en/images/");
-} else {
-  console.log("⚠️ English landing images not found, skipping");
 }
 
-// Fix 404.html redirect: /index -> /index/ (trailing slash for GitHub Pages)
-const notFoundPath = resolve(siteDir, "404.html");
-try {
-  let notFound = readFileSync(notFoundPath, "utf-8");
-  notFound = notFound.replace(/\/index\b(?!\/)/g, "/index/");
-  writeFileSync(notFoundPath, notFound, "utf-8");
-  console.log("✅ 404.html redirect fixed to /index/");
-} catch {
-  console.log("⚠️ 404.html not found, skipping redirect fix");
+function fix404(path, label) {
+  try {
+    let notFound = readFileSync(path, "utf-8");
+    notFound = notFound.replace(/\/index\b(?!\/)/g, "/index/");
+    writeFileSync(path, notFound, "utf-8");
+    console.log(`✅ ${label} redirect fixed`);
+  } catch {
+    console.log(`⚠️ ${label} not found, skipping redirect fix`);
+  }
+}
+fix404(resolve(siteDir, "404.html"), "404.html");
+fix404(resolve(siteDir, "en/404.html"), "en/404.html");
+
+/** Recursively list .html files under dir */
+function listHtmlFiles(dir, out = []) {
+  if (!existsSync(dir)) return out;
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name);
+    const st = statSync(full);
+    if (st.isDirectory()) listHtmlFiles(full, out);
+    else if (name.endsWith(".html")) out.push(full);
+  }
+  return out;
 }
 
-// Fix English 404.html redirect (from en docs build).
-// The en 404 template points to /Inimark/en/index, the same
-// /index -> /index/ rule produces /Inimark/en/index/ correctly.
-const enNotFoundPath = resolve(siteDir, "en/404.html");
-try {
-  let notFound = readFileSync(enNotFoundPath, "utf-8");
-  notFound = notFound.replace(/\/index\b(?!\/)/g, "/index/");
-  writeFileSync(enNotFoundPath, notFound, "utf-8");
-  console.log("✅ en/404.html redirect fixed to /en/index/");
-} catch {
-  console.log("⚠️ en/404.html not found, skipping redirect fix");
+function buildTopbar({ isEn }) {
+  const homeHref = isEn ? `${base}en/` : base;
+  const docsHref = isEn ? `${base}en/index/` : `${base}index/`;
+  const zhHref = base;
+  const enHref = `${base}en/`;
+  const iconHref = `${base}icon.png`;
+  const docsThemeCssHref = `${base}site-docs-theme.css`;
+  const topbarCssHref = `${base}site-topbar.css`;
+  const themeCssHref = `${base}site-theme.css`;
+  const themeJsHref = `${base}site-theme.js`;
+  const homeLabel = isEn ? "Home" : "主页";
+  const docsLabel = isEn ? "Docs" : "文档";
+  const themeLabel = isEn ? "Toggle theme" : "切换主题";
+  const themeTitle = isEn ? "Dark mode" : "深色模式";
+  const labelLight = isEn ? "Light mode" : "浅色模式";
+  const labelDark = isEn ? "Dark mode" : "深色模式";
+  const activeHome = "";
+  const activeDocs = "active";
+
+  return `<!-- inimark-site-chrome -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="${topbarCssHref}">
+<link rel="stylesheet" href="${themeCssHref}">
+<link rel="stylesheet" href="${docsThemeCssHref}">
+<script src="${themeJsHref}"></script>
+<style id="inimark-site-chrome-css">
+  app-theme-toggle, .theme-toggle { display: none !important; }
+</style>
+<nav class="navbar inimark-docs-topbar" aria-label="Site">
+  <div class="nav-container">
+    <a class="nav-logo" href="${homeHref}">
+      <img src="${iconHref}" alt="" width="28" height="28"/>
+      <span>Inimark</span>
+    </a>
+    <div class="nav-links">
+      <a href="${homeHref}" class="${activeHome}">${homeLabel}</a>
+      <a href="${docsHref}" class="${activeDocs}">${docsLabel}</a>
+    </div>
+    <div class="nav-right">
+      <div class="nav-lang">
+        <a href="${zhHref}" class="${isEn ? "" : "active"}">中文</a>
+        <a href="${enHref}" class="${isEn ? "active" : ""}">EN</a>
+      </div>
+      <button type="button" class="nav-theme-btn" data-theme-toggle data-theme-pref
+        aria-label="${themeLabel}" title="${themeTitle}"
+        data-label-light="${labelLight}" data-label-dark="${labelDark}" data-label-system="${labelDark}">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </button>
+      <a class="nav-github" href="https://github.com/Dionysen/Inimark" target="_blank" rel="noopener" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+      </a>
+    </div>
+  </div>
+</nav>`;
 }
+
+function buildHeadThemeScript() {
+  return `<script>(function(){try{var k="inimark-site-theme",p=localStorage.getItem(k);if(p!=="light"&&p!=="dark"&&p!=="system"){p=localStorage.getItem("site-theme");if(p!=="light"&&p!=="dark")p="system";}var d=p==="dark"||(p==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.dataset.siteTheme=d?"dark":"light";document.documentElement.style.colorScheme=d?"dark":"light";}catch(e){}})();</script>`;
+}
+
+function injectDocsChrome() {
+  const landingPaths = new Set([
+    resolve(siteDir, "index.html"),
+    resolve(siteDir, "en/index.html"),
+  ]);
+  const files = listHtmlFiles(siteDir).filter((f) => !landingPaths.has(f));
+  let injected = 0;
+
+  for (const file of files) {
+    let html = readFileSync(file, "utf-8");
+    if (!html.includes("app-theme-toggle") && !html.includes("theme-toggle") && !html.includes("app-shell")) {
+      continue;
+    }
+    // Fresh docs build — strip prior injection if re-run without rebuild
+    html = html.replace(/<!-- inimark-site-chrome -->[\s\S]*?<\/nav>\n?/g, "");
+
+    const rel = relative(siteDir, file).replace(/\\/g, "/");
+    const isEn = rel === "en" || rel.startsWith("en/");
+    const chrome = buildTopbar({ isEn });
+    const headScript = buildHeadThemeScript();
+
+    if (/<\/head>/i.test(html) && !html.includes("inimark-head-theme")) {
+      html = html.replace(/<\/head>/i, `${headScript}\n</head>`);
+    }
+
+    if (/<body[^>]*>/i.test(html)) {
+      html = html.replace(/<body([^>]*)>/i, (match, attrs) => {
+        let nextAttrs = attrs;
+        if (!/\binimark-docs\b/.test(nextAttrs)) {
+          const classMatch = nextAttrs.match(/\bclass="([^"]*)"/);
+          if (classMatch) {
+            nextAttrs = nextAttrs.replace(/\bclass="([^"]*)"/, `class="${classMatch[1]} inimark-docs"`);
+          } else {
+            nextAttrs = `${nextAttrs} class="inimark-docs"`;
+          }
+        }
+        return `<body${nextAttrs}>\n${chrome}`;
+      });
+    } else {
+      html = chrome + html;
+    }
+    writeFileSync(file, html, "utf-8");
+    injected += 1;
+  }
+  console.log(`✅ Docs topbar injected into ${injected} pages (theme toggle in topbar)`);
+}
+
+injectDocsChrome();

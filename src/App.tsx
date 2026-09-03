@@ -62,7 +62,7 @@ import { WikiLinkAutocomplete } from "./wikilink";
 import { WikiLinkPreview } from "./wikilink";
 import { TagAutocomplete, TagIndexService } from "./tags";
 import { useCanvasStore } from "./Canvas/canvas-store";
-import { buildIndexesTogether, persistIndexesToStorage, restoreIndexesFromCache } from "./services/index-builder";
+import { buildIndexesTogether, persistIndexesToStorage, restoreIndexesFromCache, clearIndexesAndCache } from "./services/index-builder";
 
 // 关系图谱 / 白板仅在打开时渲染，按需加载（避免 d3、@xyflow 进入首屏 bundle）
 const GraphView = lazy(() => import("./graph").then((m) => ({ default: m.GraphView })));
@@ -953,15 +953,18 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
 
   // 构建链接索引和标签索引（优化版：先缓存恢复 UI → 后台联合构建 → 统一持久化）
   useEffect(() => {
-    if (activeVaultIndex < 0) return;
+    if (activeVaultIndex < 0) {
+      clearIndexesAndCache();
+      return;
+    }
     const vaultPath = vaults[activeVaultIndex]?.path;
     if (!vaultPath) return;
 
-    // 策略 A 第一步：同步加载 localStorage 缓存（毫秒级），让侧栏/反链/标签立即可用
+    // 策略 A 第一步：仅恢复当前仓库的 localStorage 缓存（毫秒级），让侧栏/反链/标签立即可用
     // 不关心是否成功：失败时 buildIndexesTogether 内部会降级全量构建
     bootStart("index_restore_and_build");
     bootStamp("index_restore_from_cache_start");
-    const fromCache = restoreIndexesFromCache();
+    const fromCache = restoreIndexesFromCache(vaultPath);
     bootStamp("index_restore_from_cache_done");
 
     // 放到下一个 tick 再跑重量级 I/O，让首帧 UI 先渲染完成
@@ -985,7 +988,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
         bootStamp("index_build_failed_fallback_done");
       } finally {
         // 无论新老流程成功与否，最后统一持久化（让下次启动有缓存可用）
-        try { persistIndexesToStorage(); } catch { /* ignore */ }
+        try { persistIndexesToStorage(vaultPath); } catch { /* ignore */ }
         bootStamp("index_persist_done");
         bootEnd("index_restore_and_build");
         setTimeout(() => bootSummary(), 0);
@@ -1322,7 +1325,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
       if (activeVault) {
         LinkIndexService.updateFileLinks(path, activeVault.path);
         TagIndexService.updateFileTags(path, contentToWrite);
-        try { localStorage.setItem("inimark-link-index", LinkIndexService.serialize()); } catch {}
+        try { persistIndexesToStorage(activeVault.path); } catch {}
       }
       return true;
     } catch (e) {
@@ -1421,7 +1424,7 @@ function App({ initialFilePath, initialVaultPath }: { initialFilePath?: string |
           }
         }
         if (activeVault) {
-          try { localStorage.setItem("inimark-link-index", LinkIndexService.serialize()); } catch {}
+          try { persistIndexesToStorage(activeVault.path); } catch {}
         }
       } catch (e) {
         console.error(t("app.error.autoSaveFailed"), e);

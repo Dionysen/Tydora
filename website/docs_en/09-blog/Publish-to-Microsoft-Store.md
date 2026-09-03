@@ -289,7 +289,6 @@ Because the MSIX manifest declares `rescap:Capability Name="runFullTrust"`, Part
 > 2. **File system watching**: when users edit notes simultaneously with other editors, the app needs to watch local file changes (via the Rust `notify` crate) to keep the link index in sync in real time.
 > 3. **System file dialogs**: uses Tauri's `plugin-dialog` to provide native open/save dialogs.
 > 4. **Launching external programs**: opening files with the system default app, locating files in the file manager, etc.
-> 5. **Publish website feature**: invokes a local Node.js CLI to build Markdown into a static website.
 >
 > The app **does not collect any personal user data**; all operations are performed locally. It contains no third-party analytics SDKs or advertising SDKs. `runFullTrust` is used solely for the desktop scenarios above and does not bypass system security mechanisms.
 
@@ -536,7 +535,6 @@ npm run tauri build:msix -- -SkipBuild
 ## Related Documents
 
 - [[01-Getting-Started/Privacy-Policy]] — the privacy policy page required by the Microsoft Store
-- [[08-Advanced-Features/01-Publish-Website]] — Inimark's built-in static website publishing feature
 - [[08-Advanced-Features/04-Auto-Update-Configuration]] — GitHub Releases auto-update signing configuration
 - [[01-Getting-Started/02-About]] — Inimark version information and tech stack
 

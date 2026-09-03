@@ -5,7 +5,10 @@ on:
     branches: [main]
     paths:
       - 'website/**'
-      - 'scripts/copy-landing.mjs'
+      - 'website/docs-theme.config.json'
+      - 'website/shared/**'
+      - 'scripts/generate-docs-theme.mjs'
+      - 'scripts/sync-builtin-theme-colors.mjs'
       - 'package.json'
       - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:

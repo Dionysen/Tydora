@@ -25,7 +25,7 @@ In Instant Rendering mode, the Markdown syntax you type is **immediately rendere
 - Ideal for daily writing, note-taking, and quick editing
 
 > [!TIP]
-> Instant Rendering is the recommended mode for most scenarios. Its experience is closest to Typora / Obsidian's "Live Preview."
+> Instant Rendering is the recommended mode for most scenarios — a clean interface where what you see is what you get, ideal for focused writing.
 
 ### Source View (SV)
 
