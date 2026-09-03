@@ -6,6 +6,8 @@
     "close": "关闭",
     "appearance": {
       "groupTitleInterface": "界面",
+      "groupInterface": "界面",
+      "groupTheme": "主题",
       "groupTitleAppearance": "字体与排版",
       "groupTitleEditor": "编辑器",
       "groupTitleSave": "保存",
@@ -105,8 +107,11 @@
       }
     },
     "tabs": {
-      "groupGeneral": "通用",
+      "groupGeneral": "常规",
       "general": "通用",
+      "editor": "编辑器",
+      "markdown": "Markdown",
+      "appearance": "外观",
       "theme": "主题",
       "shortcuts": "快捷键",
       "image": "图像",
@@ -117,6 +122,12 @@
       "publish": "发布",
       "groupAbout": "关于",
       "about": "关于"
+    },
+    "general": {
+      "groupLanguage": "语言"
+    },
+    "markdown": {
+      "groupFeatures": "语法扩展"
     },
     "shortcuts": {
       "searchPlaceholder": "搜索快捷键...",
@@ -430,6 +441,8 @@
       "mediaCard": "多媒体卡片"
     },
     "editor": {
+      "groupExperience": "编辑体验",
+      "groupTypography": "排版与字体",
       "defaultMode": "默认编辑模式",
       "defaultModeDesc": "新建文件时使用的编辑模式。",
       "instantRender": "即时渲染",

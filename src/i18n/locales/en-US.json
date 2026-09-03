@@ -6,6 +6,8 @@
     "close": "Close",
     "appearance": {
       "groupTitleInterface": "Interface",
+      "groupInterface": "Interface",
+      "groupTheme": "Theme",
       "groupTitleAppearance": "Typography",
       "groupTitleEditor": "Editor",
       "groupTitleSave": "Save",
@@ -107,6 +109,9 @@
     "tabs": {
       "groupGeneral": "General",
       "general": "General",
+      "editor": "Editor",
+      "markdown": "Markdown",
+      "appearance": "Appearance",
       "theme": "Theme",
       "shortcuts": "Shortcuts",
       "image": "Image",
@@ -117,6 +122,12 @@
       "publish": "Publish",
       "groupAbout": "About",
       "about": "About"
+    },
+    "general": {
+      "groupLanguage": "Language"
+    },
+    "markdown": {
+      "groupFeatures": "Syntax Extensions"
     },
     "shortcuts": {
       "searchPlaceholder": "Search shortcuts...",
@@ -430,6 +441,8 @@
       "mediaCard": "Media Card"
     },
     "editor": {
+      "groupExperience": "Editing",
+      "groupTypography": "Typography & Fonts",
       "defaultMode": "Default Edit Mode",
       "defaultModeDesc": "Edit mode used when creating new files.",
       "instantRender": "Instant Render",

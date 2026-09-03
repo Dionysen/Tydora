@@ -73,7 +73,7 @@ import "./Settings.css";
 
 // ── Types ────────────────────────────────────────────────────────────
 
-type SettingsTab = "general" | "theme" | "shortcuts" | "mindmap" | "graph" | "image" | "canvas" | "publish" | "about";
+type SettingsTab = "general" | "editor" | "markdown" | "appearance" | "theme" | "shortcuts" | "mindmap" | "graph" | "image" | "canvas" | "publish" | "about";
 
 interface NavItem {
   id: SettingsTab;
@@ -151,19 +151,13 @@ const GENERAL_SETTINGS_KEY = "inimark-general-settings";
 
 // ── Components ──────────────────────────────────────────────────────
 
-function GeneralSettingsContent({
-  settings,
-  onChange,
-}: {
-  settings: GeneralSettings;
-  onChange: (s: GeneralSettings) => void;
-}) {
+function GeneralSettingsContent() {
   const { t } = useTranslation();
   const { language, setLanguage } = useLanguage();
 
   return (
     <div className="canvas-settings-page">
-      <div className="settings-section-title">{t("settings.appearance.groupTitleInterface")}</div>
+      <div className="settings-section-title">{t("settings.general.groupLanguage")}</div>
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
@@ -180,20 +174,107 @@ function GeneralSettingsContent({
           />
         </div>
       </div>
+    </div>
+  );
+}
 
-      <div className="settings-section-title">{t("settings.appearance.groupTitleAppearance")}</div>
+function EditorSettingsContent({
+  generalSettings,
+  onGeneralChange,
+  editorSettings,
+  onEditorChange,
+}: {
+  generalSettings: GeneralSettings;
+  onGeneralChange: (s: GeneralSettings) => void;
+  editorSettings: EditorSettings;
+  onEditorChange: (s: EditorSettings) => void;
+}) {
+  const { t } = useTranslation();
+  const updateEditor = <K extends keyof EditorSettings>(key: K, value: EditorSettings[K]) =>
+    onEditorChange({ ...editorSettings, [key]: value });
+
+  return (
+    <div className="canvas-settings-page">
+      <div className="settings-section-title">{t("settings.editor.groupExperience")}</div>
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.appearance.uiFont")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.appearance.uiFontDesc")}</span>
+            <span className="canvas-settings-row-title">{t("settings.editor.defaultMode")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.editor.defaultModeDesc")}</span>
           </div>
-          <FontPicker
-            mode="editor"
-            value={normalizeUiFontValue(settings.uiFont)}
-            onChange={(uiFont) => onChange({ ...settings, uiFont })}
+          <SettingsSelect
+            value={editorSettings.defaultMode}
+            onChange={(v) => updateEditor("defaultMode", v as EditorSettings["defaultMode"])}
+            options={[
+              { value: "ir", label: t("settings.editor.instantRender") },
+              { value: "sv", label: t("settings.editor.source") },
+            ]}
           />
         </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.editor.wordCountType")}</span>
+          </div>
+          <SettingsSelect
+            value={editorSettings.counterType}
+            onChange={(v) => updateEditor("counterType", v as EditorSettings["counterType"])}
+            options={[
+              { value: "markdown", label: t("settings.editor.markdown") },
+              { value: "text", label: t("settings.editor.plainText") },
+            ]}
+          />
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.typewriterMode")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.typewriterModeDesc")}</span>
+          </div>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={generalSettings.typewriterMode}
+              onChange={(e) => onGeneralChange({ ...generalSettings, typewriterMode: e.target.checked })}
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.showLineNumbers")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.showLineNumbersDesc")}</span>
+          </div>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={generalSettings.irLineNumbers}
+              onChange={(e) => onGeneralChange({ ...generalSettings, irLineNumbers: e.target.checked })}
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.codeBlockToolbarStyle")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.codeBlockToolbarStyleDesc")}</span>
+          </div>
+          <SettingsSelect
+            value={generalSettings.codeBlockToolbarStyle}
+            onChange={(v) =>
+              onGeneralChange({
+                ...generalSettings,
+                codeBlockToolbarStyle: v as CodeBlockToolbarStyle,
+              })
+            }
+            options={[
+              { value: "minimal", label: t("settings.appearance.codeBlockToolbarMinimal") },
+              { value: "classic", label: t("settings.appearance.codeBlockToolbarClassic") },
+            ]}
+          />
+        </div>
+      </div>
+
+      <div className="settings-section-title">{t("settings.editor.groupTypography")}</div>
+      <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
             <span className="canvas-settings-row-title">{t("settings.appearance.editorFont")}</span>
@@ -201,8 +282,8 @@ function GeneralSettingsContent({
           </div>
           <FontPicker
             mode="editor"
-            value={normalizeEditorFontValue(settings.editorFont)}
-            onChange={(editorFont) => onChange({ ...settings, editorFont })}
+            value={normalizeEditorFontValue(generalSettings.editorFont)}
+            onChange={(editorFont) => onGeneralChange({ ...generalSettings, editorFont })}
           />
         </div>
         <div className="canvas-settings-row">
@@ -212,8 +293,8 @@ function GeneralSettingsContent({
           </div>
           <FontPicker
             mode="code"
-            value={normalizeCodeFontValue(settings.codeFont)}
-            onChange={(codeFont) => onChange({ ...settings, codeFont })}
+            value={normalizeCodeFontValue(generalSettings.codeFont)}
+            onChange={(codeFont) => onGeneralChange({ ...generalSettings, codeFont })}
           />
         </div>
         <div className="canvas-settings-row">
@@ -227,10 +308,10 @@ function GeneralSettingsContent({
               className="canvas-settings-slider"
               min="10"
               max="24"
-              value={settings.fontSize}
-              onChange={(e) => onChange({ ...settings, fontSize: Number(e.target.value) })}
+              value={generalSettings.fontSize}
+              onChange={(e) => onGeneralChange({ ...generalSettings, fontSize: Number(e.target.value) })}
             />
-            <span className="canvas-settings-unit">{settings.fontSize}px</span>
+            <span className="canvas-settings-unit">{generalSettings.fontSize}px</span>
           </div>
         </div>
         <div className="canvas-settings-row">
@@ -244,10 +325,10 @@ function GeneralSettingsContent({
               className="canvas-settings-slider"
               min="10"
               max="24"
-              value={settings.codeFontSize}
-              onChange={(e) => onChange({ ...settings, codeFontSize: Number(e.target.value) })}
+              value={generalSettings.codeFontSize}
+              onChange={(e) => onGeneralChange({ ...generalSettings, codeFontSize: Number(e.target.value) })}
             />
-            <span className="canvas-settings-unit">{settings.codeFontSize}px</span>
+            <span className="canvas-settings-unit">{generalSettings.codeFontSize}px</span>
           </div>
         </div>
         <div className="canvas-settings-row">
@@ -262,10 +343,10 @@ function GeneralSettingsContent({
               min={14}
               max={28}
               step={1}
-              value={Math.round(settings.lineHeight * 10)}
-              onChange={(e) => onChange({ ...settings, lineHeight: Number(e.target.value) / 10 })}
+              value={Math.round(generalSettings.lineHeight * 10)}
+              onChange={(e) => onGeneralChange({ ...generalSettings, lineHeight: Number(e.target.value) / 10 })}
             />
-            <span className="canvas-settings-unit">{settings.lineHeight.toFixed(1)}</span>
+            <span className="canvas-settings-unit">{generalSettings.lineHeight.toFixed(1)}</span>
           </div>
         </div>
         <div className="canvas-settings-row">
@@ -280,12 +361,12 @@ function GeneralSettingsContent({
               min={0}
               max={20}
               step={1}
-              value={Math.round(settings.paragraphSpacing * 10)}
+              value={Math.round(generalSettings.paragraphSpacing * 10)}
               onChange={(e) =>
-                onChange({ ...settings, paragraphSpacing: Number(e.target.value) / 10 })
+                onGeneralChange({ ...generalSettings, paragraphSpacing: Number(e.target.value) / 10 })
               }
             />
-            <span className="canvas-settings-unit">{settings.paragraphSpacing.toFixed(1)}</span>
+            <span className="canvas-settings-unit">{generalSettings.paragraphSpacing.toFixed(1)}</span>
           </div>
         </div>
         <div className="canvas-settings-row">
@@ -300,12 +381,12 @@ function GeneralSettingsContent({
               min={12}
               max={24}
               step={1}
-              value={Math.round(settings.codeLineHeight * 10)}
+              value={Math.round(generalSettings.codeLineHeight * 10)}
               onChange={(e) =>
-                onChange({ ...settings, codeLineHeight: Number(e.target.value) / 10 })
+                onGeneralChange({ ...generalSettings, codeLineHeight: Number(e.target.value) / 10 })
               }
             />
-            <span className="canvas-settings-unit">{settings.codeLineHeight.toFixed(1)}</span>
+            <span className="canvas-settings-unit">{generalSettings.codeLineHeight.toFixed(1)}</span>
           </div>
         </div>
         <div className="canvas-settings-row">
@@ -320,61 +401,244 @@ function GeneralSettingsContent({
               min={600}
               max={1200}
               step={20}
-              value={settings.previewMaxWidth}
-              onChange={(e) => onChange({ ...settings, previewMaxWidth: Number(e.target.value) })}
+              value={generalSettings.previewMaxWidth}
+              onChange={(e) => onGeneralChange({ ...generalSettings, previewMaxWidth: Number(e.target.value) })}
             />
-            <span className="canvas-settings-unit">{settings.previewMaxWidth}px</span>
+            <span className="canvas-settings-unit">{generalSettings.previewMaxWidth}px</span>
           </div>
         </div>
       </div>
 
-      <div className="settings-section-title">{t("settings.appearance.groupTitleEditor")}</div>
+      <div className="settings-section-title">{t("settings.appearance.groupTitleSave")}</div>
       <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.appearance.typewriterMode")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.appearance.typewriterModeDesc")}</span>
+            <span className="canvas-settings-row-title">{t("settings.appearance.autoSave")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.autoSaveDesc")}</span>
           </div>
           <label className="settings-switch">
             <input
               type="checkbox"
-              checked={settings.typewriterMode}
-              onChange={(e) => onChange({ ...settings, typewriterMode: e.target.checked })}
+              checked={generalSettings.autoSave}
+              onChange={(e) => onGeneralChange({ ...generalSettings, autoSave: e.target.checked })}
             />
             <span className="settings-switch-slider" />
           </label>
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.appearance.showLineNumbers")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.appearance.showLineNumbersDesc")}</span>
+            <span className="canvas-settings-row-title">{t("settings.appearance.formatOnSave")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.formatOnSaveDesc")}</span>
           </div>
           <label className="settings-switch">
             <input
               type="checkbox"
-              checked={settings.irLineNumbers}
-              onChange={(e) => onChange({ ...settings, irLineNumbers: e.target.checked })}
+              checked={generalSettings.markdownFormat.formatOnSave}
+              onChange={(e) =>
+                onGeneralChange({
+                  ...generalSettings,
+                  markdownFormat: { ...generalSettings.markdownFormat, formatOnSave: e.target.checked },
+                })
+              }
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+      </div>
+
+      <div className="settings-section-title">{t("settings.appearance.groupTitleMarkdownFormat")}</div>
+      <div className="canvas-settings-card">
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.formatCjkSpacing")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.formatCjkSpacingDesc")}</span>
+          </div>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={generalSettings.markdownFormat.cjkSpacing}
+              onChange={(e) =>
+                onGeneralChange({
+                  ...generalSettings,
+                  markdownFormat: { ...generalSettings.markdownFormat, cjkSpacing: e.target.checked },
+                })
+              }
             />
             <span className="settings-switch-slider" />
           </label>
         </div>
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.appearance.codeBlockToolbarStyle")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.appearance.codeBlockToolbarStyleDesc")}</span>
+            <span className="canvas-settings-row-title">{t("settings.appearance.formatTrimTrailing")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.formatTrimTrailingDesc")}</span>
           </div>
-          <SettingsSelect
-            value={settings.codeBlockToolbarStyle}
-            onChange={(v) =>
-              onChange({
-                ...settings,
-                codeBlockToolbarStyle: v as CodeBlockToolbarStyle,
-              })
-            }
-            options={[
-              { value: "minimal", label: t("settings.appearance.codeBlockToolbarMinimal") },
-              { value: "classic", label: t("settings.appearance.codeBlockToolbarClassic") },
-            ]}
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={generalSettings.markdownFormat.trimTrailingWhitespace}
+              onChange={(e) =>
+                onGeneralChange({
+                  ...generalSettings,
+                  markdownFormat: { ...generalSettings.markdownFormat, trimTrailingWhitespace: e.target.checked },
+                })
+              }
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.formatEnsureNewline")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.formatEnsureNewlineDesc")}</span>
+          </div>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={generalSettings.markdownFormat.ensureFinalNewline}
+              onChange={(e) =>
+                onGeneralChange({
+                  ...generalSettings,
+                  markdownFormat: { ...generalSettings.markdownFormat, ensureFinalNewline: e.target.checked },
+                })
+              }
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.formatNormalizeBlank")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.formatNormalizeBlankDesc")}</span>
+          </div>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={generalSettings.markdownFormat.normalizeBlankLines}
+              onChange={(e) =>
+                onGeneralChange({
+                  ...generalSettings,
+                  markdownFormat: { ...generalSettings.markdownFormat, normalizeBlankLines: e.target.checked },
+                })
+              }
+            />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
+function MarkdownSettingsContent({
+  settings,
+  onChange,
+}: {
+  settings: EditorSettings;
+  onChange: (s: EditorSettings) => void;
+}) {
+  const { t } = useTranslation();
+  const update = <K extends keyof EditorSettings>(key: K, value: EditorSettings[K]) =>
+    onChange({ ...settings, [key]: value });
+
+  return (
+    <div className="canvas-settings-page">
+      <div className="settings-section-title">{t("settings.markdown.groupFeatures")}</div>
+      <div className="canvas-settings-card">
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.editor.callout")}</span>
+            <span className="canvas-settings-row-desc">{'> [!NOTE]'}</span>
+          </div>
+          <label className="settings-switch">
+            <input type="checkbox" checked={settings.callout} onChange={(e) => update("callout", e.target.checked)} />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.editor.mermaid")}</span>
+            <span className="canvas-settings-row-desc">flowchart / sequence / ...</span>
+          </div>
+          <label className="settings-switch">
+            <input type="checkbox" checked={settings.mermaid} onChange={(e) => update("mermaid", e.target.checked)} />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.editor.math")}</span>
+            <span className="canvas-settings-row-desc">$LaTeX$</span>
+          </div>
+          <label className="settings-switch">
+            <input type="checkbox" checked={settings.math} onChange={(e) => update("math", e.target.checked)} />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.editor.wikilink")}</span>
+            <span className="canvas-settings-row-desc">[[note]]</span>
+          </div>
+          <label className="settings-switch">
+            <input type="checkbox" checked={settings.wikiLink} onChange={(e) => update("wikiLink", e.target.checked)} />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.editor.yaml")}</span>
+            <span className="canvas-settings-row-desc">--- 元数据 ---</span>
+          </div>
+          <label className="settings-switch">
+            <input type="checkbox" checked={settings.frontmatter} onChange={(e) => update("frontmatter", e.target.checked)} />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.editor.tableToolbar")}</span>
+          </div>
+          <label className="settings-switch">
+            <input type="checkbox" checked={settings.tableToolbar} onChange={(e) => update("tableToolbar", e.target.checked)} />
+            <span className="settings-switch-slider" />
+          </label>
+        </div>
+      </div>
+
+      <div className="canvas-settings-card">
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-desc">{t("settings.editor.restartNotice")}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AppearanceSettingsContent({
+  settings,
+  onChange,
+}: {
+  settings: GeneralSettings;
+  onChange: (s: GeneralSettings) => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="canvas-settings-page">
+      <div className="settings-section-title">{t("settings.appearance.groupInterface")}</div>
+      <div className="canvas-settings-card">
+        <div className="canvas-settings-row">
+          <div className="canvas-settings-row-label">
+            <span className="canvas-settings-row-title">{t("settings.appearance.uiFont")}</span>
+            <span className="canvas-settings-row-desc">{t("settings.appearance.uiFontDesc")}</span>
+          </div>
+          <FontPicker
+            mode="editor"
+            value={normalizeUiFontValue(settings.uiFont)}
+            onChange={(uiFont) => onChange({ ...settings, uiFont })}
           />
         </div>
         <div className="canvas-settings-row">
@@ -397,127 +661,6 @@ function GeneralSettingsContent({
             ]}
           />
         </div>
-      </div>
-
-      <div className="settings-section-title">{t("settings.appearance.groupTitleSave")}</div>
-      <div className="canvas-settings-card">
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.appearance.autoSave")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.appearance.autoSaveDesc")}</span>
-          </div>
-          <label className="settings-switch">
-            <input
-              type="checkbox"
-              checked={settings.autoSave}
-              onChange={(e) => onChange({ ...settings, autoSave: e.target.checked })}
-            />
-            <span className="settings-switch-slider" />
-          </label>
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.appearance.formatOnSave")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.appearance.formatOnSaveDesc")}</span>
-          </div>
-          <label className="settings-switch">
-            <input
-              type="checkbox"
-              checked={settings.markdownFormat.formatOnSave}
-              onChange={(e) =>
-                onChange({
-                  ...settings,
-                  markdownFormat: { ...settings.markdownFormat, formatOnSave: e.target.checked },
-                })
-              }
-            />
-            <span className="settings-switch-slider" />
-          </label>
-        </div>
-      </div>
-
-      <div className="settings-section-title">{t("settings.appearance.groupTitleMarkdownFormat")}</div>
-      <div className="canvas-settings-card">
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.appearance.formatCjkSpacing")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.appearance.formatCjkSpacingDesc")}</span>
-          </div>
-          <label className="settings-switch">
-            <input
-              type="checkbox"
-              checked={settings.markdownFormat.cjkSpacing}
-              onChange={(e) =>
-                onChange({
-                  ...settings,
-                  markdownFormat: { ...settings.markdownFormat, cjkSpacing: e.target.checked },
-                })
-              }
-            />
-            <span className="settings-switch-slider" />
-          </label>
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.appearance.formatTrimTrailing")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.appearance.formatTrimTrailingDesc")}</span>
-          </div>
-          <label className="settings-switch">
-            <input
-              type="checkbox"
-              checked={settings.markdownFormat.trimTrailingWhitespace}
-              onChange={(e) =>
-                onChange({
-                  ...settings,
-                  markdownFormat: { ...settings.markdownFormat, trimTrailingWhitespace: e.target.checked },
-                })
-              }
-            />
-            <span className="settings-switch-slider" />
-          </label>
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.appearance.formatEnsureNewline")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.appearance.formatEnsureNewlineDesc")}</span>
-          </div>
-          <label className="settings-switch">
-            <input
-              type="checkbox"
-              checked={settings.markdownFormat.ensureFinalNewline}
-              onChange={(e) =>
-                onChange({
-                  ...settings,
-                  markdownFormat: { ...settings.markdownFormat, ensureFinalNewline: e.target.checked },
-                })
-              }
-            />
-            <span className="settings-switch-slider" />
-          </label>
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.appearance.formatNormalizeBlank")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.appearance.formatNormalizeBlankDesc")}</span>
-          </div>
-          <label className="settings-switch">
-            <input
-              type="checkbox"
-              checked={settings.markdownFormat.normalizeBlankLines}
-              onChange={(e) =>
-                onChange({
-                  ...settings,
-                  markdownFormat: { ...settings.markdownFormat, normalizeBlankLines: e.target.checked },
-                })
-              }
-            />
-            <span className="settings-switch-slider" />
-          </label>
-        </div>
-      </div>
-
-      <div className="settings-section-title">{t("settings.appearance.groupTitleWindow")}</div>
-      <div className="canvas-settings-card">
         <div className="canvas-settings-row">
           <div className="canvas-settings-row-label">
             <span className="canvas-settings-row-title">{t("settings.appearance.autoHideTopbar")}</span>
@@ -2331,123 +2474,6 @@ function ImageSettingsContent({
   );
 }
 
-// @ts-expect-error - Reserved for future editor settings UI
-function EditorSettingsContent({
-  settings,
-  onChange,
-}: {
-  settings: EditorSettings;
-  onChange: (s: EditorSettings) => void;
-}) {
-  const { t } = useTranslation();
-  const update = <K extends keyof EditorSettings>(key: K, value: EditorSettings[K]) =>
-    onChange({ ...settings, [key]: value });
-
-  return (
-    <div className="canvas-settings-page">
-      <div className="canvas-settings-card">
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.editor.defaultMode")}</span>
-            <span className="canvas-settings-row-desc">{t("settings.editor.defaultModeDesc")}</span>
-          </div>
-          <SettingsSelect
-            value={settings.defaultMode}
-            onChange={(v) => update("defaultMode", v as EditorSettings["defaultMode"])}
-            options={[
-              { value: "ir", label: t("settings.editor.instantRender") },
-              { value: "sv", label: t("settings.editor.source") },
-            ]}
-          />
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.editor.wordCountType")}</span>
-          </div>
-          <SettingsSelect
-            value={settings.counterType}
-            onChange={(v) => update("counterType", v as EditorSettings["counterType"])}
-            options={[
-              { value: "markdown", label: t("settings.editor.markdown") },
-              { value: "text", label: t("settings.editor.plainText") },
-            ]}
-          />
-        </div>
-      </div>
-
-      <div className="canvas-settings-card">
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.editor.callout")}</span>
-            <span className="canvas-settings-row-desc">{'> [!NOTE]'}</span>
-          </div>
-          <label className="settings-switch">
-            <input type="checkbox" checked={settings.callout} onChange={(e) => update("callout", e.target.checked)} />
-            <span className="settings-switch-slider" />
-          </label>
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.editor.mermaid")}</span>
-            <span className="canvas-settings-row-desc">flowchart / sequence / ...</span>
-          </div>
-          <label className="settings-switch">
-            <input type="checkbox" checked={settings.mermaid} onChange={(e) => update("mermaid", e.target.checked)} />
-            <span className="settings-switch-slider" />
-          </label>
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.editor.math")}</span>
-            <span className="canvas-settings-row-desc">$LaTeX$</span>
-          </div>
-          <label className="settings-switch">
-            <input type="checkbox" checked={settings.math} onChange={(e) => update("math", e.target.checked)} />
-            <span className="settings-switch-slider" />
-          </label>
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.editor.wikilink")}</span>
-            <span className="canvas-settings-row-desc">[[note]]</span>
-          </div>
-          <label className="settings-switch">
-            <input type="checkbox" checked={settings.wikiLink} onChange={(e) => update("wikiLink", e.target.checked)} />
-            <span className="settings-switch-slider" />
-          </label>
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.editor.yaml")}</span>
-            <span className="canvas-settings-row-desc">--- 元数据 ---</span>
-          </div>
-          <label className="settings-switch">
-            <input type="checkbox" checked={settings.frontmatter} onChange={(e) => update("frontmatter", e.target.checked)} />
-            <span className="settings-switch-slider" />
-          </label>
-        </div>
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-title">{t("settings.editor.tableToolbar")}</span>
-          </div>
-          <label className="settings-switch">
-            <input type="checkbox" checked={settings.tableToolbar} onChange={(e) => update("tableToolbar", e.target.checked)} />
-            <span className="settings-switch-slider" />
-          </label>
-        </div>
-      </div>
-
-      <div className="canvas-settings-card">
-        <div className="canvas-settings-row">
-          <div className="canvas-settings-row-label">
-            <span className="canvas-settings-row-desc">{t("settings.editor.restartNotice")}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function CanvasSettingsContent({
   settings,
   onChange,
@@ -2870,14 +2896,16 @@ const SETTINGS_NAV_WIDTH_DEFAULT = 260;
 const SETTINGS_NAV_WIDTH_MIN = 180;
 const SETTINGS_NAV_WIDTH_MAX = 420;
 const SETTINGS_TABS: SettingsTab[] = [
-  "general", "theme", "shortcuts", "mindmap", "graph", "image", "canvas", "publish", "about",
+  "general", "editor", "markdown", "appearance", "theme", "shortcuts", "mindmap", "graph", "image", "canvas", "publish", "about",
 ];
 
 function consumeInitialSettingsTab(): SettingsTab | null {
   try {
-    const saved = localStorage.getItem("inimark-settings-initial-tab") as SettingsTab | null;
-    if (saved && SETTINGS_TABS.includes(saved)) {
-      localStorage.removeItem("inimark-settings-initial-tab");
+    const raw = localStorage.getItem("inimark-settings-initial-tab");
+    localStorage.removeItem("inimark-settings-initial-tab");
+    if (!raw) return null;
+    const saved = raw as SettingsTab;
+    if (SETTINGS_TABS.includes(saved)) {
       return saved;
     }
   } catch { }
@@ -3145,7 +3173,7 @@ export default function Settings() {
   }, [imageSettings]);
 
   // 编辑器设置状态
-  const [editorSettings] = useState<EditorSettings>(() => loadEditorSettings());
+  const [editorSettings, setEditorSettings] = useState<EditorSettings>(() => loadEditorSettings());
 
   // 保存编辑器设置到 localStorage
   useEffect(() => {
@@ -3202,7 +3230,32 @@ export default function Settings() {
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
-          ), searchTerms: ["通用", "general", "外观", "字体", "编辑设置"]
+          ), searchTerms: ["通用", "general", "语言", "language"]
+        },
+        {
+          id: "editor", label: t("settings.tabs.editor"), icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+          ), searchTerms: ["编辑器", "editor", "打字机", "行号", "字体", "保存", "格式化", "CJK", "默认模式", "字数"]
+        },
+        {
+          id: "markdown", label: t("settings.tabs.markdown"), icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+              <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z" />
+              <path d="M9 13l2 2 4-4" />
+            </svg>
+          ), searchTerms: ["Markdown", "markdown", "Callout", "Mermaid", "数学", "LaTeX", "WikiLink", "Frontmatter", "YAML", "表格工具栏", "扩展"]
+        },
+        {
+          id: "appearance", label: t("settings.tabs.appearance"), icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M9 3v18" />
+            </svg>
+          ), searchTerms: ["外观", "appearance", "界面", "侧栏", "顶栏", "菜单", "UI字体", "窗口"]
         },
         {
           id: "theme", label: t("settings.tabs.theme"), icon: (
@@ -3213,7 +3266,7 @@ export default function Settings() {
               <circle cx="6.5" cy="12" r="0.5" fill="currentColor" stroke="none" />
               <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
             </svg>
-          ), searchTerms: ["主题", "theme", "颜色", "自定义主题", "代码主题"]
+          ), searchTerms: ["主题", "theme", "颜色", "自定义主题", "代码主题", "外观模式"]
         },
         {
           id: "shortcuts", label: t("settings.tabs.shortcuts"), icon: (
@@ -3398,7 +3451,24 @@ export default function Settings() {
           </div>
           <main className="settings-main">
             {activeTab === "general" && (
-              <GeneralSettingsContent settings={generalSettings} onChange={setGeneralSettings} />
+              <GeneralSettingsContent />
+            )}
+            {activeTab === "editor" && (
+              <EditorSettingsContent
+                generalSettings={generalSettings}
+                onGeneralChange={setGeneralSettings}
+                editorSettings={editorSettings}
+                onEditorChange={setEditorSettings}
+              />
+            )}
+            {activeTab === "markdown" && (
+              <MarkdownSettingsContent
+                settings={editorSettings}
+                onChange={setEditorSettings}
+              />
+            )}
+            {activeTab === "appearance" && (
+              <AppearanceSettingsContent settings={generalSettings} onChange={setGeneralSettings} />
             )}
             {activeTab === "theme" && <ThemeSettingsContent />}
             {activeTab === "shortcuts" && <ShortcutsSettingsContent />}

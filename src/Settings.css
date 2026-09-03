@@ -376,6 +376,12 @@
   margin-top: 0;
 }
 
+.settings-section-title--theme {
+  margin-top: 28px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+}
+
 /* ── Settings Item ────────────────────────────────────────────────── */
 
 .settings-item {
