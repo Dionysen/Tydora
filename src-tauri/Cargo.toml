@@ -1,6 +1,6 @@
 [package]
 name = "inimark"
-version = "0.2.5"
+version = "0.3.0"
 description = "A modern Markdown editor built with Tauri"
 authors = ["you"]
 edition = "2021"
