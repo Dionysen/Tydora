@@ -25,7 +25,7 @@ All notes and files live in your local folders. No personal data collected, no c
 
 | Item | Details |
 | --- | --- |
-| Current Version | 0.2.3 |
+| Current Version | 0.2.5 |
 | Build Framework | Tauri v2 |
 | Frontend Framework | React 19 |
 | Editor Engine | TipTap 3.x (WYSIWYG) + CodeMirror 6 (Source) |
